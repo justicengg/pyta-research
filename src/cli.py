@@ -8,10 +8,12 @@ from src.db.session import (
     get_latest_macro_date,
     get_latest_trade_date,
     get_session,
+    insert_derived_factors,
     insert_raw_fundamental,
     insert_raw_macro,
     insert_raw_price,
 )
+from src.factors.calculator import FactorCalculator
 from src.fetchers.fundamental.fundamental_fetcher import FundamentalFetcher
 from src.fetchers.macro.macro_fetcher import MacroFetcher
 from src.fetchers.market.baostock_fetcher import BaostockFetcher
@@ -49,6 +51,13 @@ def _build_parser() -> argparse.ArgumentParser:
     macro.add_argument('--start', required=True)
     macro.add_argument('--end', required=True)
     macro.add_argument('--incremental', action='store_true')
+
+    factors = sub.add_parser('factors')
+    factors_sub = factors.add_subparsers(dest='factors_cmd', required=True)
+    factors_compute = factors_sub.add_parser('compute')
+    factors_compute.add_argument('--symbol', required=True)
+    factors_compute.add_argument('--market', default='CN')
+    factors_compute.add_argument('--asof', required=True, help='ISO date, e.g. 2026-03-02')
 
     quality = sub.add_parser('quality')
     quality_sub = quality.add_subparsers(dest='quality_cmd', required=True)
@@ -112,6 +121,18 @@ def main() -> None:
                 inserted = insert_raw_macro(session, rows)
             print(f'macro rows inserted={inserted}')
             return
+
+    if args.command == 'factors' and args.factors_cmd == 'compute':
+        with get_session() as session:
+            rows = FactorCalculator().compute(
+                symbol=args.symbol,
+                market=args.market,
+                asof=date.fromisoformat(args.asof),
+                session=session,
+            )
+            inserted = insert_derived_factors(session, rows)
+        print(f'factors inserted={inserted}')
+        return
 
     if args.command == 'quality' and args.quality_cmd == 'check':
         report = DataQualityChecker().run(table=args.table, run_date=args.date)
