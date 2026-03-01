@@ -64,6 +64,27 @@ class StrategyCardSpec:
 
 
 @dataclass
+class PositionSnapshot:
+    """Current holding for a single (symbol, market) as of snapshot_date."""
+    symbol: str
+    market: str
+    net_shares: float               # buy_shares - sell_shares
+    avg_cost: Optional[float]       # weighted average buy price
+    current_price: Optional[float]  # latest close from raw_price
+    unrealized_pnl: Optional[float]     # (current_price - avg_cost) * net_shares
+    unrealized_pnl_pct: Optional[float] # (current_price - avg_cost) / avg_cost
+
+
+@dataclass
+class PortfolioSnapshot:
+    """Aggregate portfolio state at snapshot_date."""
+    snapshot_date: date
+    generated_at: str               # ISO-8601 timestamp
+    positions: list[PositionSnapshot]
+    total_unrealized_pnl: Optional[float]
+
+
+@dataclass
 class QualityIssue:
     rule: str
     severity: str
