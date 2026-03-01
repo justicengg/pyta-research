@@ -17,7 +17,7 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         'derived_factors',
-        sa.Column('id', sa.BigInteger(), primary_key=True, autoincrement=True),
+        sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column('symbol', sa.String(length=32), nullable=False),
         sa.Column('market', sa.String(length=16), nullable=False),
         sa.Column('asof_date', sa.Date(), nullable=False),
