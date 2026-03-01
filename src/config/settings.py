@@ -10,5 +10,15 @@ class Settings(BaseSettings):
     scheduler_cron_hour: int = 18
     scheduler_cron_minute: int = 0
 
+    # Pipeline watchlists — override via .env with JSON arrays, e.g.:
+    #   PIPELINE_CN_SYMBOLS=["sh.600000","sh.000001"]
+    #   PIPELINE_US_SYMBOLS=["SPY","QQQ"]
+    #   PIPELINE_CN_FUNDAMENTAL_SYMBOLS=["600000","000001"]
+    #   PIPELINE_MACRO_SERIES=["CPIAUCSL:US:fred","UNRATE:US:fred"]
+    pipeline_cn_symbols: list[str] = ['sh.600000']
+    pipeline_us_symbols: list[str] = ['SPY']
+    pipeline_cn_fundamental_symbols: list[str] = ['600000']
+    pipeline_macro_series: list[str] = ['CPIAUCSL:US:fred']
+
 
 settings = Settings()

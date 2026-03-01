@@ -58,20 +58,25 @@ class PipelineScheduler:
         start = date.today() - timedelta(days=30)
         end = date.today()
         with get_session() as session:
-            last_baostock = get_latest_trade_date(session, symbol='sh.600000', market='CN', source='baostock')
-            last_yf = get_latest_trade_date(session, symbol='SPY', market='US', source='yfinance')
-            rows_cn = BaostockFetcher().fetch('sh.600000', 'CN', start, end, incremental=True, last_date=last_baostock, adapter=lambda **_: [])
-            rows_us = YFinanceFetcher().fetch('SPY', 'US', start, end, incremental=True, last_date=last_yf, adapter=lambda **_: [])
-            inserted = insert_raw_price(session, rows_cn + rows_us)
+            all_rows: list[dict] = []
+            for symbol in settings.pipeline_cn_symbols:
+                last = get_latest_trade_date(session, symbol=symbol, market='CN', source='baostock')
+                all_rows.extend(BaostockFetcher().fetch(symbol, 'CN', start, end, incremental=True, last_date=last))
+            for symbol in settings.pipeline_us_symbols:
+                last = get_latest_trade_date(session, symbol=symbol, market='US', source='yfinance')
+                all_rows.extend(YFinanceFetcher().fetch(symbol, 'US', start, end, incremental=True, last_date=last))
+            inserted = insert_raw_price(session, all_rows)
         logger.info('market fetch done inserted=%s', inserted)
 
     def _run_fundamental(self) -> None:
         logger.info('run fundamental fetch')
         with get_session() as session:
-            rows = FundamentalFetcher().fetch(
-                symbol='600000', market='CN', asof=date.today(), incremental=True, adapter=lambda **_: []
-            )
-            inserted = insert_raw_fundamental(session, rows)
+            all_rows: list[dict] = []
+            for symbol in settings.pipeline_cn_fundamental_symbols:
+                all_rows.extend(
+                    FundamentalFetcher().fetch(symbol=symbol, market='CN', asof=date.today(), incremental=True)
+                )
+            inserted = insert_raw_fundamental(session, all_rows)
         logger.info('fundamental fetch done inserted=%s', inserted)
 
     def _run_macro(self) -> None:
@@ -79,11 +84,17 @@ class PipelineScheduler:
         start = date.today() - timedelta(days=365)
         end = date.today()
         with get_session() as session:
-            last = get_latest_macro_date(session, series_code='CPIAUCSL', market='US', source='fred')
-            rows = MacroFetcher().fetch(
-                series='CPIAUCSL', market='US', source='fred', start=start, end=end, incremental=True, last_date=last, adapter=lambda **_: []
-            )
-            inserted = insert_raw_macro(session, rows)
+            all_rows: list[dict] = []
+            for entry in settings.pipeline_macro_series:
+                series, market, source = entry.split(':')
+                last = get_latest_macro_date(session, series_code=series, market=market, source=source)
+                all_rows.extend(
+                    MacroFetcher().fetch(
+                        series=series, market=market, source=source,
+                        start=start, end=end, incremental=True, last_date=last,
+                    )
+                )
+            inserted = insert_raw_macro(session, all_rows)
         logger.info('macro fetch done inserted=%s', inserted)
 
     def _run_quality(self) -> None:

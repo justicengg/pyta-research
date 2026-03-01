@@ -44,5 +44,42 @@ class BaostockFetcher(DataFetcher):
         return results
 
     @staticmethod
-    def _default_adapter(**kwargs):
-        raise RuntimeError('baostock adapter not configured in MVP; inject adapter for tests/runtime wrapper')
+    def _default_adapter(symbol: str, start: date, end: date) -> list[dict]:
+        try:
+            import baostock as bs
+        except ImportError:
+            raise RuntimeError('baostock package required: pip install baostock')
+
+        def _safe_float(v: str) -> float | None:
+            try:
+                return float(v) if v else None
+            except (ValueError, TypeError):
+                return None
+
+        lg = bs.login()
+        try:
+            rs = bs.query_history_k_data_plus(
+                symbol,
+                'date,open,high,low,close,volume',
+                start_date=start.isoformat(),
+                end_date=end.isoformat(),
+                frequency='d',
+                adjustflag='3',  # 后复权
+            )
+            rows = []
+            while rs.error_code == '0' and rs.next():
+                d = dict(zip(rs.fields, rs.get_row_data()))
+                rows.append(
+                    {
+                        'trade_date': d['date'],
+                        'open': _safe_float(d.get('open')),
+                        'high': _safe_float(d.get('high')),
+                        'low': _safe_float(d.get('low')),
+                        'close': _safe_float(d.get('close')),
+                        'volume': _safe_float(d.get('volume')),
+                        'adj_factor': None,
+                    }
+                )
+            return rows
+        finally:
+            bs.logout()

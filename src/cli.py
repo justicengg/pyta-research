@@ -80,7 +80,6 @@ def main() -> None:
                     end=date.fromisoformat(args.end),
                     incremental=args.incremental,
                     last_date=last,
-                    adapter=(lambda **_: []),
                 )
                 inserted = insert_raw_price(session, rows)
             print(f'market rows inserted={inserted}')
@@ -93,7 +92,6 @@ def main() -> None:
                     market=args.market,
                     asof=date.fromisoformat(args.asof),
                     incremental=args.incremental,
-                    adapter=(lambda **_: []),
                 )
                 inserted = insert_raw_fundamental(session, rows)
             print(f'fundamental rows inserted={inserted}')
@@ -110,7 +108,6 @@ def main() -> None:
                     end=date.fromisoformat(args.end),
                     incremental=args.incremental,
                     last_date=last,
-                    adapter=(lambda **_: []),
                 )
                 inserted = insert_raw_macro(session, rows)
             print(f'macro rows inserted={inserted}')
