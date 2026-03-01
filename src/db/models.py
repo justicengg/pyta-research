@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Date, DateTime, Index, Integer, Numeric, String, UniqueConstraint, func
+from sqlalchemy import Date, DateTime, Index, Integer, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.base import Base
@@ -89,3 +89,35 @@ class DerivedFactor(Base):
     factor_name: Mapped[str] = mapped_column(String(64), nullable=False)
     factor_value: Mapped[float | None] = mapped_column(Numeric(20, 8))
     computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class StrategyCard(Base):
+    """Draft / active / closed strategy card produced by 大呆子（策略官）.
+
+    Human-filled fields (thesis, position_pct) are left NULL on creation and
+    filled in after human review.  Auto-filled fields (valuation_note,
+    entry_price, stop_loss_price, entry_date) are populated by CardGenerator.
+    """
+    __tablename__ = 'strategy_card'
+    __table_args__ = (
+        Index('ix_strategy_card_symbol_market', 'symbol', 'market'),
+        Index('ix_strategy_card_status', 'status'),
+        Index('ix_strategy_card_created_at', 'created_at'),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    symbol: Mapped[str] = mapped_column(String(32), nullable=False)
+    market: Mapped[str] = mapped_column(String(16), nullable=False)
+    # Human-filled
+    thesis: Mapped[str | None] = mapped_column(Text)
+    position_pct: Mapped[float | None] = mapped_column(Numeric(6, 4))
+    # Auto-filled by CardGenerator
+    valuation_note: Mapped[str | None] = mapped_column(Text)
+    entry_price: Mapped[float | None] = mapped_column(Numeric(18, 6))
+    entry_date: Mapped[datetime | None] = mapped_column(Date)
+    stop_loss_price: Mapped[float | None] = mapped_column(Numeric(18, 6))
+    # Lifecycle
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default='draft', server_default='draft')
+    close_reason: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

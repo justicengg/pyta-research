@@ -33,5 +33,16 @@ class Settings(BaseSettings):
         'volume_ratio_5_20:>=:0.80',
     ]
 
+    # Strategy card stop-loss configuration (大呆子 CardGenerator)
+    # method: 'pct' = fixed percentage below entry_price
+    #         'atr' = entry_price - multiplier * ATR(window)
+    # Rules are documented in FRAMEWORK.md; override via .env, e.g.:
+    #   STRATEGY_STOP_LOSS_METHOD=atr
+    #   STRATEGY_STOP_LOSS_PCT=0.10
+    strategy_stop_loss_method: str = 'pct'
+    strategy_stop_loss_pct: float = 0.08          # 8% fixed stop-loss
+    strategy_stop_loss_atr_window: int = 14       # ATR period (trading days)
+    strategy_stop_loss_atr_multiplier: float = 2.0  # stop = entry - multiplier * ATR
+
 
 settings = Settings()
