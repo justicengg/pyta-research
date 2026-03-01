@@ -12,10 +12,12 @@ from src.db.session import (
     get_latest_macro_date,
     get_latest_trade_date,
     get_session,
+    insert_derived_factors,
     insert_raw_fundamental,
     insert_raw_macro,
     insert_raw_price,
 )
+from src.factors.calculator import FactorCalculator
 from src.fetchers.fundamental.fundamental_fetcher import FundamentalFetcher
 from src.fetchers.macro.macro_fetcher import MacroFetcher
 from src.fetchers.market.baostock_fetcher import BaostockFetcher
@@ -34,6 +36,7 @@ class PipelineScheduler:
         self._with_retry(self._run_market, max_attempts=3)
         self._with_retry(self._run_fundamental, max_attempts=3)
         self._with_retry(self._run_macro, max_attempts=3)
+        self._with_retry(self._run_factors, max_attempts=3)
         self._with_retry(self._run_quality, max_attempts=2)
 
     def start(self) -> None:
@@ -96,6 +99,18 @@ class PipelineScheduler:
                 )
             inserted = insert_raw_macro(session, all_rows)
         logger.info('macro fetch done inserted=%s', inserted)
+
+    def _run_factors(self) -> None:
+        logger.info('run factor compute')
+        asof = date.today()
+        with get_session() as session:
+            all_rows: list[dict] = []
+            for symbol in settings.pipeline_cn_symbols:
+                all_rows.extend(FactorCalculator().compute(symbol=symbol, market='CN', asof=asof, session=session))
+            for symbol in settings.pipeline_us_symbols:
+                all_rows.extend(FactorCalculator().compute(symbol=symbol, market='US', asof=asof, session=session))
+            inserted = insert_derived_factors(session, all_rows)
+        logger.info('factor compute done inserted=%s', inserted)
 
     def _run_quality(self) -> None:
         logger.info('run quality checks')

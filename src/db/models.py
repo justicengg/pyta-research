@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Date, DateTime, Index, Integer, Numeric, String, UniqueConstraint, func
+from sqlalchemy import BigInteger, Date, DateTime, Index, Integer, Numeric, String, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.base import Base
@@ -72,3 +72,20 @@ class RawMacro(Base):
     source: Mapped[str] = mapped_column(String(32), nullable=False)
     ingested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     quality_status: Mapped[str] = mapped_column(String(16), nullable=False, default='pending', server_default='pending')
+
+
+class DerivedFactor(Base):
+    __tablename__ = 'derived_factors'
+    __table_args__ = (
+        UniqueConstraint('symbol', 'market', 'asof_date', 'factor_name', name='uq_derived_factor_key'),
+        Index('ix_derived_factors_market_symbol_asof_date', 'market', 'symbol', 'asof_date'),
+        Index('ix_derived_factors_factor_name_asof_date', 'factor_name', 'asof_date'),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    symbol: Mapped[str] = mapped_column(String(32), nullable=False)
+    market: Mapped[str] = mapped_column(String(16), nullable=False)
+    asof_date: Mapped[datetime] = mapped_column(Date, nullable=False)
+    factor_name: Mapped[str] = mapped_column(String(64), nullable=False)
+    factor_value: Mapped[float | None] = mapped_column(Numeric(20, 8))
+    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())

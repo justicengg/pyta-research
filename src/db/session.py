@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.config.settings import settings
-from src.db.models import RawFundamental, RawMacro, RawPrice
+from src.db.models import DerivedFactor, RawFundamental, RawMacro, RawPrice
 
 engine = None
 SessionLocal = None
@@ -85,6 +85,28 @@ def insert_raw_macro(session: Session, rows: list[dict]) -> int:
         try:
             with session.begin_nested():
                 session.add(RawMacro(**row))
+            inserted += 1
+        except IntegrityError:
+            pass
+    return inserted
+
+
+def get_latest_factor_date(session: Session, symbol: str, market: str) -> date | None:
+    stmt = (
+        select(DerivedFactor.asof_date)
+        .where(DerivedFactor.symbol == symbol, DerivedFactor.market == market)
+        .order_by(DerivedFactor.asof_date.desc())
+        .limit(1)
+    )
+    return session.scalar(stmt)
+
+
+def insert_derived_factors(session: Session, rows: list[dict]) -> int:
+    inserted = 0
+    for row in rows:
+        try:
+            with session.begin_nested():
+                session.add(DerivedFactor(**row))
             inserted += 1
         except IntegrityError:
             pass
