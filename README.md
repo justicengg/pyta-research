@@ -1,33 +1,53 @@
 # pyta-research
 
-PYTA 投研部门投资框架代码仓库。
+PYTA Investment Framework 的 Phase 1（数据管道）MVP 实现。
 
-覆盖市场：A股、港股（主战场）、美股、日股、全球指数基金
-投资风格：中长线基本面为主，不做短期博弈，不加杠杆追热点
+## Scope (M1-T1 ~ M1-T6)
+- M1-T1: PostgreSQL schema + Alembic migration
+- M1-T2: 市场行情采集（baostock + yfinance）
+- M1-T3: 财务数据采集（Point-in-time）
+- M1-T4: 宏观数据采集（FRED + baostock）
+- M1-T5: 数据质量检查与 CLI 报告
+- M1-T6: APScheduler 日常调度（18:00）
 
-## 文档索引
+## Quick Start
 
-| 文档 | 说明 |
-|------|------|
-| [FRAMEWORK.md](docs/FRAMEWORK.md) | 框架总览 |
-| [USAGE.md](docs/USAGE.md) | 如何调用、参数、示例 |
-| [CHANGELOG.md](docs/CHANGELOG.md) | 版本变化 |
-| [FAQ.md](docs/FAQ.md) | 常见问题 |
+### 1. Install dependencies
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install sqlalchemy alembic pydantic-settings apscheduler requests yfinance python-dateutil psycopg2-binary pytest
+```
 
-## 工具链
+### 2. Configure env
+```bash
+cp .env.example .env
+# 修改 DATABASE_URL/FRED_API_KEY
+```
 
-- **Linear**: 任务中枢 — [PYTA workspace](https://linear.app/ainews)
-- **GitHub**: 代码与版本控制
-- **飞书**: 知识沉淀与看板
+### 3. Apply migration
+```bash
+alembic upgrade head
+```
 
-## 分支策略
+### 4. CLI examples
+```bash
+python -m src.cli fetch market --source yfinance --symbol SPY --market US --start 2026-01-01 --end 2026-02-01 --incremental
+python -m src.cli fetch fundamental --symbol 600000 --market CN --asof 2026-02-01 --incremental
+python -m src.cli fetch macro --series CPIAUCSL --source fred --market US --start 2025-01-01 --end 2026-02-01 --incremental
+python -m src.cli quality check --table raw_price --date 2026-02-01 --out /tmp/quality.json
+python -m src.cli scheduler run-once
+```
 
-- `main`: 受保护主分支，需 PR review 才能合并，禁止 force push
-- 功能分支命名: `<owner>/<inv-N>-<short-description>`
+## Testing
+```bash
+pytest
+```
 
-## 开发流程
-
-1. Linear Issue 进入 Planned 后，从 Issue 复制 branch name
-2. 基于 `main` 创建功能分支
-3. 开发完成后提交 PR，使用 PR template 填写信息
-4. Review 通过后 merge，Linear Issue 自动关联
+## Docs
+- [FRAMEWORK](docs/FRAMEWORK.md)
+- [USAGE](docs/USAGE.md)
+- [CHANGELOG](docs/CHANGELOG.md)
+- [FAQ](docs/FAQ.md)
+- [ERD](docs/ERD.md)

@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "pyta-research"
+version = "0.1.0"
+description = "PYTA investment data pipeline MVP"
+authors = ["kai sky"]
+readme = "README.md"
+packages = [{ include = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+SQLAlchemy = "^2.0.36"
+alembic = "^1.14.0"
+pydantic-settings = "^2.6.1"
+APScheduler = "^3.10.4"
+requests = "^2.32.3"
+yfinance = "^0.2.54"
+python-dateutil = "^2.9.0"
+psycopg2-binary = "^2.9.10"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.4"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["poetry-core>=1.9.0"]
+build-backend = "poetry.core.masonry.api"
