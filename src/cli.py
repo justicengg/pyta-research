@@ -13,6 +13,7 @@ from src.db.session import (
     insert_raw_macro,
     insert_raw_price,
 )
+from src.config.settings import settings
 from src.factors.calculator import FactorCalculator
 from src.fetchers.fundamental.fundamental_fetcher import FundamentalFetcher
 from src.fetchers.macro.macro_fetcher import MacroFetcher
@@ -21,6 +22,8 @@ from src.fetchers.market.yfinance_fetcher import YFinanceFetcher
 from src.quality.checker import DataQualityChecker
 from src.quality.report import report_to_json
 from src.scheduler.scheduler import PipelineScheduler
+from src.screener.report import result_to_json as screener_result_to_json
+from src.screener.screener import Screener
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -58,6 +61,12 @@ def _build_parser() -> argparse.ArgumentParser:
     factors_compute.add_argument('--symbol', required=True)
     factors_compute.add_argument('--market', default='CN')
     factors_compute.add_argument('--asof', required=True, help='ISO date, e.g. 2026-03-02')
+
+    screener = sub.add_parser('screener')
+    screener_sub = screener.add_subparsers(dest='screener_cmd', required=True)
+    screener_run = screener_sub.add_parser('run')
+    screener_run.add_argument('--asof', required=True, help='ISO date, e.g. 2026-03-02')
+    screener_run.add_argument('--out', required=True, help='Output JSON file path')
 
     quality = sub.add_parser('quality')
     quality_sub = quality.add_subparsers(dest='quality_cmd', required=True)
@@ -132,6 +141,24 @@ def main() -> None:
             )
             inserted = insert_derived_factors(session, rows)
         print(f'factors inserted={inserted}')
+        return
+
+    if args.command == 'screener' and args.screener_cmd == 'run':
+        asof = date.fromisoformat(args.asof)
+        symbols = (
+            [(s, 'CN') for s in settings.pipeline_cn_symbols]
+            + [(s, 'US') for s in settings.pipeline_us_symbols]
+        )
+        with get_session() as session:
+            result = Screener().run(
+                asof=asof,
+                symbols=symbols,
+                session=session,
+                rules=settings.screener_rules,
+            )
+        out = Path(args.out)
+        out.write_text(screener_result_to_json(result), encoding='utf-8')
+        print(f'screener screened={result.total_screened} candidates={result.total_candidates} out={out}')
         return
 
     if args.command == 'quality' and args.quality_cmd == 'check':
