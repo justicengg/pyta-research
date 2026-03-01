@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from datetime import date
 
 from sqlalchemy import create_engine, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.config.settings import settings
@@ -55,58 +56,36 @@ def get_latest_macro_date(session: Session, series_code: str, market: str, sourc
 
 
 def insert_raw_price(session: Session, rows: list[dict]) -> int:
-    session.flush()
     inserted = 0
     for row in rows:
-        exists = session.execute(
-            select(RawPrice.id).where(
-                RawPrice.symbol == row['symbol'],
-                RawPrice.market == row['market'],
-                RawPrice.trade_date == row['trade_date'],
-                RawPrice.source == row['source'],
-            )
-        ).first()
-        if exists:
-            continue
-        session.add(RawPrice(**row))
-        inserted += 1
+        try:
+            with session.begin_nested():
+                session.add(RawPrice(**row))
+            inserted += 1
+        except IntegrityError:
+            pass
     return inserted
 
 
 def insert_raw_fundamental(session: Session, rows: list[dict]) -> int:
-    session.flush()
     inserted = 0
     for row in rows:
-        exists = session.execute(
-            select(RawFundamental.id).where(
-                RawFundamental.symbol == row['symbol'],
-                RawFundamental.market == row['market'],
-                RawFundamental.report_period == row['report_period'],
-                RawFundamental.publish_date == row['publish_date'],
-                RawFundamental.source == row['source'],
-            )
-        ).first()
-        if exists:
-            continue
-        session.add(RawFundamental(**row))
-        inserted += 1
+        try:
+            with session.begin_nested():
+                session.add(RawFundamental(**row))
+            inserted += 1
+        except IntegrityError:
+            pass
     return inserted
 
 
 def insert_raw_macro(session: Session, rows: list[dict]) -> int:
-    session.flush()
     inserted = 0
     for row in rows:
-        exists = session.execute(
-            select(RawMacro.id).where(
-                RawMacro.series_code == row['series_code'],
-                RawMacro.market == row['market'],
-                RawMacro.obs_date == row['obs_date'],
-                RawMacro.source == row['source'],
-            )
-        ).first()
-        if exists:
-            continue
-        session.add(RawMacro(**row))
-        inserted += 1
+        try:
+            with session.begin_nested():
+                session.add(RawMacro(**row))
+            inserted += 1
+        except IntegrityError:
+            pass
     return inserted
