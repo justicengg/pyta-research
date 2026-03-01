@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.config.settings import settings
-from src.db.models import DerivedFactor, RawFundamental, RawMacro, RawPrice
+from src.db.models import DerivedFactor, RawFundamental, RawMacro, RawPrice, StrategyCard
 
 engine = None
 SessionLocal = None
@@ -111,3 +111,29 @@ def insert_derived_factors(session: Session, rows: list[dict]) -> int:
         except IntegrityError:
             pass
     return inserted
+
+
+def insert_strategy_card(session: Session, row: dict) -> int:
+    """Insert one strategy card and return its new id."""
+    card = StrategyCard(**row)
+    session.add(card)
+    session.flush()
+    return card.id
+
+
+def get_strategy_cards(
+    session: Session,
+    symbol: str | None = None,
+    market: str | None = None,
+    status: str | None = None,
+) -> list[StrategyCard]:
+    """Query strategy cards with optional filters."""
+    stmt = select(StrategyCard)
+    if symbol is not None:
+        stmt = stmt.where(StrategyCard.symbol == symbol)
+    if market is not None:
+        stmt = stmt.where(StrategyCard.market == market)
+    if status is not None:
+        stmt = stmt.where(StrategyCard.status == status)
+    stmt = stmt.order_by(StrategyCard.created_at.desc())
+    return list(session.scalars(stmt).all())

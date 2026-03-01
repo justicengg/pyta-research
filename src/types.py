@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
+from typing import Optional
 
 
 @dataclass
@@ -38,6 +39,28 @@ class MacroRecord:
     value: float | None
     frequency: str | None
     source: str
+
+
+@dataclass
+class StrategyCardSpec:
+    """Lightweight spec passed between CardGenerator and session helpers.
+
+    Human-filled fields (thesis, position_pct) are None on creation;
+    auto-filled fields are populated by CardGenerator.
+    Status lifecycle: draft → active → closed.
+    """
+    symbol: str
+    market: str
+    # Auto-filled
+    valuation_note: Optional[str]
+    entry_price: Optional[float]
+    entry_date: Optional[date]
+    stop_loss_price: Optional[float]
+    # Human-filled (left None in generated draft)
+    thesis: Optional[str] = None
+    position_pct: Optional[float] = None
+    status: str = 'draft'
+    close_reason: Optional[str] = None
 
 
 @dataclass

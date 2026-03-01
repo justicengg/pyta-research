@@ -4,6 +4,8 @@ import argparse
 from datetime import date
 from pathlib import Path
 
+import json
+
 from src.db.session import (
     get_latest_macro_date,
     get_latest_trade_date,
@@ -12,6 +14,7 @@ from src.db.session import (
     insert_raw_fundamental,
     insert_raw_macro,
     insert_raw_price,
+    insert_strategy_card,
 )
 from src.config.settings import settings
 from src.factors.calculator import FactorCalculator
@@ -23,7 +26,8 @@ from src.quality.checker import DataQualityChecker
 from src.quality.report import report_to_json
 from src.scheduler.scheduler import PipelineScheduler
 from src.screener.report import result_to_json as screener_result_to_json
-from src.screener.screener import Screener
+from src.screener.screener import Screener, ScreenerCandidate
+from src.strategy.card_generator import CardGenerator
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -67,6 +71,14 @@ def _build_parser() -> argparse.ArgumentParser:
     screener_run = screener_sub.add_parser('run')
     screener_run.add_argument('--asof', required=True, help='ISO date, e.g. 2026-03-02')
     screener_run.add_argument('--out', required=True, help='Output JSON file path')
+
+    strategy = sub.add_parser('strategy')
+    strategy_sub = strategy.add_subparsers(dest='strategy_cmd', required=True)
+    strategy_gen = strategy_sub.add_parser('generate')
+    strategy_gen.add_argument('--candidate', required=True,
+                              help='Path to candidates.json from screener run')
+    strategy_gen.add_argument('--out', required=True,
+                              help='Output directory for Markdown files')
 
     quality = sub.add_parser('quality')
     quality_sub = quality.add_subparsers(dest='quality_cmd', required=True)
@@ -159,6 +171,48 @@ def main() -> None:
         out = Path(args.out)
         out.write_text(screener_result_to_json(result), encoding='utf-8')
         print(f'screener screened={result.total_screened} candidates={result.total_candidates} out={out}')
+        return
+
+    if args.command == 'strategy' and args.strategy_cmd == 'generate':
+        candidate_path = Path(args.candidate)
+        payload = json.loads(candidate_path.read_text(encoding='utf-8'))
+        asof = date.fromisoformat(payload['asof_date'])
+        candidates = [
+            ScreenerCandidate(
+                symbol=c['symbol'],
+                market=c['market'],
+                matched_rules=c['matched_rules'],
+                skipped_rules=c['skipped_rules'],
+                factors=c['factors'],
+            )
+            for c in payload.get('candidates', [])
+        ]
+        gen = CardGenerator()
+        out_dir = Path(args.out)
+        out_dir.mkdir(parents=True, exist_ok=True)
+        inserted = 0
+        with get_session() as session:
+            rows = gen.generate(
+                candidates=candidates,
+                asof=asof,
+                session=session,
+                stop_loss_method=settings.strategy_stop_loss_method,
+                stop_loss_pct=settings.strategy_stop_loss_pct,
+                stop_loss_atr_window=settings.strategy_stop_loss_atr_window,
+                stop_loss_atr_multiplier=settings.strategy_stop_loss_atr_multiplier,
+            )
+            for card, cand in zip(rows, candidates):
+                card_id = insert_strategy_card(session, card)
+                md = gen.to_markdown(
+                    card, cand,
+                    stop_loss_method=settings.strategy_stop_loss_method,
+                    stop_loss_pct=settings.strategy_stop_loss_pct,
+                    stop_loss_atr_multiplier=settings.strategy_stop_loss_atr_multiplier,
+                )
+                md_path = out_dir / f'{card["symbol"].replace(".", "_")}_{card["market"]}_{asof}.md'
+                md_path.write_text(md, encoding='utf-8')
+                inserted += 1
+        print(f'strategy cards generated={inserted} out={out_dir}')
         return
 
     if args.command == 'quality' and args.quality_cmd == 'check':
