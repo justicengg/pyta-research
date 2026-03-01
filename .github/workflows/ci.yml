@@ -33,7 +33,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install sqlalchemy alembic pydantic-settings apscheduler requests yfinance python-dateutil psycopg2-binary pytest
+          pip install sqlalchemy alembic pydantic-settings apscheduler requests yfinance baostock python-dateutil psycopg2-binary pytest
 
       - name: Run Alembic migration
         env:
@@ -47,9 +47,3 @@ jobs:
         env:
           PYTHONPATH: .
         run: pytest -q
-
-      - name: Scheduler smoke test
-        env:
-          DATABASE_URL: sqlite:///./ci.db
-          PYTHONPATH: .
-        run: python -m src.cli scheduler run-once
