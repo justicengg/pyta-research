@@ -137,5 +137,10 @@ class PipelineScheduler:
                 max_drawdown_pct=settings.risk_max_drawdown_pct,
             )
         text = ReportGenerator().generate_daily(decision)
+        if not settings.feishu_webhook_url:
+            logger.info('daily report push skipped: feishu_webhook_url is empty')
+            return
         pushed = FeishuPusher().push(text=text, webhook_url=settings.feishu_webhook_url)
+        if not pushed:
+            raise RuntimeError('daily report push failed')
         logger.info('daily report done pushed=%s', pushed)

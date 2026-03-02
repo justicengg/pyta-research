@@ -220,6 +220,16 @@ class TestPortfolioDrawdown:
         assert report.portfolio_drawdown_pct is None
         assert not any(v.check == 'portfolio_drawdown' for v in report.violations)
 
+    def test_drawdown_uses_only_positions_with_price_and_cost(self):
+        # A contributes to drawdown: -20%
+        # B has no current_price and must be excluded from both pnl and cost basis.
+        a = _pos('A', net_shares=100, avg_cost=10, current_price=8)
+        b = _pos('B', net_shares=100, avg_cost=10, current_price=None)
+        report = CHECKER.check(_snap([a, b]), max_drawdown_pct=0.15)
+        assert report.total_cost_basis == pytest.approx(1000.0)  # only A counted
+        assert report.portfolio_drawdown_pct == pytest.approx(-0.2)
+        assert any(v.check == 'portfolio_drawdown' for v in report.violations)
+
 
 # ── TestCombinedViolations ────────────────────────────────────────────────────
 
