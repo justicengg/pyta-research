@@ -22,7 +22,10 @@ from src.fetchers.fundamental.fundamental_fetcher import FundamentalFetcher
 from src.fetchers.macro.macro_fetcher import MacroFetcher
 from src.fetchers.market.baostock_fetcher import BaostockFetcher
 from src.fetchers.market.yfinance_fetcher import YFinanceFetcher
+from src.decision.advisor import DecisionAdvisor
 from src.quality.checker import DataQualityChecker
+from src.report.generator import ReportGenerator
+from src.report.pusher import FeishuPusher
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s %(message)s')
@@ -38,6 +41,7 @@ class PipelineScheduler:
         self._with_retry(self._run_macro, max_attempts=3)
         self._with_retry(self._run_factors, max_attempts=3)
         self._with_retry(self._run_quality, max_attempts=2)
+        self._with_retry(self._run_report, max_attempts=2)
 
     def start(self) -> None:
         trigger = CronTrigger(hour=settings.scheduler_cron_hour, minute=settings.scheduler_cron_minute)
@@ -118,3 +122,20 @@ class PipelineScheduler:
         for table in ('raw_price', 'raw_fundamental', 'raw_macro'):
             report = checker.run(table=table, run_date=date.today().isoformat())
             logger.info('quality table=%s rows=%s issues=%s', table, report.total_rows, report.issue_count)
+
+    def _run_report(self) -> None:
+        logger.info('run daily report push')
+        asof = date.today()
+        with get_session() as session:
+            decision = DecisionAdvisor().evaluate(
+                asof=asof,
+                session=session,
+                price_source_cn=settings.price_source_cn,
+                price_source_us=settings.price_source_us,
+                max_position_pct=settings.risk_max_position_pct,
+                max_positions=settings.risk_max_positions,
+                max_drawdown_pct=settings.risk_max_drawdown_pct,
+            )
+        text = ReportGenerator().generate_daily(decision)
+        pushed = FeishuPusher().push(text=text, webhook_url=settings.feishu_webhook_url)
+        logger.info('daily report done pushed=%s', pushed)

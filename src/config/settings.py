@@ -61,5 +61,11 @@ class Settings(BaseSettings):
     risk_max_positions: int = 10          # total open positions ≤ 10
     risk_max_drawdown_pct: float = 0.15   # portfolio drawdown breach threshold (15%)
 
+    # Report pusher — Feishu (飞书) group robot webhook.
+    # Leave empty to disable push (scheduler will skip silently).
+    # Override via .env, e.g.:
+    #   FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/<token>
+    feishu_webhook_url: str = ''
+
 
 settings = Settings()
