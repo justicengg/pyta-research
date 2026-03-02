@@ -229,7 +229,12 @@ def main() -> None:
     if args.command == 'portfolio' and args.portfolio_cmd == 'snapshot':
         asof = date.fromisoformat(args.asof) if args.asof else date.today()
         with get_session() as session:
-            snap = PortfolioTracker().snapshot(asof=asof, session=session)
+            snap = PortfolioTracker().snapshot(
+                asof=asof,
+                session=session,
+                price_source_cn=settings.price_source_cn,
+                price_source_us=settings.price_source_us,
+            )
         output = portfolio_snapshot_to_json(snap)
         if args.out:
             out = Path(args.out)

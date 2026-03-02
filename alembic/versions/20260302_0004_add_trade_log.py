@@ -22,6 +22,7 @@ def upgrade() -> None:
         sa.Column('market', sa.String(length=16), nullable=False),
         sa.Column('card_id', sa.Integer()),          # soft ref to strategy_card.id
         sa.Column('direction', sa.String(length=8), nullable=False),  # buy | sell
+        sa.CheckConstraint("direction IN ('buy', 'sell')", name='ck_trade_log_direction'),
         sa.Column('price', sa.Numeric(18, 6), nullable=False),
         sa.Column('shares', sa.Numeric(18, 4), nullable=False),
         sa.Column('amount', sa.Numeric(24, 6), nullable=False),  # price * shares
