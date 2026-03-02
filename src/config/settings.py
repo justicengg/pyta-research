@@ -52,5 +52,14 @@ class Settings(BaseSettings):
     price_source_cn: str = 'baostock'
     price_source_us: str = 'yfinance'
 
+    # Risk checker — portfolio-level risk constraints (大善人).
+    # Override via .env, e.g.:
+    #   RISK_MAX_POSITION_PCT=0.15
+    #   RISK_MAX_POSITIONS=8
+    #   RISK_MAX_DRAWDOWN_PCT=0.10
+    risk_max_position_pct: float = 0.20   # single position ≤ 20% of total market value
+    risk_max_positions: int = 10          # total open positions ≤ 10
+    risk_max_drawdown_pct: float = 0.15   # portfolio drawdown breach threshold (15%)
+
 
 settings = Settings()
