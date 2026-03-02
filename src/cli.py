@@ -33,6 +33,8 @@ from src.portfolio.tracker import PortfolioTracker
 from src.portfolio.report import snapshot_to_json as portfolio_snapshot_to_json
 from src.risk.checker import RiskChecker
 from src.risk.report import report_to_json as risk_report_to_json
+from src.decision.advisor import DecisionAdvisor
+from src.decision.report import report_to_json as decision_report_to_json
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -92,6 +94,14 @@ def _build_parser() -> argparse.ArgumentParser:
                                 help='ISO date, e.g. 2026-03-02 (default: today)')
     portfolio_snap.add_argument('--out', default=None,
                                 help='Output JSON file path (default: stdout)')
+
+    decision = sub.add_parser('decision')
+    decision_sub = decision.add_subparsers(dest='decision_cmd', required=True)
+    decision_eval = decision_sub.add_parser('evaluate')
+    decision_eval.add_argument('--asof', default=None,
+                               help='ISO date, e.g. 2026-03-02 (default: today)')
+    decision_eval.add_argument('--out', default=None,
+                               help='Output JSON file path (default: stdout)')
 
     risk = sub.add_parser('risk')
     risk_sub = risk.add_subparsers(dest='risk_cmd', required=True)
@@ -250,6 +260,32 @@ def main() -> None:
             out = Path(args.out)
             out.write_text(output, encoding='utf-8')
             print(f'portfolio snapshot positions={len(snap.positions)} out={out}')
+        else:
+            print(output)
+        return
+
+    if args.command == 'decision' and args.decision_cmd == 'evaluate':
+        asof = date.fromisoformat(args.asof) if args.asof else date.today()
+        with get_session() as session:
+            report = DecisionAdvisor().evaluate(
+                asof=asof,
+                session=session,
+                price_source_cn=settings.price_source_cn,
+                price_source_us=settings.price_source_us,
+                max_position_pct=settings.risk_max_position_pct,
+                max_positions=settings.risk_max_positions,
+                max_drawdown_pct=settings.risk_max_drawdown_pct,
+            )
+        output = decision_report_to_json(report)
+        if args.out:
+            out = Path(args.out)
+            out.write_text(output, encoding='utf-8')
+            print(
+                f'decision evaluate positions={report.total_positions} '
+                f'exit={report.exit_count} trim={report.trim_count} '
+                f'hold={report.hold_count} enter={report.enter_count} '
+                f'watch={report.watch_count} risk={report.risk_status} out={out}'
+            )
         else:
             print(output)
         return

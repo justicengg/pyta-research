@@ -85,6 +85,41 @@ class PortfolioSnapshot:
 
 
 @dataclass
+class DecisionAdvice:
+    """Recommendation for a single symbol — open position or pending strategy card."""
+    symbol: str
+    market: str
+    action: str                      # 'hold' | 'trim' | 'exit' | 'enter' | 'watch'
+    reason: str                      # machine-readable reason code
+    # Position info (None when symbol has no open position)
+    net_shares: Optional[float]
+    avg_cost: Optional[float]
+    current_price: Optional[float]
+    unrealized_pnl: Optional[float]
+    unrealized_pnl_pct: Optional[float]
+    # Strategy card info (None when no matching card)
+    card_id: Optional[int]
+    card_status: Optional[str]       # 'draft' | 'active' | None
+    stop_loss_price: Optional[float]
+
+
+@dataclass
+class DecisionReport:
+    """Aggregated decision recommendations produced by DecisionAdvisor."""
+    asof: date
+    advice: list['DecisionAdvice']
+    risk_status: str                 # from RiskReport: 'ok' | 'warning' | 'breach'
+    risk_violations: int
+    total_positions: int
+    exit_count: int
+    trim_count: int
+    hold_count: int
+    enter_count: int
+    watch_count: int
+    generated_at: str                # ISO-8601 UTC timestamp
+
+
+@dataclass
 class RiskViolation:
     """A single portfolio risk constraint violation."""
     check: str                  # 'position_concentration' | 'max_positions' | 'portfolio_drawdown'
