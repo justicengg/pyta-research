@@ -35,6 +35,8 @@ from src.risk.checker import RiskChecker
 from src.risk.report import report_to_json as risk_report_to_json
 from src.decision.advisor import DecisionAdvisor
 from src.decision.report import report_to_json as decision_report_to_json
+from src.report.generator import ReportGenerator
+from src.report.pusher import FeishuPusher
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -110,6 +112,18 @@ def _build_parser() -> argparse.ArgumentParser:
                             help='ISO date, e.g. 2026-03-02 (default: today)')
     risk_check.add_argument('--out', default=None,
                             help='Output JSON file path (default: stdout)')
+
+    report = sub.add_parser('report')
+    report_sub = report.add_subparsers(dest='report_cmd', required=True)
+    report_push = report_sub.add_parser('push')
+    report_push.add_argument('--type', dest='report_type', choices=['daily', 'weekly'],
+                             default='daily', help='Report type (default: daily)')
+    report_push.add_argument('--asof', default=None,
+                             help='ISO date, e.g. 2026-03-02 (default: today)')
+    report_push.add_argument('--out', default=None,
+                             help='Also write report text to this file path')
+    report_push.add_argument('--dry-run', action='store_true',
+                             help='Generate report but do not push to Feishu')
 
     quality = sub.add_parser('quality')
     quality_sub = quality.add_subparsers(dest='quality_cmd', required=True)
@@ -312,6 +326,31 @@ def main() -> None:
             print(f'risk check status={report.status} violations={len(report.violations)} out={out}')
         else:
             print(output)
+        return
+
+    if args.command == 'report' and args.report_cmd == 'push':
+        asof = date.fromisoformat(args.asof) if args.asof else date.today()
+        with get_session() as session:
+            decision = DecisionAdvisor().evaluate(
+                asof=asof,
+                session=session,
+                price_source_cn=settings.price_source_cn,
+                price_source_us=settings.price_source_us,
+                max_position_pct=settings.risk_max_position_pct,
+                max_positions=settings.risk_max_positions,
+                max_drawdown_pct=settings.risk_max_drawdown_pct,
+            )
+        gen = ReportGenerator()
+        text = gen.generate_daily(decision) if args.report_type == 'daily' else gen.generate_weekly(decision)
+        if args.out:
+            Path(args.out).write_text(text, encoding='utf-8')
+            print(f'report written out={args.out}')
+        if args.dry_run:
+            print(text)
+            print('(dry-run: push skipped)')
+        else:
+            pushed = FeishuPusher().push(text=text, webhook_url=settings.feishu_webhook_url)
+            print(f'report push pushed={pushed} type={args.report_type} asof={asof}')
         return
 
     if args.command == 'quality' and args.quality_cmd == 'check':
