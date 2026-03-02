@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Date, DateTime, Index, Integer, Numeric, String, Text, UniqueConstraint, func
+from sqlalchemy import CheckConstraint, Date, DateTime, Index, Integer, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.base import Base
@@ -133,6 +133,7 @@ class TradeLog(Base):
     """
     __tablename__ = 'trade_log'
     __table_args__ = (
+        CheckConstraint("direction IN ('buy', 'sell')", name='ck_trade_log_direction'),
         Index('ix_trade_log_symbol_market_trade_date', 'symbol', 'market', 'trade_date'),
         Index('ix_trade_log_trade_date', 'trade_date'),
         Index('ix_trade_log_card_id', 'card_id'),

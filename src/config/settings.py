@@ -44,5 +44,13 @@ class Settings(BaseSettings):
     strategy_stop_loss_atr_window: int = 14       # ATR period (trading days)
     strategy_stop_loss_atr_multiplier: float = 2.0  # stop = entry - multiplier * ATR
 
+    # Portfolio tracker — preferred price source per market.
+    # Must match the 'source' column values used when fetching raw_price data.
+    # Override via .env, e.g.:
+    #   PRICE_SOURCE_CN=yfinance
+    #   PRICE_SOURCE_US=baostock
+    price_source_cn: str = 'baostock'
+    price_source_us: str = 'yfinance'
+
 
 settings = Settings()
