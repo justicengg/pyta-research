@@ -31,6 +31,8 @@ from src.screener.screener import Screener, ScreenerCandidate
 from src.strategy.card_generator import CardGenerator
 from src.portfolio.tracker import PortfolioTracker
 from src.portfolio.report import snapshot_to_json as portfolio_snapshot_to_json
+from src.risk.checker import RiskChecker
+from src.risk.report import report_to_json as risk_report_to_json
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -90,6 +92,14 @@ def _build_parser() -> argparse.ArgumentParser:
                                 help='ISO date, e.g. 2026-03-02 (default: today)')
     portfolio_snap.add_argument('--out', default=None,
                                 help='Output JSON file path (default: stdout)')
+
+    risk = sub.add_parser('risk')
+    risk_sub = risk.add_subparsers(dest='risk_cmd', required=True)
+    risk_check = risk_sub.add_parser('check')
+    risk_check.add_argument('--asof', default=None,
+                            help='ISO date, e.g. 2026-03-02 (default: today)')
+    risk_check.add_argument('--out', default=None,
+                            help='Output JSON file path (default: stdout)')
 
     quality = sub.add_parser('quality')
     quality_sub = quality.add_subparsers(dest='quality_cmd', required=True)
@@ -240,6 +250,30 @@ def main() -> None:
             out = Path(args.out)
             out.write_text(output, encoding='utf-8')
             print(f'portfolio snapshot positions={len(snap.positions)} out={out}')
+        else:
+            print(output)
+        return
+
+    if args.command == 'risk' and args.risk_cmd == 'check':
+        asof = date.fromisoformat(args.asof) if args.asof else date.today()
+        with get_session() as session:
+            snap = PortfolioTracker().snapshot(
+                asof=asof,
+                session=session,
+                price_source_cn=settings.price_source_cn,
+                price_source_us=settings.price_source_us,
+            )
+        report = RiskChecker().check(
+            portfolio=snap,
+            max_position_pct=settings.risk_max_position_pct,
+            max_positions=settings.risk_max_positions,
+            max_drawdown_pct=settings.risk_max_drawdown_pct,
+        )
+        output = risk_report_to_json(report)
+        if args.out:
+            out = Path(args.out)
+            out.write_text(output, encoding='utf-8')
+            print(f'risk check status={report.status} violations={len(report.violations)} out={out}')
         else:
             print(output)
         return

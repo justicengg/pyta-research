@@ -85,6 +85,31 @@ class PortfolioSnapshot:
 
 
 @dataclass
+class RiskViolation:
+    """A single portfolio risk constraint violation."""
+    check: str                  # 'position_concentration' | 'max_positions' | 'portfolio_drawdown'
+    severity: str               # 'warning' | 'breach'
+    symbol: Optional[str]       # set for per-position checks, None for portfolio-level
+    market: Optional[str]       # set for per-position checks, None for portfolio-level
+    current_value: float        # measured value (e.g. 0.25 for 25% concentration)
+    threshold: float            # configured limit (e.g. 0.20 for 20%)
+    message: str
+
+
+@dataclass
+class RiskReport:
+    """Portfolio-level risk check results produced by RiskChecker."""
+    asof: date
+    status: str                          # 'ok' | 'warning' | 'breach'
+    violations: list['RiskViolation']
+    total_positions: int
+    total_cost_basis: Optional[float]    # Σ(avg_cost × net_shares)
+    total_market_value: Optional[float]  # Σ(current_price × net_shares)
+    portfolio_drawdown_pct: Optional[float]  # negative = loss from cost basis
+    generated_at: str                    # ISO-8601 UTC timestamp
+
+
+@dataclass
 class QualityIssue:
     rule: str
     severity: str
