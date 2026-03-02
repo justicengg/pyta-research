@@ -19,7 +19,9 @@ C3 — portfolio_drawdown
     Total unrealized PnL / total cost basis must not breach *-max_drawdown_pct*
     (i.e. portfolio must not be down more than *max_drawdown_pct* from cost).
     Severity: breach.
-    Skipped when no position has an avg_cost (no cost basis computable).
+    Computed only on positions that have BOTH avg_cost and current_price, so
+    numerator/denominator use the same universe.
+    Skipped when no such position exists.
 
 Overall status
 --------------
@@ -76,7 +78,7 @@ class RiskChecker:
         cb_sum = sum(
             p.avg_cost * p.net_shares
             for p in positions
-            if p.avg_cost is not None
+            if p.avg_cost is not None and p.current_price is not None
         )
 
         if mv_sum > 0:
@@ -87,7 +89,11 @@ class RiskChecker:
         # Portfolio drawdown %
         portfolio_drawdown_pct: Optional[float] = None
         if total_cost_basis is not None and total_cost_basis > 0:
-            pnl = portfolio.total_unrealized_pnl or 0.0
+            pnl = sum(
+                (p.current_price - p.avg_cost) * p.net_shares
+                for p in positions
+                if p.current_price is not None and p.avg_cost is not None
+            )
             portfolio_drawdown_pct = pnl / total_cost_basis
 
         # ── C1 — position concentration ─────────────────────────────────────
