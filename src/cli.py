@@ -15,6 +15,7 @@ from src.db.session import (
     insert_raw_macro,
     insert_raw_price,
     insert_strategy_card,
+    insert_trade_log,
 )
 from src.config.settings import settings
 from src.factors.calculator import FactorCalculator
@@ -28,6 +29,8 @@ from src.scheduler.scheduler import PipelineScheduler
 from src.screener.report import result_to_json as screener_result_to_json
 from src.screener.screener import Screener, ScreenerCandidate
 from src.strategy.card_generator import CardGenerator
+from src.portfolio.tracker import PortfolioTracker
+from src.portfolio.report import snapshot_to_json as portfolio_snapshot_to_json
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -79,6 +82,14 @@ def _build_parser() -> argparse.ArgumentParser:
                               help='Path to candidates.json from screener run')
     strategy_gen.add_argument('--out', required=True,
                               help='Output directory for Markdown files')
+
+    portfolio = sub.add_parser('portfolio')
+    portfolio_sub = portfolio.add_subparsers(dest='portfolio_cmd', required=True)
+    portfolio_snap = portfolio_sub.add_parser('snapshot')
+    portfolio_snap.add_argument('--asof', default=None,
+                                help='ISO date, e.g. 2026-03-02 (default: today)')
+    portfolio_snap.add_argument('--out', default=None,
+                                help='Output JSON file path (default: stdout)')
 
     quality = sub.add_parser('quality')
     quality_sub = quality.add_subparsers(dest='quality_cmd', required=True)
@@ -213,6 +224,24 @@ def main() -> None:
                 md_path.write_text(md, encoding='utf-8')
                 inserted += 1
         print(f'strategy cards generated={inserted} out={out_dir}')
+        return
+
+    if args.command == 'portfolio' and args.portfolio_cmd == 'snapshot':
+        asof = date.fromisoformat(args.asof) if args.asof else date.today()
+        with get_session() as session:
+            snap = PortfolioTracker().snapshot(
+                asof=asof,
+                session=session,
+                price_source_cn=settings.price_source_cn,
+                price_source_us=settings.price_source_us,
+            )
+        output = portfolio_snapshot_to_json(snap)
+        if args.out:
+            out = Path(args.out)
+            out.write_text(output, encoding='utf-8')
+            print(f'portfolio snapshot positions={len(snap.positions)} out={out}')
+        else:
+            print(output)
         return
 
     if args.command == 'quality' and args.quality_cmd == 'check':

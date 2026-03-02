@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.config.settings import settings
-from src.db.models import DerivedFactor, RawFundamental, RawMacro, RawPrice, StrategyCard
+from src.db.models import DerivedFactor, RawFundamental, RawMacro, RawPrice, StrategyCard, TradeLog
 
 engine = None
 SessionLocal = None
@@ -119,6 +119,14 @@ def insert_strategy_card(session: Session, row: dict) -> int:
     session.add(card)
     session.flush()
     return card.id
+
+
+def insert_trade_log(session: Session, row: dict) -> int:
+    """Insert one trade log row and return its new id."""
+    trade = TradeLog(**row)
+    session.add(trade)
+    session.flush()
+    return trade.id
 
 
 def get_strategy_cards(

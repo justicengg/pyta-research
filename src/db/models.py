@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Date, DateTime, Index, Integer, Numeric, String, Text, UniqueConstraint, func
+from sqlalchemy import CheckConstraint, Date, DateTime, Index, Integer, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.base import Base
@@ -121,3 +121,32 @@ class StrategyCard(Base):
     close_reason: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class TradeLog(Base):
+    """Append-only record of actual buy / sell executions.
+
+    Design: rows are NEVER deleted or updated — each trade is immutable once
+    recorded.  Portfolio snapshots are computed by aggregating this log.
+    card_id is a soft reference to strategy_card.id (no FK constraint so that
+    ad-hoc trades without a strategy card can be recorded).
+    """
+    __tablename__ = 'trade_log'
+    __table_args__ = (
+        CheckConstraint("direction IN ('buy', 'sell')", name='ck_trade_log_direction'),
+        Index('ix_trade_log_symbol_market_trade_date', 'symbol', 'market', 'trade_date'),
+        Index('ix_trade_log_trade_date', 'trade_date'),
+        Index('ix_trade_log_card_id', 'card_id'),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    symbol: Mapped[str] = mapped_column(String(32), nullable=False)
+    market: Mapped[str] = mapped_column(String(16), nullable=False)
+    card_id: Mapped[int | None] = mapped_column(Integer)        # soft ref to strategy_card.id
+    direction: Mapped[str] = mapped_column(String(8), nullable=False)   # 'buy' | 'sell'
+    price: Mapped[float] = mapped_column(Numeric(18, 6), nullable=False)
+    shares: Mapped[float] = mapped_column(Numeric(18, 4), nullable=False)
+    amount: Mapped[float] = mapped_column(Numeric(24, 6), nullable=False)  # price * shares
+    trade_date: Mapped[datetime] = mapped_column(Date, nullable=False)
+    note: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
