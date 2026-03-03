@@ -75,12 +75,12 @@ def create_app() -> FastAPI:
     def ping() -> dict:
         return {'pong': True}
 
-    # ── business routers (added in INV-46) ────────────────────────────────────
-    # from src.api.routers import portfolio, risk, decision, cards
-    # app.include_router(portfolio.router, prefix='/api/v1', tags=['portfolio'])
-    # app.include_router(risk.router,      prefix='/api/v1', tags=['risk'])
-    # app.include_router(decision.router,  prefix='/api/v1', tags=['decision'])
-    # app.include_router(cards.router,     prefix='/api/v1', tags=['cards'])
+    # ── business routers ──────────────────────────────────────────────────────
+    from src.api.routers import cards, decision, portfolio, risk
+    app.include_router(portfolio.router, prefix='/api/v1', tags=['portfolio'])
+    app.include_router(risk.router,      prefix='/api/v1', tags=['risk'])
+    app.include_router(decision.router,  prefix='/api/v1', tags=['decision'])
+    app.include_router(cards.router,     prefix='/api/v1', tags=['cards'])
 
     # ── dashboard router (added in INV-47) ────────────────────────────────────
     # from src.api.routers import dashboard
