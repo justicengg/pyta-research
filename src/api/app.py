@@ -4,14 +4,14 @@ Architecture
 ------------
 Single process:
   • REST API   → /api/v1/...    (JSON, X-API-Key auth)
-  • Dashboard  → /dashboard     (HTML, no auth — INV-47)
+  • Dashboard  → /dashboard     (HTML)
   • Health     → /health        (JSON, always open)
   • OpenAPI    → /docs /redoc
 
-APScheduler (BackgroundScheduler) starts inside the lifespan context so the
-daily pipeline runs automatically inside the same process.  BackgroundScheduler
-runs jobs in a daemon thread — it does NOT block the asyncio event loop, which
-makes it safe to embed in uvicorn / FastAPI.
+Embedded APScheduler is optional and disabled by default
+(`settings.api_enable_embedded_scheduler = False`). In production, prefer
+running scheduler as a dedicated process via `python -m src.cli scheduler start`
+to avoid duplicate jobs in multi-worker/multi-instance API deployments.
 """
 from __future__ import annotations
 
@@ -31,11 +31,15 @@ from src.scheduler.scheduler import PipelineScheduler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Start a BackgroundScheduler on boot; shut it down cleanly on exit.
+    """Optionally start a BackgroundScheduler; always shut down cleanly.
 
     BackgroundScheduler runs jobs in a daemon thread — safe to use alongside
     an asyncio-based server such as uvicorn.
     """
+    if not settings.api_enable_embedded_scheduler:
+        yield
+        return
+
     pipeline = PipelineScheduler()
     bg = BackgroundScheduler(timezone=settings.scheduler_timezone)
     trigger = CronTrigger(
