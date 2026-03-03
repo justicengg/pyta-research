@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="api-key" content="{{ api_key }}" />
+  <title>PYTA Research — 决策看板</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f0f2f5; color: #1a1a2e; }
+
+    header {
+      background: #1a1a2e; color: #fff; padding: 1rem 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    header h1 { font-size: 1.25rem; letter-spacing: .05em; }
+    header .asof { font-size: .85rem; opacity: .7; }
+
+    main { padding: 1.5rem 2rem; max-width: 1400px; margin: 0 auto; }
+
+    /* ── KPI cards ─────────────────────────────────────────────────────── */
+    .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+    .kpi-card {
+      background: #fff; border-radius: 10px; padding: 1.2rem 1.5rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+    .kpi-card .label { font-size: .75rem; color: #888; text-transform: uppercase; letter-spacing: .06em; }
+    .kpi-card .value { font-size: 2rem; font-weight: 700; margin-top: .3rem; }
+    .kpi-card .value.positive { color: #16a34a; }
+    .kpi-card .value.negative { color: #dc2626; }
+    .kpi-card .value.neutral  { color: #1a1a2e; }
+
+    /* ── risk status badge ─────────────────────────────────────────────── */
+    .badge {
+      display: inline-block; padding: .2rem .7rem; border-radius: 999px;
+      font-size: .8rem; font-weight: 600; text-transform: uppercase;
+    }
+    .badge.ok      { background: #dcfce7; color: #16a34a; }
+    .badge.warning { background: #fef9c3; color: #854d0e; }
+    .badge.breach  { background: #fee2e2; color: #dc2626; }
+
+    /* ── two-column layout (decision + chart) ──────────────────────────── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; align-items: start; }
+    @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    /* ── card / section wrapper ────────────────────────────────────────── */
+    .card {
+      background: #fff; border-radius: 10px; padding: 1.25rem 1.5rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 1.5rem;
+    }
+    .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; }
+
+    /* ── risk violations list ──────────────────────────────────────────── */
+    #violation-list { list-style: none; }
+    #violation-list li {
+      padding: .4rem 0; border-bottom: 1px solid #f0f2f5;
+      font-size: .85rem; display: flex; gap: .5rem; align-items: center;
+    }
+    #violation-list li:last-child { border-bottom: none; }
+
+    /* ── decision table ────────────────────────────────────────────────── */
+    table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+    th { text-align: left; padding: .5rem .75rem; border-bottom: 2px solid #e5e7eb; color: #6b7280; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; }
+    td { padding: .5rem .75rem; border-bottom: 1px solid #f3f4f6; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f9fafb; }
+
+    .action-badge { padding: .15rem .55rem; border-radius: 4px; font-size: .75rem; font-weight: 600; text-transform: uppercase; }
+    .action-exit  { background: #fee2e2; color: #dc2626; }
+    .action-trim  { background: #ffedd5; color: #c2410c; }
+    .action-hold  { background: #e0f2fe; color: #0369a1; }
+    .action-enter { background: #dcfce7; color: #16a34a; }
+    .action-watch { background: #f3f4f6; color: #6b7280; }
+
+    /* ── chart wrapper ─────────────────────────────────────────────────── */
+    .chart-wrapper { display: flex; align-items: center; justify-content: center; height: 280px; }
+
+    .loading { color: #9ca3af; font-size: .85rem; font-style: italic; }
+    .error   { color: #dc2626; font-size: .85rem; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>PYTA Research &mdash; 决策看板</h1>
+  <span class="asof" id="header-asof">加载中…</span>
+</header>
+
+<main>
+
+  <!-- KPI Cards -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="label">持仓数量</div>
+      <div class="value neutral" id="kpi-positions">—</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">总浮盈 (未实现)</div>
+      <div class="value neutral" id="kpi-pnl">—</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">风控状态</div>
+      <div class="value neutral" id="kpi-risk-status">—</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">违规项数</div>
+      <div class="value neutral" id="kpi-violations">—</div>
+    </div>
+  </div>
+
+  <!-- Risk Section -->
+  <div class="card" id="risk-card">
+    <h2>风控详情</h2>
+    <ul id="violation-list">
+      <li class="loading">加载中…</li>
+    </ul>
+  </div>
+
+  <!-- Decision + Chart -->
+  <div class="grid-2">
+
+    <!-- Decision Table -->
+    <div class="card">
+      <h2>决策建议</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>标的</th>
+            <th>市场</th>
+            <th>建议</th>
+            <th>浮盈 (%)</th>
+            <th>止损价</th>
+            <th>原因</th>
+          </tr>
+        </thead>
+        <tbody id="decision-tbody">
+          <tr><td colspan="6" class="loading">加载中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Doughnut Chart -->
+    <div class="card">
+      <h2>持仓分布</h2>
+      <div class="chart-wrapper">
+        <canvas id="positionChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<script>
+(function () {
+  const API_KEY = document.querySelector('meta[name="api-key"]').getAttribute('content');
+  const HEADERS = {'X-API-Key': API_KEY, 'Accept': 'application/json'};
+
+  // ── helpers ──────────────────────────────────────────────────────────────────
+
+  function fmt(v, digits=2) {
+    if (v === null || v === undefined) return '—';
+    return Number(v).toFixed(digits);
+  }
+
+  function pnlClass(v) {
+    if (v === null || v === undefined) return 'neutral';
+    return v >= 0 ? 'positive' : 'negative';
+  }
+
+  function actionBadge(action) {
+    return `<span class="action-badge action-${action}">${action}</span>`;
+  }
+
+  // ── fetch risk/check ──────────────────────────────────────────────────────────
+
+  fetch('/api/v1/risk/check', {headers: HEADERS})
+    .then(r => r.json())
+    .then(data => {
+      const statusEl = document.getElementById('kpi-risk-status');
+      statusEl.innerHTML = `<span class="badge ${data.status}">${data.status}</span>`;
+      statusEl.className = 'value';
+
+      document.getElementById('kpi-violations').textContent = data.violations ? data.violations.length : 0;
+
+      const header = document.getElementById('header-asof');
+      header.textContent = `截至 ${data.asof}`;
+
+      const list = document.getElementById('violation-list');
+      if (!data.violations || data.violations.length === 0) {
+        list.innerHTML = '<li>无违规项 ✓</li>';
+      } else {
+        list.innerHTML = data.violations.map(v =>
+          `<li><span class="badge ${v.severity}">${v.severity}</span> [${v.check}] ${v.message}</li>`
+        ).join('');
+      }
+    })
+    .catch(() => {
+      document.getElementById('violation-list').innerHTML = '<li class="error">加载失败</li>';
+    });
+
+  // ── fetch decision/evaluate ───────────────────────────────────────────────────
+
+  fetch('/api/v1/decision/evaluate', {headers: HEADERS})
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('kpi-positions').textContent = data.total_positions ?? '—';
+
+      const tbody = document.getElementById('decision-tbody');
+      if (!data.advice || data.advice.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6">暂无建议</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.advice.map(a => {
+        const pnlPct = a.unrealized_pnl_pct !== null && a.unrealized_pnl_pct !== undefined
+          ? `<span class="${pnlClass(a.unrealized_pnl_pct)}">${fmt(a.unrealized_pnl_pct * 100)}%</span>`
+          : '—';
+        return `<tr>
+          <td><strong>${a.symbol}</strong></td>
+          <td>${a.market}</td>
+          <td>${actionBadge(a.action)}</td>
+          <td>${pnlPct}</td>
+          <td>${fmt(a.stop_loss_price)}</td>
+          <td style="color:#6b7280;font-size:.8rem">${a.reason}</td>
+        </tr>`;
+      }).join('');
+    })
+    .catch(() => {
+      document.getElementById('decision-tbody').innerHTML = '<tr><td colspan="6" class="error">加载失败</td></tr>';
+    });
+
+  // ── fetch portfolio/snapshot → Doughnut chart ────────────────────────────────
+
+  fetch('/api/v1/portfolio/snapshot', {headers: HEADERS})
+    .then(r => r.json())
+    .then(data => {
+      const positions = data.positions || [];
+
+      // Aggregate total unrealized pnl
+      const totalPnl = data.total_unrealized_pnl;
+      const pnlEl = document.getElementById('kpi-pnl');
+      pnlEl.textContent = totalPnl !== null && totalPnl !== undefined ? fmt(totalPnl) : '—';
+      pnlEl.className = `value ${pnlClass(totalPnl)}`;
+
+      // Build doughnut data using market_value (current_price * net_shares)
+      const labels = [];
+      const values = [];
+      const colors = [
+        '#6366f1','#f59e0b','#10b981','#3b82f6','#ef4444',
+        '#8b5cf6','#14b8a6','#f97316','#06b6d4','#84cc16',
+      ];
+      positions.forEach(p => {
+        const mv = p.current_price !== null && p.net_shares !== null
+          ? p.current_price * p.net_shares
+          : null;
+        if (mv !== null && mv > 0) {
+          labels.push(`${p.symbol}(${p.market})`);
+          values.push(mv);
+        }
+      });
+
+      const ctx = document.getElementById('positionChart').getContext('2d');
+      if (labels.length === 0) {
+        ctx.canvas.parentElement.innerHTML = '<p style="color:#9ca3af;font-size:.85rem;text-align:center">暂无持仓数据</p>';
+        return;
+      }
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: values,
+            backgroundColor: colors.slice(0, labels.length),
+            borderWidth: 1,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 11 } } },
+          },
+        },
+      });
+    })
+    .catch(() => {
+      document.getElementById('positionChart').parentElement.innerHTML =
+        '<p class="error">加载失败</p>';
+    });
+
+})();
+</script>
+
+</body>
+</html>
