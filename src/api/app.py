@@ -82,9 +82,9 @@ def create_app() -> FastAPI:
     app.include_router(decision.router,  prefix='/api/v1', tags=['decision'])
     app.include_router(cards.router,     prefix='/api/v1', tags=['cards'])
 
-    # ── dashboard router (added in INV-47) ────────────────────────────────────
-    # from src.api.routers import dashboard
-    # app.include_router(dashboard.router, tags=['dashboard'])
+    # ── dashboard router ──────────────────────────────────────────────────────
+    from src.api.routers import dashboard
+    app.include_router(dashboard.router, tags=['dashboard'])
 
     return app
 
