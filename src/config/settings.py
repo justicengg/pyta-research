@@ -71,6 +71,10 @@ class Settings(BaseSettings):
     api_key: str = ''
     api_host: str = '0.0.0.0'
     api_port: int = 8000
+    # Whether API process should run an embedded scheduler in FastAPI lifespan.
+    # Keep disabled by default in production to avoid duplicate jobs across
+    # multiple workers/instances; use a dedicated `scheduler start` process.
+    api_enable_embedded_scheduler: bool = False
 
     # Report pusher — Feishu (飞书) group robot webhook.
     # Leave empty to disable push (scheduler will skip silently).

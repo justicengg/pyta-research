@@ -46,6 +46,7 @@ def client_no_auth():
         mock_cfg.scheduler_timezone = 'Asia/Shanghai'
         mock_cfg.scheduler_cron_hour = 18
         mock_cfg.scheduler_cron_minute = 0
+        mock_cfg.api_enable_embedded_scheduler = False
         app = create_app()
         with TestClient(app) as client:
             yield client
@@ -61,6 +62,7 @@ def client_with_auth():
         mock_cfg.scheduler_timezone = 'Asia/Shanghai'
         mock_cfg.scheduler_cron_hour = 18
         mock_cfg.scheduler_cron_minute = 0
+        mock_cfg.api_enable_embedded_scheduler = False
         app = create_app()
         with TestClient(app) as client:
             yield client

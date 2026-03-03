@@ -57,6 +57,7 @@ def _mock_settings(api_key: str = ''):
     m.scheduler_timezone = 'Asia/Shanghai'
     m.scheduler_cron_hour = 18
     m.scheduler_cron_minute = 0
+    m.api_enable_embedded_scheduler = False
     m.price_source_cn = 'baostock'
     m.price_source_us = 'yfinance'
     m.risk_max_position_pct = 0.20
