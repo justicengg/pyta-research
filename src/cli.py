@@ -132,6 +132,16 @@ def _build_parser() -> argparse.ArgumentParser:
     quality_check.add_argument('--date', required=True)
     quality_check.add_argument('--out', required=True)
 
+    api = sub.add_parser('api')
+    api_sub = api.add_subparsers(dest='api_cmd', required=True)
+    api_start = api_sub.add_parser('start')
+    api_start.add_argument('--host', default=None,
+                           help='Bind host (default: settings.api_host)')
+    api_start.add_argument('--port', type=int, default=None,
+                           help='Bind port (default: settings.api_port)')
+    api_start.add_argument('--reload', action='store_true',
+                           help='Enable uvicorn auto-reload (dev mode)')
+
     scheduler = sub.add_parser('scheduler')
     scheduler_sub = scheduler.add_subparsers(dest='scheduler_cmd', required=True)
     scheduler_sub.add_parser('run-once')
@@ -358,6 +368,18 @@ def main() -> None:
         out = Path(args.out)
         out.write_text(report_to_json(report), encoding='utf-8')
         print(f'quality report rows={report.total_rows} issues={report.issue_count} out={out}')
+        return
+
+    if args.command == 'api' and args.api_cmd == 'start':
+        import uvicorn
+        host = args.host or settings.api_host
+        port = args.port or settings.api_port
+        uvicorn.run(
+            'src.api.app:app',
+            host=host,
+            port=port,
+            reload=args.reload,
+        )
         return
 
     if args.command == 'scheduler':

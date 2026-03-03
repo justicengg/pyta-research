@@ -61,6 +61,17 @@ class Settings(BaseSettings):
     risk_max_positions: int = 10          # total open positions ≤ 10
     risk_max_drawdown_pct: float = 0.15   # portfolio drawdown breach threshold (15%)
 
+    # Web API — FastAPI server configuration.
+    # api_key: shared secret for X-API-Key header; leave empty to disable auth
+    #          (useful for local dev, NOT recommended in production).
+    # Override via .env, e.g.:
+    #   API_KEY=my-secret-token
+    #   API_HOST=0.0.0.0
+    #   API_PORT=8000
+    api_key: str = ''
+    api_host: str = '0.0.0.0'
+    api_port: int = 8000
+
     # Report pusher — Feishu (飞书) group robot webhook.
     # Leave empty to disable push (scheduler will skip silently).
     # Override via .env, e.g.:
