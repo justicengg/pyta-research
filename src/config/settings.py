@@ -75,6 +75,10 @@ class Settings(BaseSettings):
     # Keep disabled by default in production to avoid duplicate jobs across
     # multiple workers/instances; use a dedicated `scheduler start` process.
     api_enable_embedded_scheduler: bool = False
+    # Dashboard write-operation authentication token.
+    # Used by /dashboard/login to establish a secure write session cookie.
+    # Keep empty to disable dashboard write operations.
+    dashboard_write_token: str = ''
 
     # Report pusher — Feishu (飞书) group robot webhook.
     # Leave empty to disable push (scheduler will skip silently).
