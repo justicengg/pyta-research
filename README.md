@@ -1,14 +1,15 @@
 # pyta-research
 
-PYTA Investment Framework 的 Phase 1（数据管道）MVP 实现。
+PYTA Investment Framework 实现仓库（当前已覆盖 Phase 1 ~ Phase 5 核心能力）。
 
-## Scope (M1-T1 ~ M1-T6)
-- M1-T1: PostgreSQL schema + Alembic migration
-- M1-T2: 市场行情采集（baostock + yfinance）
-- M1-T3: 财务数据采集（Point-in-time）
-- M1-T4: 宏观数据采集（FRED + baostock）
-- M1-T5: 数据质量检查与 CLI 报告
-- M1-T6: APScheduler 日常调度（18:00）
+## Scope
+- Phase 1: 数据采集、质量检查、调度
+- Phase 2-4: API 服务与基础 Dashboard
+- Phase 5:
+  - Strategy Card 2.0（规则字段、校验、状态机）
+  - Action Queue + Execution Log（策略建议与执行审计）
+  - 增强规则引擎（队列生成、幂等与过期）
+  - Dashboard 2.0（观察/决策/执行 + 安全写操作）
 
 ## Quick Start
 
@@ -24,6 +25,9 @@ pip install sqlalchemy alembic pydantic-settings apscheduler requests yfinance p
 ```bash
 cp .env.example .env
 # 修改 DATABASE_URL/FRED_API_KEY
+# 生产环境建议额外配置:
+# API_KEY=...
+# DASHBOARD_WRITE_TOKEN=...
 ```
 
 ### 3. Apply migration
@@ -51,3 +55,4 @@ pytest
 - [CHANGELOG](docs/CHANGELOG.md)
 - [FAQ](docs/FAQ.md)
 - [ERD](docs/ERD.md)
+- [Phase 5 Update & Usage](docs/README_PHASE5.md)
