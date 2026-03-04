@@ -1,6 +1,19 @@
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, Date, DateTime, Index, Integer, JSON, Numeric, String, Text, UniqueConstraint, func
+from sqlalchemy import (
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    JSON,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.base import Base
@@ -131,6 +144,66 @@ class StrategyCard(Base):
     close_reason: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class ActionQueue(Base):
+    __tablename__ = 'action_queue'
+    __table_args__ = (
+        CheckConstraint("action IN ('exit', 'trim', 'hold', 'enter', 'watch', 'review')", name='ck_action_queue_action'),
+        CheckConstraint("priority IN ('urgent', 'normal', 'informational')", name='ck_action_queue_priority'),
+        CheckConstraint(
+            "status IN ('pending', 'accepted', 'rejected', 'modified', 'expired')",
+            name='ck_action_queue_status',
+        ),
+        UniqueConstraint(
+            'generated_date', 'symbol', 'market', 'action', 'card_id', 'rule_tag',
+            name='uq_action_queue_business_key',
+        ),
+        Index('ix_action_queue_generated_date', 'generated_date'),
+        Index('ix_action_queue_status', 'status'),
+        Index('ix_action_queue_card_id', 'card_id'),
+        Index('ix_action_queue_generated_status_priority', 'generated_date', 'status', 'priority'),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    card_id: Mapped[int | None] = mapped_column(ForeignKey('strategy_card.id', ondelete='SET NULL'))
+    symbol: Mapped[str] = mapped_column(String(32), nullable=False)
+    market: Mapped[str] = mapped_column(String(16), nullable=False)
+    action: Mapped[str] = mapped_column(String(16), nullable=False)
+    priority: Mapped[str] = mapped_column(String(16), nullable=False, default='normal', server_default='normal')
+    reason: Mapped[str | None] = mapped_column(Text)
+    rule_tag: Mapped[str | None] = mapped_column(String(32))
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default='pending', server_default='pending')
+    generated_date: Mapped[datetime] = mapped_column(Date, nullable=False)
+    expires_at: Mapped[datetime | None] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class ExecutionLog(Base):
+    __tablename__ = 'execution_log'
+    __table_args__ = (
+        CheckConstraint("response IN ('accepted', 'rejected', 'modified')", name='ck_execution_log_response'),
+        CheckConstraint(
+            "source IN ('system_suggestion', 'manual_override', 'external_trade')",
+            name='ck_execution_log_source',
+        ),
+        Index('ix_execution_log_card_id', 'card_id'),
+        Index('ix_execution_log_created_at', 'created_at'),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    action_queue_id: Mapped[int | None] = mapped_column(ForeignKey('action_queue.id', ondelete='SET NULL'))
+    card_id: Mapped[int | None] = mapped_column(ForeignKey('strategy_card.id', ondelete='SET NULL'))
+    symbol: Mapped[str] = mapped_column(String(32), nullable=False)
+    market: Mapped[str] = mapped_column(String(16), nullable=False)
+    response: Mapped[str] = mapped_column(String(16), nullable=False)
+    reason: Mapped[str | None] = mapped_column(Text)
+    source: Mapped[str] = mapped_column(String(16), nullable=False, default='system_suggestion', server_default='system_suggestion')
+    executed_price: Mapped[float | None] = mapped_column(Numeric(18, 6))
+    executed_quantity: Mapped[float | None] = mapped_column(Numeric(18, 4))
+    executed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
 class TradeLog(Base):
