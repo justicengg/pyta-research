@@ -3,248 +3,328 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PYTA Research — 决策看板</title>
+  <title>PYTA Research — 策略操作台</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, sans-serif; background: #f0f2f5; color: #1a1a2e; }
-
-    header {
-      background: #1a1a2e; color: #fff; padding: 1rem 2rem;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    header h1 { font-size: 1.25rem; letter-spacing: .05em; }
-    header .asof { font-size: .85rem; opacity: .7; }
-
-    main { padding: 1.5rem 2rem; max-width: 1400px; margin: 0 auto; }
-
-    .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-    .kpi-card {
-      background: #fff; border-radius: 10px; padding: 1.2rem 1.5rem;
-      box-shadow: 0 1px 4px rgba(0,0,0,.08);
-    }
-    .kpi-card .label { font-size: .75rem; color: #888; text-transform: uppercase; letter-spacing: .06em; }
-    .kpi-card .value { font-size: 2rem; font-weight: 700; margin-top: .3rem; }
-    .kpi-card .value.positive { color: #16a34a; }
-    .kpi-card .value.negative { color: #dc2626; }
-    .kpi-card .value.neutral  { color: #1a1a2e; }
-
-    .badge {
-      display: inline-block; padding: .2rem .7rem; border-radius: 999px;
-      font-size: .8rem; font-weight: 600; text-transform: uppercase;
-    }
-    .badge.ok      { background: #dcfce7; color: #16a34a; }
-    .badge.warning { background: #fef9c3; color: #854d0e; }
-    .badge.breach  { background: #fee2e2; color: #dc2626; }
-
-    .grid-2 { display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; align-items: start; }
-    @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
-
-    .card {
-      background: #fff; border-radius: 10px; padding: 1.25rem 1.5rem;
-      box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 1.5rem;
-    }
-    .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; }
-
-    #violation-list { list-style: none; }
-    #violation-list li {
-      padding: .4rem 0; border-bottom: 1px solid #f0f2f5;
-      font-size: .85rem; display: flex; gap: .5rem; align-items: center;
-    }
-    #violation-list li:last-child { border-bottom: none; }
-
-    table { width: 100%; border-collapse: collapse; font-size: .875rem; }
-    th { text-align: left; padding: .5rem .75rem; border-bottom: 2px solid #e5e7eb; color: #6b7280; font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; }
-    td { padding: .5rem .75rem; border-bottom: 1px solid #f3f4f6; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: #f9fafb; }
-
-    .action-badge { padding: .15rem .55rem; border-radius: 4px; font-size: .75rem; font-weight: 600; text-transform: uppercase; }
-    .action-exit  { background: #fee2e2; color: #dc2626; }
-    .action-trim  { background: #ffedd5; color: #c2410c; }
-    .action-hold  { background: #e0f2fe; color: #0369a1; }
-    .action-enter { background: #dcfce7; color: #16a34a; }
-    .action-watch { background: #f3f4f6; color: #6b7280; }
-
-    .chart-wrapper { display: flex; align-items: center; justify-content: center; height: 280px; }
-
-    .loading { color: #9ca3af; font-size: .85rem; font-style: italic; }
-    .error   { color: #dc2626; font-size: .85rem; }
+    body { font-family: system-ui, sans-serif; background: #f1f5f9; color: #0f172a; }
+    header { background: #0f172a; color: #fff; padding: 14px 20px; display:flex; justify-content:space-between; align-items:center; }
+    header h1 { font-size: 18px; }
+    header .asof { font-size: 12px; opacity: .75; }
+    main { max-width: 1320px; margin: 0 auto; padding: 18px; }
+    .tabs { display:flex; gap: 8px; margin-bottom: 16px; }
+    .tab-btn { border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 13px; }
+    .tab-btn.active { background: #0f172a; color: #fff; border-color:#0f172a; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .grid-2 { display:grid; grid-template-columns: 1fr 320px; gap: 16px; align-items: start; }
+    @media (max-width: 960px) { .grid-2 { grid-template-columns: 1fr; } }
+    .card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:14px; margin-bottom: 14px; }
+    .card h2 { font-size: 15px; margin-bottom: 10px; }
+    .kpi-row { display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 12px; margin-bottom: 12px; }
+    .kpi-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:12px; }
+    .kpi-card .label { font-size: 11px; color:#64748b; text-transform: uppercase; letter-spacing: .06em; }
+    .kpi-card .value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+    .positive { color:#15803d; }
+    .negative { color:#b91c1c; }
+    .neutral { color:#0f172a; }
+    .badge { display:inline-block; border-radius:999px; padding:2px 8px; font-size:11px; font-weight:600; text-transform: uppercase; }
+    .ok { background:#dcfce7; color:#166534; }
+    .warning { background:#fef9c3; color:#854d0e; }
+    .breach { background:#fee2e2; color:#991b1b; }
+    .action { display:inline-block; border-radius: 6px; padding:2px 8px; font-size:11px; font-weight:600; text-transform: uppercase; }
+    .action-exit { background:#fee2e2; color:#b91c1c; }
+    .action-trim { background:#ffedd5; color:#9a3412; }
+    .action-hold { background:#e0f2fe; color:#0c4a6e; }
+    .action-enter { background:#dcfce7; color:#166534; }
+    .action-watch { background:#f1f5f9; color:#334155; }
+    .action-review { background:#e0e7ff; color:#3730a3; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align:left; font-size:11px; text-transform:uppercase; color:#64748b; border-bottom:2px solid #e2e8f0; padding:8px; }
+    td { border-bottom:1px solid #e2e8f0; padding:8px; vertical-align: top; }
+    .btn { border:1px solid #cbd5e1; background:#fff; border-radius:8px; padding:5px 9px; font-size:12px; cursor:pointer; }
+    .btn.primary { background:#0f172a; color:#fff; border-color:#0f172a; }
+    .btn.warn { background:#f97316; color:#fff; border-color:#f97316; }
+    .btn.danger { background:#dc2626; color:#fff; border-color:#dc2626; }
+    .muted { color:#64748b; font-size:12px; }
+    .row { display:flex; gap: 8px; align-items:center; flex-wrap: wrap; }
+    .input { border:1px solid #cbd5e1; border-radius:8px; padding:7px 8px; font-size:13px; min-width: 130px; }
+    .chart-wrapper { height:280px; display:flex; align-items:center; justify-content:center; }
   </style>
 </head>
 <body>
-
 <header>
-  <h1>PYTA Research &mdash; 决策看板</h1>
+  <h1>PYTA Research — 策略操作台</h1>
   <span class="asof" id="header-asof">加载中…</span>
 </header>
 
 <main>
-  <div class="kpi-row">
-    <div class="kpi-card">
-      <div class="label">持仓数量</div>
-      <div class="value neutral" id="kpi-positions">—</div>
-    </div>
-    <div class="kpi-card">
-      <div class="label">总浮盈 (未实现)</div>
-      <div class="value neutral" id="kpi-pnl">—</div>
-    </div>
-    <div class="kpi-card">
-      <div class="label">风控状态</div>
-      <div class="value neutral" id="kpi-risk-status">—</div>
-    </div>
-    <div class="kpi-card">
-      <div class="label">违规项数</div>
-      <div class="value neutral" id="kpi-violations">—</div>
-    </div>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="tab-observe">观察</button>
+    <button class="tab-btn" data-tab="tab-decide">决策</button>
+    <button class="tab-btn" data-tab="tab-exec">执行</button>
   </div>
 
-  <div class="card" id="risk-card">
-    <h2>风控详情</h2>
-    <ul id="violation-list">
-      <li class="loading">加载中…</li>
-    </ul>
-  </div>
-
-  <div class="grid-2">
-    <div class="card">
-      <h2>决策建议</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>标的</th>
-            <th>市场</th>
-            <th>建议</th>
-            <th>浮盈 (%)</th>
-            <th>止损价</th>
-            <th>原因</th>
-          </tr>
-        </thead>
-        <tbody id="decision-tbody">
-          <tr><td colspan="6" class="loading">加载中…</td></tr>
-        </tbody>
-      </table>
+  <section id="tab-observe" class="tab-panel active">
+    <div class="kpi-row">
+      <div class="kpi-card"><div class="label">持仓数量</div><div class="value neutral" id="kpi-positions">—</div></div>
+      <div class="kpi-card"><div class="label">总浮盈 (未实现)</div><div class="value neutral" id="kpi-pnl">—</div></div>
+      <div class="kpi-card"><div class="label">风控状态</div><div class="value neutral" id="kpi-risk-status">—</div></div>
+      <div class="kpi-card"><div class="label">违规项数</div><div class="value neutral" id="kpi-violations">—</div></div>
     </div>
-
     <div class="card">
-      <h2>持仓分布</h2>
-      <div class="chart-wrapper">
-        <canvas id="positionChart"></canvas>
+      <h2>风控详情</h2>
+      <ul id="violation-list"></ul>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <h2>决策建议</h2>
+        <table>
+          <thead><tr><th>标的</th><th>市场</th><th>建议</th><th>浮盈(%)</th><th>止损价</th><th>原因</th></tr></thead>
+          <tbody id="decision-tbody"></tbody>
+        </table>
+      </div>
+      <div class="card">
+        <h2>持仓分布</h2>
+        <div class="chart-wrapper"><canvas id="positionChart"></canvas></div>
       </div>
     </div>
-  </div>
+  </section>
+
+  <section id="tab-decide" class="tab-panel">
+    <div class="card">
+      <h2>写操作认证</h2>
+      <div class="row">
+        <input id="login-token" class="input" type="password" placeholder="Dashboard Token" />
+        <button id="btn-login" class="btn primary">登录写权限</button>
+        <span id="write-status" class="muted"></span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>今日待处理建议</h2>
+      <table>
+        <thead><tr><th>ID</th><th>标的</th><th>动作</th><th>优先级</th><th>原因</th><th>操作</th></tr></thead>
+        <tbody id="pending-actions-body"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>已处理建议</h2>
+      <table>
+        <thead><tr><th>ID</th><th>标的</th><th>动作</th><th>状态</th><th>更新时间</th></tr></thead>
+        <tbody id="handled-actions-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="tab-exec" class="tab-panel">
+    <div class="card">
+      <h2>手动执行记录</h2>
+      <div class="row">
+        <input id="exec-symbol" class="input" placeholder="symbol" />
+        <input id="exec-market" class="input" placeholder="market" value="US" />
+        <input id="exec-source" class="input" placeholder="source" value="manual_override" />
+        <input id="exec-price" class="input" placeholder="price" />
+        <input id="exec-qty" class="input" placeholder="qty" />
+        <input id="exec-reason" class="input" placeholder="reason" />
+        <button id="btn-exec-create" class="btn primary">提交</button>
+      </div>
+      <p class="muted">来源仅支持 manual_override / external_trade。</p>
+    </div>
+    <div class="card">
+      <h2>策略卡列表</h2>
+      <table>
+        <thead><tr><th>ID</th><th>标的</th><th>状态</th><th>规则概览</th><th>更新时间</th></tr></thead>
+        <tbody id="cards-body"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>执行记录（最近30天）</h2>
+      <table>
+        <thead><tr><th>ID</th><th>标的</th><th>响应</th><th>来源</th><th>备注</th><th>时间</th></tr></thead>
+        <tbody id="executions-body"></tbody>
+      </table>
+    </div>
+  </section>
 </main>
 
 <script id="portfolio-data" type="application/json">{{ portfolio_json }}</script>
 <script id="risk-data" type="application/json">{{ risk_json }}</script>
 <script id="decision-data" type="application/json">{{ decision_json }}</script>
+<script id="pending-actions-data" type="application/json">{{ pending_actions_json }}</script>
+<script id="handled-actions-data" type="application/json">{{ handled_actions_json }}</script>
+<script id="cards-data" type="application/json">{{ cards_json }}</script>
+<script id="executions-data" type="application/json">{{ executions_json }}</script>
+<script id="dashboard-meta" type="application/json">{{ {"csrf_token": csrf_token, "write_enabled": write_enabled}|tojson }}</script>
 
 <script>
 (function () {
   const portfolioData = JSON.parse(document.getElementById('portfolio-data').textContent);
   const riskData = JSON.parse(document.getElementById('risk-data').textContent);
   const decisionData = JSON.parse(document.getElementById('decision-data').textContent);
+  const pendingActions = JSON.parse(document.getElementById('pending-actions-data').textContent);
+  const handledActions = JSON.parse(document.getElementById('handled-actions-data').textContent);
+  const cards = JSON.parse(document.getElementById('cards-data').textContent);
+  const executions = JSON.parse(document.getElementById('executions-data').textContent);
+  const meta = JSON.parse(document.getElementById('dashboard-meta').textContent);
+  const csrfToken = meta.csrf_token;
+  let writeEnabled = !!meta.write_enabled;
 
-  function fmt(v, digits=2) {
-    if (v === null || v === undefined) return '—';
-    return Number(v).toFixed(digits);
-  }
+  function fmt(v, digits=2) { if (v === null || v === undefined || Number.isNaN(Number(v))) return '—'; return Number(v).toFixed(digits); }
+  function pnlClass(v) { if (v === null || v === undefined) return 'neutral'; return v >= 0 ? 'positive' : 'negative'; }
+  function actionBadge(action) { return `<span class="action action-${action}">${action}</span>`; }
+  function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({'&': '&amp;','<': '&lt;','>': '&gt;','"': '&quot;',"'": '&#39;'}[c])); }
 
-  function pnlClass(v) {
-    if (v === null || v === undefined) return 'neutral';
-    return v >= 0 ? 'positive' : 'negative';
-  }
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(x => x.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+    });
+  });
 
-  function actionBadge(action) {
-    return `<span class="action-badge action-${action}">${action}</span>`;
-  }
-
+  document.getElementById('header-asof').textContent = `截至 ${riskData.asof}`;
   const statusEl = document.getElementById('kpi-risk-status');
   statusEl.innerHTML = `<span class="badge ${riskData.status}">${riskData.status}</span>`;
   statusEl.className = 'value';
-  document.getElementById('kpi-violations').textContent = riskData.violations ? riskData.violations.length : 0;
-  document.getElementById('header-asof').textContent = `截至 ${riskData.asof}`;
-
-  const list = document.getElementById('violation-list');
-  if (!riskData.violations || riskData.violations.length === 0) {
-    list.innerHTML = '<li>无违规项 ✓</li>';
-  } else {
-    list.innerHTML = riskData.violations.map(v =>
-      `<li><span class="badge ${v.severity}">${v.severity}</span> [${v.check}] ${v.message}</li>`
-    ).join('');
-  }
-
+  document.getElementById('kpi-violations').textContent = (riskData.violations || []).length;
   document.getElementById('kpi-positions').textContent = decisionData.total_positions ?? '—';
-  const tbody = document.getElementById('decision-tbody');
-  if (!decisionData.advice || decisionData.advice.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6">暂无建议</td></tr>';
-  } else {
-    tbody.innerHTML = decisionData.advice.map(a => {
-      const pnlPct = a.unrealized_pnl_pct !== null && a.unrealized_pnl_pct !== undefined
-        ? `<span class="${pnlClass(a.unrealized_pnl_pct)}">${fmt(a.unrealized_pnl_pct * 100)}%</span>`
-        : '—';
-      return `<tr>
-        <td><strong>${a.symbol}</strong></td>
-        <td>${a.market}</td>
+  const pnlEl = document.getElementById('kpi-pnl');
+  pnlEl.textContent = portfolioData.total_unrealized_pnl !== null && portfolioData.total_unrealized_pnl !== undefined ? fmt(portfolioData.total_unrealized_pnl) : '—';
+  pnlEl.className = `value ${pnlClass(portfolioData.total_unrealized_pnl)}`;
+
+  const violations = riskData.violations || [];
+  document.getElementById('violation-list').innerHTML = violations.length === 0
+    ? '<li class="muted">无违规项 ✓</li>'
+    : violations.map(v => `<li><span class="badge ${v.severity}">${esc(v.severity)}</span> [${esc(v.check)}] ${esc(v.message)}</li>`).join('');
+
+  const advice = decisionData.advice || [];
+  document.getElementById('decision-tbody').innerHTML = advice.length === 0
+    ? '<tr><td colspan="6" class="muted">暂无建议</td></tr>'
+    : advice.map(a => `<tr>
+        <td><strong>${esc(a.symbol)}</strong></td>
+        <td>${esc(a.market)}</td>
         <td>${actionBadge(a.action)}</td>
-        <td>${pnlPct}</td>
+        <td class="${pnlClass(a.unrealized_pnl_pct)}">${a.unrealized_pnl_pct !== null && a.unrealized_pnl_pct !== undefined ? fmt(a.unrealized_pnl_pct * 100) + '%' : '—'}</td>
         <td>${fmt(a.stop_loss_price)}</td>
-        <td style="color:#6b7280;font-size:.8rem">${a.reason}</td>
-      </tr>`;
-    }).join('');
-  }
+        <td class="muted">${esc(a.reason)}</td>
+      </tr>`).join('');
+
+  const pendingBody = document.getElementById('pending-actions-body');
+  pendingBody.innerHTML = pendingActions.length === 0
+    ? '<tr><td colspan="6" class="muted">暂无待处理建议</td></tr>'
+    : pendingActions.map(a => `<tr data-action-id="${a.id}">
+        <td>${a.id}</td>
+        <td>${esc(a.symbol)} (${esc(a.market)})</td>
+        <td>${actionBadge(a.action)}</td>
+        <td>${esc(a.priority)}</td>
+        <td class="muted">${esc(a.reason || a.rule_tag || '')}</td>
+        <td>
+          <button class="btn primary btn-accept">接受</button>
+          <button class="btn danger btn-reject">拒绝</button>
+          <button class="btn warn btn-modify">修改->trim</button>
+        </td>
+      </tr>`).join('');
+
+  document.getElementById('handled-actions-body').innerHTML = handledActions.length === 0
+    ? '<tr><td colspan="5" class="muted">暂无已处理建议</td></tr>'
+    : handledActions.map(a => `<tr>
+        <td>${a.id}</td><td>${esc(a.symbol)} (${esc(a.market)})</td><td>${actionBadge(a.action)}</td><td>${esc(a.status)}</td><td>${esc(a.updated_at || '')}</td>
+      </tr>`).join('');
+
+  document.getElementById('cards-body').innerHTML = cards.length === 0
+    ? '<tr><td colspan="5" class="muted">暂无策略卡</td></tr>'
+    : cards.map(c => `<tr>
+        <td>${c.id}</td><td>${esc(c.symbol)} (${esc(c.market)})</td><td>${esc(c.status)}</td>
+        <td class="muted">entry:${c.entry_rules ? 'Y' : 'N'} exit:${c.exit_rules ? 'Y' : 'N'} risk:${c.risk_rules ? 'Y' : 'N'} cadence:${esc(c.review_cadence || '-')}</td>
+        <td>${esc(c.updated_at || '')}</td>
+      </tr>`).join('');
+
+  document.getElementById('executions-body').innerHTML = executions.length === 0
+    ? '<tr><td colspan="6" class="muted">暂无执行记录</td></tr>'
+    : executions.map(e => `<tr>
+        <td>${e.id}</td><td>${esc(e.symbol)} (${esc(e.market)})</td><td>${esc(e.response)}</td><td>${esc(e.source)}</td><td class="muted">${esc(e.reason || '')}</td><td>${esc(e.created_at || '')}</td>
+      </tr>`).join('');
 
   const positions = portfolioData.positions || [];
-  const totalPnl = portfolioData.total_unrealized_pnl;
-  const pnlEl = document.getElementById('kpi-pnl');
-  pnlEl.textContent = totalPnl !== null && totalPnl !== undefined ? fmt(totalPnl) : '—';
-  pnlEl.className = `value ${pnlClass(totalPnl)}`;
-
   const labels = [];
   const values = [];
-  const colors = [
-    '#6366f1','#f59e0b','#10b981','#3b82f6','#ef4444',
-    '#8b5cf6','#14b8a6','#f97316','#06b6d4','#84cc16',
-  ];
   positions.forEach(p => {
-    const mv = p.current_price !== null && p.net_shares !== null
-      ? p.current_price * p.net_shares
-      : null;
-    if (mv !== null && mv > 0) {
-      labels.push(`${p.symbol}(${p.market})`);
-      values.push(mv);
-    }
+    const mv = p.current_price !== null && p.net_shares !== null ? p.current_price * p.net_shares : null;
+    if (mv !== null && mv > 0) { labels.push(`${p.symbol}(${p.market})`); values.push(mv); }
   });
-
-  if (values.length === 0) {
-    document.querySelector('.chart-wrapper').innerHTML = '<span class="loading">暂无可用市值数据</span>';
-    return;
+  if (values.length > 0) {
+    new Chart(document.getElementById('positionChart'), {
+      type: 'doughnut',
+      data: { labels, datasets: [{ data: values, borderWidth: 0 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
+    });
+  } else {
+    document.querySelector('.chart-wrapper').innerHTML = '<span class="muted">暂无可用市值数据</span>';
   }
 
-  const ctx = document.getElementById('positionChart');
-  new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels,
-      datasets: [{
-        data: values,
-        backgroundColor: colors.slice(0, values.length),
-        borderWidth: 0,
-      }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom',
-          labels: { boxWidth: 12, boxHeight: 12, usePointStyle: true, pointStyle: 'circle' },
-        },
-      },
-    },
+  function updateWriteStatus() {
+    document.getElementById('write-status').textContent = writeEnabled ? '已获得写权限' : '只读模式';
+  }
+  updateWriteStatus();
+
+  document.getElementById('btn-login').addEventListener('click', async () => {
+    const token = document.getElementById('login-token').value;
+    const resp = await fetch('/dashboard/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    if (!resp.ok) { alert('登录失败'); return; }
+    writeEnabled = true;
+    updateWriteStatus();
+  });
+
+  async function postJSON(url, payload) {
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) {
+      const t = await resp.text();
+      throw new Error(t || 'request failed');
+    }
+    return await resp.json();
+  }
+
+  pendingBody.querySelectorAll('.btn-accept').forEach(btn => btn.addEventListener('click', async (e) => {
+    if (!writeEnabled) { alert('请先登录写权限'); return; }
+    const actionId = Number(e.target.closest('tr').dataset.actionId);
+    await postJSON('/dashboard/respond', { action_id: actionId, response: 'accepted' });
+    location.reload();
+  }));
+  pendingBody.querySelectorAll('.btn-reject').forEach(btn => btn.addEventListener('click', async (e) => {
+    if (!writeEnabled) { alert('请先登录写权限'); return; }
+    const actionId = Number(e.target.closest('tr').dataset.actionId);
+    await postJSON('/dashboard/respond', { action_id: actionId, response: 'rejected' });
+    location.reload();
+  }));
+  pendingBody.querySelectorAll('.btn-modify').forEach(btn => btn.addEventListener('click', async (e) => {
+    if (!writeEnabled) { alert('请先登录写权限'); return; }
+    const actionId = Number(e.target.closest('tr').dataset.actionId);
+    await postJSON('/dashboard/respond', { action_id: actionId, response: 'modified', modified_action: 'trim' });
+    location.reload();
+  }));
+
+  document.getElementById('btn-exec-create').addEventListener('click', async () => {
+    if (!writeEnabled) { alert('请先登录写权限'); return; }
+    await postJSON('/dashboard/executions', {
+      symbol: document.getElementById('exec-symbol').value,
+      market: document.getElementById('exec-market').value,
+      source: document.getElementById('exec-source').value,
+      reason: document.getElementById('exec-reason').value,
+      executed_price: Number(document.getElementById('exec-price').value || 0) || null,
+      executed_quantity: Number(document.getElementById('exec-qty').value || 0) || null,
+    });
+    location.reload();
   });
 })();
 </script>
-
 </body>
 </html>

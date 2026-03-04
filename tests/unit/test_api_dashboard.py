@@ -51,6 +51,7 @@ def _mock_settings(api_key: str = ''):
     m.risk_max_position_pct = 0.20
     m.risk_max_positions = 10
     m.risk_max_drawdown_pct = 0.15
+    m.dashboard_write_token = ''
     return m
 
 

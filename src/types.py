@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 
 
@@ -126,6 +126,39 @@ class DecisionReport:
     enter_count: int
     watch_count: int
     generated_at: str                # ISO-8601 UTC timestamp
+
+
+@dataclass
+class ActionQueueItem:
+    id: int
+    card_id: Optional[int]
+    symbol: str
+    market: str
+    action: str
+    priority: str
+    reason: Optional[str]
+    rule_tag: Optional[str]
+    status: str
+    generated_date: date
+    expires_at: Optional[date]
+    created_at: str
+    updated_at: str
+
+
+@dataclass
+class ExecutionLogEntry:
+    id: int
+    action_queue_id: Optional[int]
+    card_id: Optional[int]
+    symbol: str
+    market: str
+    response: str
+    reason: Optional[str]
+    source: str
+    executed_price: Optional[float]
+    executed_quantity: Optional[float]
+    executed_at: Optional[datetime]
+    created_at: str
 
 
 @dataclass

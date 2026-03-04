@@ -41,6 +41,7 @@ class PipelineScheduler:
         self._with_retry(self._run_macro, max_attempts=3)
         self._with_retry(self._run_factors, max_attempts=3)
         self._with_retry(self._run_quality, max_attempts=2)
+        self._with_retry(self._run_queue, max_attempts=2)
         self._with_retry(self._run_report, max_attempts=2)
 
     def start(self) -> None:
@@ -122,6 +123,21 @@ class PipelineScheduler:
         for table in ('raw_price', 'raw_fundamental', 'raw_macro'):
             report = checker.run(table=table, run_date=date.today().isoformat())
             logger.info('quality table=%s rows=%s issues=%s', table, report.total_rows, report.issue_count)
+
+    def _run_queue(self) -> None:
+        logger.info('run action queue generation')
+        asof = date.today()
+        with get_session() as session:
+            total = DecisionAdvisor().generate_queue(
+                asof=asof,
+                session=session,
+                price_source_cn=settings.price_source_cn,
+                price_source_us=settings.price_source_us,
+                max_position_pct=settings.risk_max_position_pct,
+                max_positions=settings.risk_max_positions,
+                max_drawdown_pct=settings.risk_max_drawdown_pct,
+            )
+        logger.info('action queue generation done rows=%s', total)
 
     def _run_report(self) -> None:
         logger.info('run daily report push')
