@@ -80,11 +80,13 @@ def create_app() -> FastAPI:
         return {'pong': True}
 
     # ── business routers ──────────────────────────────────────────────────────
-    from src.api.routers import cards, decision, portfolio, risk
+    from src.api.routers import actions, cards, decision, executions, portfolio, risk
     app.include_router(portfolio.router, prefix='/api/v1', tags=['portfolio'])
     app.include_router(risk.router,      prefix='/api/v1', tags=['risk'])
     app.include_router(decision.router,  prefix='/api/v1', tags=['decision'])
     app.include_router(cards.router,     prefix='/api/v1', tags=['cards'])
+    app.include_router(actions.router,   prefix='/api/v1', tags=['actions'])
+    app.include_router(executions.router, prefix='/api/v1', tags=['executions'])
 
     # ── dashboard router ──────────────────────────────────────────────────────
     from src.api.routers import dashboard
