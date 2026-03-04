@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, Date, DateTime, Index, Integer, Numeric, String, Text, UniqueConstraint, func
+from sqlalchemy import CheckConstraint, Date, DateTime, Index, Integer, JSON, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.db.base import Base
@@ -92,7 +92,7 @@ class DerivedFactor(Base):
 
 
 class StrategyCard(Base):
-    """Draft / active / closed strategy card produced by 大呆子（策略官）.
+    """Draft / active / paused / closed strategy card produced by 大呆子（策略官）.
 
     Human-filled fields (thesis, position_pct) are left NULL on creation and
     filled in after human review.  Auto-filled fields (valuation_note,
@@ -116,6 +116,16 @@ class StrategyCard(Base):
     entry_price: Mapped[float | None] = mapped_column(Numeric(18, 6))
     entry_date: Mapped[datetime | None] = mapped_column(Date)
     stop_loss_price: Mapped[float | None] = mapped_column(Numeric(18, 6))
+    # StrategyCard 2.0 fields (nullable for backward compatibility)
+    industry: Mapped[str | None] = mapped_column(String(64))
+    expected_cycle: Mapped[str | None] = mapped_column(String(32))
+    valuation_anchor: Mapped[dict | None] = mapped_column(JSON)
+    position_rules: Mapped[dict | None] = mapped_column(JSON)
+    entry_rules: Mapped[dict | None] = mapped_column(JSON)
+    exit_rules: Mapped[dict | None] = mapped_column(JSON)
+    risk_rules: Mapped[dict | None] = mapped_column(JSON)
+    review_cadence: Mapped[str | None] = mapped_column(String(16))
+    rules_version: Mapped[int | None] = mapped_column(Integer, default=1, server_default='1')
     # Lifecycle
     status: Mapped[str] = mapped_column(String(16), nullable=False, default='draft', server_default='draft')
     close_reason: Mapped[str | None] = mapped_column(Text)

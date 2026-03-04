@@ -47,7 +47,7 @@ class StrategyCardSpec:
 
     Human-filled fields (thesis, position_pct) are None on creation;
     auto-filled fields are populated by CardGenerator.
-    Status lifecycle: draft → active → closed.
+    Status lifecycle: draft → active → paused → closed.
     """
     symbol: str
     market: str
@@ -59,6 +59,15 @@ class StrategyCardSpec:
     # Human-filled (left None in generated draft)
     thesis: Optional[str] = None
     position_pct: Optional[float] = None
+    industry: Optional[str] = None
+    expected_cycle: Optional[str] = None
+    valuation_anchor: Optional[dict] = None
+    position_rules: Optional[dict] = None
+    entry_rules: Optional[dict] = None
+    exit_rules: Optional[dict] = None
+    risk_rules: Optional[dict] = None
+    review_cadence: Optional[str] = None
+    rules_version: Optional[int] = 1
     status: str = 'draft'
     close_reason: Optional[str] = None
 
@@ -99,7 +108,7 @@ class DecisionAdvice:
     unrealized_pnl_pct: Optional[float]
     # Strategy card info (None when no matching card)
     card_id: Optional[int]
-    card_status: Optional[str]       # 'draft' | 'active' | None
+    card_status: Optional[str]       # 'draft' | 'active' | 'paused' | None
     stop_loss_price: Optional[float]
 
 

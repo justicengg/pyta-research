@@ -10,6 +10,7 @@ def test_scheduler_run_once_calls_pipeline_steps(monkeypatch):
     monkeypatch.setattr(svc, '_run_macro', lambda: called.append('macro'))
     monkeypatch.setattr(svc, '_run_factors', lambda: called.append('factors'))
     monkeypatch.setattr(svc, '_run_quality', lambda: called.append('quality'))
+    monkeypatch.setattr(svc, '_run_report', lambda: called.append('report'))
 
     svc.run_once()
-    assert called == ['market', 'fundamental', 'macro', 'factors', 'quality']
+    assert called == ['market', 'fundamental', 'macro', 'factors', 'quality', 'report']
