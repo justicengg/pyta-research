@@ -17,6 +17,14 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+from src.strategy.schemas import (
+    EntryRules,
+    ExitRules,
+    PositionRules,
+    RiskRules,
+    ValuationAnchor,
+)
+
 TEMPLATES: dict[str, dict[str, Any]] = {
     'value_basic': {
         'label': '价值型（基础）',
@@ -150,6 +158,23 @@ def apply_overrides(template: dict[str, Any], overrides: dict[str, Any]) -> dict
         else:
             template[key] = value
     return template
+
+
+def validate_template_rules(template: dict[str, Any]) -> None:
+    """Validate template JSON fields and raise ValueError on invalid payloads."""
+    try:
+        if template.get('position_rules'):
+            PositionRules(**template['position_rules'])
+        if template.get('entry_rules'):
+            EntryRules(**template['entry_rules'])
+        if template.get('exit_rules'):
+            ExitRules(**{k: v for k, v in template['exit_rules'].items() if v is not None})
+        if template.get('risk_rules'):
+            RiskRules(**template['risk_rules'])
+        if template.get('valuation_anchor'):
+            ValuationAnchor(**template['valuation_anchor'])
+    except Exception as e:  # pragma: no cover - exact exception type from pydantic varies
+        raise ValueError(f'Rule validation failed: {e}') from e
 
 
 def _deep_merge(base: dict, override: dict) -> dict:

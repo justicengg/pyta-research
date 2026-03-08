@@ -9,7 +9,7 @@ from sqlalchemy import select
 
 from src.api.app import create_app
 from src.config.settings import settings
-from src.db.models import ActionQueue, ExecutionLog, StrategyCard
+from src.db.models import ActionQueue, ExecutionLog, StrategyCard, TradeLog
 from src.db.session import configure_engine, get_session
 
 _BG_SCHED = 'src.api.app.BackgroundScheduler'
@@ -64,6 +64,16 @@ def _seed_card_and_action() -> int:
 def _count_exec_logs(action_id: int) -> int:
     with get_session() as session:
         return len(list(session.scalars(select(ExecutionLog).where(ExecutionLog.action_queue_id == action_id)).all()))
+
+
+def _snapshot_symbols() -> list[str]:
+    with get_session() as session:
+        rows = list(
+            session.scalars(
+                select(TradeLog).where(TradeLog.note == 'initial_snapshot').order_by(TradeLog.id.asc())
+            ).all()
+        )
+        return [r.symbol for r in rows]
 
 
 @pytest.fixture
@@ -176,3 +186,52 @@ class TestDashboardV2:
             headers={'origin': 'http://testserver', 'X-CSRF-Token': csrf},
         )
         assert ok.status_code == 200
+
+    def test_dashboard_snapshot_invalid_payload_does_not_clear_existing_snapshot(self, client: TestClient):
+        _csrf(client)
+        _login(client)
+        csrf = _csrf(client)
+        headers = {'origin': 'http://testserver', 'X-CSRF-Token': csrf}
+
+        first = client.post(
+            '/dashboard/portfolio-snapshot',
+            json={'positions': [{'symbol': 'AAPL', 'market': 'US', 'shares': 10, 'avg_cost': 100}]},
+            headers=headers,
+        )
+        assert first.status_code == 200
+        assert _snapshot_symbols() == ['AAPL']
+
+        bad = client.post(
+            '/dashboard/portfolio-snapshot',
+            json={'positions': [{'symbol': 'BABA', 'market': 'US', 'shares': 0, 'avg_cost': 80}]},
+            headers=headers,
+        )
+        assert bad.status_code == 422
+        assert _snapshot_symbols() == ['AAPL']
+
+    def test_dashboard_snapshot_non_numeric_returns_422(self, client: TestClient):
+        _csrf(client)
+        _login(client)
+        csrf = _csrf(client)
+        resp = client.post(
+            '/dashboard/portfolio-snapshot',
+            json={'positions': [{'symbol': 'AAPL', 'market': 'US', 'shares': 'abc', 'avg_cost': 100}]},
+            headers={'origin': 'http://testserver', 'X-CSRF-Token': csrf},
+        )
+        assert resp.status_code == 422
+
+    def test_dashboard_create_card_from_template_validates_rules(self, client: TestClient):
+        _csrf(client)
+        _login(client)
+        csrf = _csrf(client)
+        resp = client.post(
+            '/dashboard/cards/from-template',
+            json={
+                'template': 'value_basic',
+                'symbol': 'TSLA',
+                'market': 'US',
+                'overrides': {'risk_rules': {'stock_max_loss_pct': 1.5}},
+            },
+            headers={'origin': 'http://testserver', 'X-CSRF-Token': csrf},
+        )
+        assert resp.status_code == 422
