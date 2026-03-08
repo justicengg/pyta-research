@@ -17,7 +17,7 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 
 from src.config.settings import settings
-from src.db.models import ActionQueue, ExecutionLog, StrategyCard
+from src.db.models import ActionQueue, ExecutionLog, RawPrice, StrategyCard, TradeLog
 from src.db.session import get_session
 from src.decision.advisor import DecisionAdvisor
 from src.portfolio.tracker import PortfolioTracker
@@ -346,3 +346,59 @@ async def dashboard_executions(request: Request) -> JSONResponse:
         execution_id = row.id
 
     return JSONResponse({'ok': True, 'execution_id': execution_id})
+
+
+SNAPSHOT_NOTE = 'initial_snapshot'
+
+
+@router.post('/dashboard/portfolio-snapshot', tags=['dashboard'])
+async def dashboard_portfolio_snapshot(request: Request) -> JSONResponse:
+    """Import portfolio positions via dashboard (server-side proxy)."""
+    _require_write_auth(request)
+    _verify_same_origin(request)
+    _require_csrf(request)
+
+    body = await request.json()
+    positions = body.get('positions', [])
+    snapshot_date_str = body.get('snapshot_date')
+    snap_date = date.fromisoformat(snapshot_date_str) if snapshot_date_str else date.today()
+
+    if not positions:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail='positions is required')
+
+    with get_session() as session:
+        # Idempotent: delete previous snapshot records
+        from sqlalchemy import delete, distinct, select as sa_select
+        session.execute(delete(TradeLog).where(TradeLog.note == SNAPSHOT_NOTE))
+
+        # Check price coverage
+        covered = set(
+            session.execute(sa_select(distinct(RawPrice.symbol), RawPrice.market)).all()
+        )
+        warnings: list[str] = []
+        inserted = 0
+
+        for p in positions:
+            symbol = p.get('symbol', '')
+            market = p.get('market', '')
+            shares = float(p.get('shares', 0))
+            avg_cost = float(p.get('avg_cost', 0))
+            if not symbol or not market or shares <= 0 or avg_cost <= 0:
+                continue
+            session.add(TradeLog(
+                symbol=symbol,
+                market=market,
+                direction='buy',
+                price=avg_cost,
+                shares=shares,
+                amount=round(avg_cost * shares, 6),
+                trade_date=snap_date,
+                note=SNAPSHOT_NOTE,
+            ))
+            inserted += 1
+            if (symbol, market) not in covered:
+                warnings.append(f'{symbol}({market}): no price data')
+
+        session.commit()
+
+    return JSONResponse({'ok': True, 'imported': inserted, 'warnings': warnings})
