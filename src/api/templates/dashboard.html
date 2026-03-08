@@ -148,6 +148,21 @@
       <p class="muted">来源仅支持 manual_override / external_trade。</p>
     </div>
     <div class="card">
+      <h2>从模板创建策略卡</h2>
+      <div class="row">
+        <select id="tpl-select" class="input">
+          <option value="value_basic">价值型（基础）</option>
+          <option value="momentum">动量型</option>
+          <option value="defensive">防守型</option>
+          <option value="balanced">均衡型</option>
+        </select>
+        <input id="tpl-symbol" class="input" placeholder="symbol" />
+        <input id="tpl-market" class="input" placeholder="market" value="US" />
+        <button id="btn-tpl-create" class="btn primary">创建策略卡</button>
+      </div>
+      <p class="muted">从预设模板创建策略卡，规则可在创建后通过 PATCH 微调。</p>
+    </div>
+    <div class="card">
       <h2>策略卡列表</h2>
       <table>
         <thead><tr><th>ID</th><th>标的</th><th>状态</th><th>规则概览</th><th>更新时间</th></tr></thead>
@@ -391,6 +406,20 @@
       renderSnapPreview();
       location.reload();
     } catch (e) { alert('导入失败: ' + e.message); }
+  });
+
+  // --- Template card creation ---
+  document.getElementById('btn-tpl-create').addEventListener('click', async () => {
+    if (!writeEnabled) { alert('请先登录写权限'); return; }
+    const template = document.getElementById('tpl-select').value;
+    const symbol = document.getElementById('tpl-symbol').value.trim();
+    const market = document.getElementById('tpl-market').value.trim();
+    if (!symbol || !market) { alert('请填写标的和市场'); return; }
+    try {
+      const result = await postJSON('/dashboard/cards/from-template', { template, symbol, market });
+      alert('策略卡创建成功, ID: ' + result.card_id);
+      location.reload();
+    } catch (e) { alert('创建失败: ' + e.message); }
   });
 })();
 </script>

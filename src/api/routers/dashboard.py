@@ -402,3 +402,51 @@ async def dashboard_portfolio_snapshot(request: Request) -> JSONResponse:
         session.commit()
 
     return JSONResponse({'ok': True, 'imported': inserted, 'warnings': warnings})
+
+
+@router.post('/dashboard/cards/from-template', tags=['dashboard'])
+async def dashboard_create_card_from_template(request: Request) -> JSONResponse:
+    """Create a strategy card from template via dashboard (server-side proxy)."""
+    _require_write_auth(request)
+    _verify_same_origin(request)
+    _require_csrf(request)
+
+    body = await request.json()
+    template_name = body.get('template', '')
+    symbol = body.get('symbol', '')
+    market = body.get('market', '')
+
+    if not template_name or not symbol or not market:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail='template, symbol, market required')
+
+    from src.strategy.templates import apply_overrides, get_template
+
+    try:
+        tpl = get_template(template_name)
+    except KeyError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    overrides = body.get('overrides') or {}
+    if overrides:
+        tpl = apply_overrides(tpl, overrides)
+
+    with get_session() as session:
+        card = StrategyCard(
+            symbol=symbol,
+            market=market,
+            status='active',
+            expected_cycle=tpl.get('expected_cycle'),
+            review_cadence=tpl.get('review_cadence'),
+            position_rules=tpl.get('position_rules'),
+            entry_rules=tpl.get('entry_rules'),
+            exit_rules=tpl.get('exit_rules'),
+            risk_rules=tpl.get('risk_rules'),
+            valuation_anchor=tpl.get('valuation_anchor'),
+            rules_version=1,
+        )
+        session.add(card)
+        session.commit()
+        session.refresh(card)
+        card_id = card.id
+
+    return JSONResponse({'ok': True, 'card_id': card_id})
