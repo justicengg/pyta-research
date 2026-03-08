@@ -60,6 +60,7 @@ def list_executions(
     source: str | None = Query(None),
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
+    limit: int = Query(50, ge=1, le=200),
     session: Session = Depends(get_session),
 ) -> list[dict]:
     stmt = select(ExecutionLog).order_by(ExecutionLog.created_at.desc(), ExecutionLog.id.desc())
@@ -71,7 +72,7 @@ def list_executions(
         stmt = stmt.where(func.date(ExecutionLog.created_at) >= date_from)
     if date_to is not None:
         stmt = stmt.where(func.date(ExecutionLog.created_at) <= date_to)
-
+    stmt = stmt.limit(limit)
     rows = session.execute(stmt).scalars().all()
     return [_row_to_dict(row) for row in rows]
 

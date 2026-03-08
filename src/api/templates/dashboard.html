@@ -222,7 +222,7 @@
         <td>
           <button class="btn primary btn-accept">接受</button>
           <button class="btn danger btn-reject">拒绝</button>
-          <button class="btn warn btn-modify">修改->trim</button>
+          <button class="btn warn btn-modify">修改</button>
         </td>
       </tr>`).join('');
 
@@ -308,7 +308,10 @@
   pendingBody.querySelectorAll('.btn-modify').forEach(btn => btn.addEventListener('click', async (e) => {
     if (!writeEnabled) { alert('请先登录写权限'); return; }
     const actionId = Number(e.target.closest('tr').dataset.actionId);
-    await postJSON('/dashboard/respond', { action_id: actionId, response: 'modified', modified_action: 'trim' });
+    const currentAction = e.target.closest('tr').querySelector('.action')?.textContent || '';
+    const newAction = prompt('修改动作为:', currentAction);
+    if (!newAction) return;
+    await postJSON('/dashboard/respond', { action_id: actionId, response: 'modified', modified_action: newAction });
     location.reload();
   }));
 

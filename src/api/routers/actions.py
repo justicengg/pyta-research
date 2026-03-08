@@ -52,6 +52,7 @@ def list_actions(
     date_filter: date | None = Query(None, alias='date'),
     status_filter: str | None = Query(None, alias='status'),
     priority: str | None = Query(None),
+    limit: int = Query(50, ge=1, le=200),
     session: Session = Depends(get_session),
 ) -> list[dict]:
     stmt = select(ActionQueue).order_by(ActionQueue.generated_date.desc(), ActionQueue.id.desc())
@@ -61,16 +62,21 @@ def list_actions(
         stmt = stmt.where(ActionQueue.status == status_filter)
     if priority is not None:
         stmt = stmt.where(ActionQueue.priority == priority)
+    stmt = stmt.limit(limit)
     rows = session.execute(stmt).scalars().all()
     return [_row_to_dict(row) for row in rows]
 
 
 @router.get('/actions/today', dependencies=[Depends(verify_api_key)])
-def list_actions_today(session: Session = Depends(get_session)) -> list[dict]:
+def list_actions_today(
+    limit: int = Query(50, ge=1, le=200),
+    session: Session = Depends(get_session),
+) -> list[dict]:
     stmt = (
         select(ActionQueue)
         .where(ActionQueue.generated_date == date.today(), ActionQueue.status == 'pending')
         .order_by(ActionQueue.priority.asc(), ActionQueue.id.asc())
+        .limit(limit)
     )
     rows = session.execute(stmt).scalars().all()
     return [_row_to_dict(row) for row in rows]

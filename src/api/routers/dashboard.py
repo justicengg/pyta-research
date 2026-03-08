@@ -243,7 +243,8 @@ def dashboard(request: Request) -> HTMLResponse:
             'write_enabled': _is_logged_in(request),
         },
     )
-    response.set_cookie(CSRF_COOKIE, csrf_token, samesite='lax', httponly=False)
+    _secure = request.url.scheme == 'https'
+    response.set_cookie(CSRF_COOKIE, csrf_token, samesite='lax', httponly=False, secure=_secure)
     return response
 
 
@@ -257,8 +258,9 @@ async def dashboard_login(request: Request) -> JSONResponse:
 
     csrf_token = _build_csrf_token()
     response = JSONResponse({'ok': True})
-    response.set_cookie(SESSION_COOKIE, _session_hash(settings.dashboard_write_token), httponly=True, samesite='lax')
-    response.set_cookie(CSRF_COOKIE, csrf_token, httponly=False, samesite='lax')
+    _secure = request.url.scheme == 'https'
+    response.set_cookie(SESSION_COOKIE, _session_hash(settings.dashboard_write_token), httponly=True, samesite='lax', secure=_secure, max_age=86400)
+    response.set_cookie(CSRF_COOKIE, csrf_token, httponly=False, samesite='lax', secure=_secure)
     return response
 
 
