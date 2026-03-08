@@ -1,4 +1,4 @@
-"""GET /api/v1/portfolio/snapshot — PortfolioSnapshot as JSON."""
+"""Portfolio API — snapshot query and position import."""
 from __future__ import annotations
 
 from dataclasses import asdict
@@ -6,14 +6,49 @@ from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel, field_validator
+from sqlalchemy import delete, distinct, select
 from sqlalchemy.orm import Session
 
 from src.api.deps import get_session, verify_api_key
 from src.config.settings import settings
+from src.db.models import RawPrice, TradeLog
 from src.portfolio.tracker import PortfolioTracker
 
 router = APIRouter()
 
+SNAPSHOT_NOTE = 'initial_snapshot'
+
+
+# ---------- Pydantic models ----------
+
+class PositionItem(BaseModel):
+    symbol: str
+    market: str
+    shares: float
+    avg_cost: float
+
+    @field_validator('shares')
+    @classmethod
+    def shares_positive(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError('shares must be positive')
+        return v
+
+    @field_validator('avg_cost')
+    @classmethod
+    def cost_positive(cls, v: float) -> float:
+        if v <= 0:
+            raise ValueError('avg_cost must be positive')
+        return v
+
+
+class SnapshotImport(BaseModel):
+    positions: list[PositionItem]
+    snapshot_date: date | None = None
+
+
+# ---------- GET ----------
 
 @router.get('/portfolio/snapshot', dependencies=[Depends(verify_api_key)])
 def portfolio_snapshot(
@@ -30,3 +65,53 @@ def portfolio_snapshot(
     data = asdict(snap)
     data['snapshot_date'] = snap.snapshot_date.isoformat()
     return data
+
+
+# ---------- POST ----------
+
+@router.post('/portfolio/snapshot', dependencies=[Depends(verify_api_key)])
+def import_snapshot(
+    body: SnapshotImport,
+    session: Session = Depends(get_session),
+) -> dict:
+    """Import current holdings as trade_log records (idempotent: deletes previous snapshot first)."""
+    snap_date = body.snapshot_date or date.today()
+
+    # Idempotent: delete previous initial_snapshot records
+    session.execute(
+        delete(TradeLog).where(TradeLog.note == SNAPSHOT_NOTE)
+    )
+
+    # Check price coverage
+    covered_symbols = set(
+        session.execute(
+            select(distinct(RawPrice.symbol), RawPrice.market)
+        ).all()
+    )
+    warnings: list[str] = []
+
+    inserted = 0
+    for p in body.positions:
+        amount = round(p.avg_cost * p.shares, 6)
+        session.add(TradeLog(
+            symbol=p.symbol,
+            market=p.market,
+            direction='buy',
+            price=p.avg_cost,
+            shares=p.shares,
+            amount=amount,
+            trade_date=snap_date,
+            note=SNAPSHOT_NOTE,
+        ))
+        inserted += 1
+        if (p.symbol, p.market) not in covered_symbols:
+            warnings.append(f'{p.symbol}({p.market}): no price data in raw_price')
+
+    session.commit()
+
+    return {
+        'ok': True,
+        'imported': inserted,
+        'snapshot_date': snap_date.isoformat(),
+        'warnings': warnings,
+    }

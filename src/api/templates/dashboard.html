@@ -118,6 +118,23 @@
 
   <section id="tab-exec" class="tab-panel">
     <div class="card">
+      <h2>导入持仓快照</h2>
+      <div class="row">
+        <input id="snap-symbol" class="input" placeholder="symbol" />
+        <input id="snap-market" class="input" placeholder="market" value="US" />
+        <input id="snap-shares" class="input" placeholder="shares" />
+        <input id="snap-cost" class="input" placeholder="avg_cost" />
+        <button id="btn-snap-add" class="btn">添加</button>
+        <button id="btn-snap-submit" class="btn primary">提交导入</button>
+        <button id="btn-snap-clear" class="btn">清空</button>
+      </div>
+      <table>
+        <thead><tr><th>标的</th><th>市场</th><th>股数</th><th>成本价</th><th>操作</th></tr></thead>
+        <tbody id="snap-preview"></tbody>
+      </table>
+      <p class="muted">幂等操作：重复导入将覆盖之前的快照记录。</p>
+    </div>
+    <div class="card">
       <h2>手动执行记录</h2>
       <div class="row">
         <input id="exec-symbol" class="input" placeholder="symbol" />
@@ -326,6 +343,54 @@
       executed_quantity: Number(document.getElementById('exec-qty').value || 0) || null,
     });
     location.reload();
+  });
+
+  // --- Snapshot import ---
+  const snapList = [];
+  const snapPreview = document.getElementById('snap-preview');
+  function renderSnapPreview() {
+    snapPreview.innerHTML = snapList.length === 0
+      ? '<tr><td colspan="5" class="muted">暂无待导入持仓</td></tr>'
+      : snapList.map((s, i) => `<tr>
+          <td>${esc(s.symbol)}</td><td>${esc(s.market)}</td><td>${s.shares}</td><td>${s.avg_cost}</td>
+          <td><button class="btn" onclick="window._snapRemove(${i})">删除</button></td>
+        </tr>`).join('');
+  }
+  window._snapRemove = (i) => { snapList.splice(i, 1); renderSnapPreview(); };
+  renderSnapPreview();
+
+  document.getElementById('btn-snap-add').addEventListener('click', () => {
+    const symbol = document.getElementById('snap-symbol').value.trim();
+    const market = document.getElementById('snap-market').value.trim();
+    const shares = Number(document.getElementById('snap-shares').value);
+    const avg_cost = Number(document.getElementById('snap-cost').value);
+    if (!symbol || !market || !shares || !avg_cost) { alert('请填写完整'); return; }
+    snapList.push({ symbol, market, shares, avg_cost });
+    document.getElementById('snap-symbol').value = '';
+    document.getElementById('snap-shares').value = '';
+    document.getElementById('snap-cost').value = '';
+    renderSnapPreview();
+  });
+
+  document.getElementById('btn-snap-clear').addEventListener('click', () => {
+    snapList.length = 0;
+    renderSnapPreview();
+  });
+
+  document.getElementById('btn-snap-submit').addEventListener('click', async () => {
+    if (!writeEnabled) { alert('请先登录写权限'); return; }
+    if (snapList.length === 0) { alert('请先添加持仓'); return; }
+    try {
+      const result = await postJSON('/dashboard/portfolio-snapshot', { positions: snapList });
+      let msg = '导入成功: ' + result.imported + ' 条';
+      if (result.warnings && result.warnings.length > 0) {
+        msg += '\n\n警告:\n' + result.warnings.join('\n');
+      }
+      alert(msg);
+      snapList.length = 0;
+      renderSnapPreview();
+      location.reload();
+    } catch (e) { alert('导入失败: ' + e.message); }
   });
 })();
 </script>
