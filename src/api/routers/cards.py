@@ -27,7 +27,12 @@ from src.strategy.schemas import (
     RiskRules,
     ValuationAnchor,
 )
-from src.strategy.templates import apply_overrides, get_template, list_templates
+from src.strategy.templates import (
+    apply_overrides,
+    get_template,
+    list_templates,
+    validate_template_rules,
+)
 
 router = APIRouter()
 
@@ -137,19 +142,9 @@ def create_from_template(
     if body.overrides:
         tpl = apply_overrides(tpl, body.overrides)
 
-    # Validate JSONB fields via Pydantic schemas
     try:
-        if tpl.get('position_rules'):
-            PositionRules(**tpl['position_rules'])
-        if tpl.get('entry_rules'):
-            EntryRules(**tpl['entry_rules'])
-        if tpl.get('exit_rules'):
-            ExitRules(**{k: v for k, v in tpl['exit_rules'].items() if v is not None})
-        if tpl.get('risk_rules'):
-            RiskRules(**tpl['risk_rules'])
-        if tpl.get('valuation_anchor'):
-            ValuationAnchor(**tpl['valuation_anchor'])
-    except Exception as e:
+        validate_template_rules(tpl)
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f'Rule validation failed: {e}',

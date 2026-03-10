@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError, field_validator
 from sqlalchemy import func, select
 
 from src.config.settings import settings
@@ -22,6 +22,7 @@ from src.db.session import get_session
 from src.decision.advisor import DecisionAdvisor
 from src.portfolio.tracker import PortfolioTracker
 from src.risk.checker import RiskChecker
+from src.strategy.templates import apply_overrides, get_template, validate_template_rules
 
 _TEMPLATES_DIR = Path(__file__).parent.parent / 'templates'
 _templates = Jinja2Templates(directory=str(_TEMPLATES_DIR))
@@ -57,6 +58,32 @@ class DashboardManualExecution(BaseModel):
     executed_quantity: float | None = None
     executed_at: datetime | None = None
     request_id: str | None = None
+
+
+class DashboardPositionItem(BaseModel):
+    symbol: str
+    market: str
+    shares: float
+    avg_cost: float
+
+    @field_validator('shares')
+    @classmethod
+    def shares_positive(cls, value: float) -> float:
+        if value <= 0:
+            raise ValueError('shares must be positive')
+        return value
+
+    @field_validator('avg_cost')
+    @classmethod
+    def avg_cost_positive(cls, value: float) -> float:
+        if value <= 0:
+            raise ValueError('avg_cost must be positive')
+        return value
+
+
+class DashboardSnapshotImport(BaseModel):
+    positions: list[DashboardPositionItem]
+    snapshot_date: date | None = None
 
 
 def _json_payload(obj: object) -> str:
@@ -358,11 +385,15 @@ async def dashboard_portfolio_snapshot(request: Request) -> JSONResponse:
     _verify_same_origin(request)
     _require_csrf(request)
 
-    body = await request.json()
-    positions = body.get('positions', [])
-    snapshot_date_str = body.get('snapshot_date')
-    snap_date = date.fromisoformat(snapshot_date_str) if snapshot_date_str else date.today()
-
+    try:
+        body = DashboardSnapshotImport(**(await request.json()))
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=e.errors(include_url=False, include_context=False),
+        )
+    positions = body.positions
+    snap_date = body.snapshot_date or date.today()
     if not positions:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail='positions is required')
 
@@ -376,15 +407,13 @@ async def dashboard_portfolio_snapshot(request: Request) -> JSONResponse:
             session.execute(sa_select(distinct(RawPrice.symbol), RawPrice.market)).all()
         )
         warnings: list[str] = []
-        inserted = 0
+        inserted = len(positions)
 
         for p in positions:
-            symbol = p.get('symbol', '')
-            market = p.get('market', '')
-            shares = float(p.get('shares', 0))
-            avg_cost = float(p.get('avg_cost', 0))
-            if not symbol or not market or shares <= 0 or avg_cost <= 0:
-                continue
+            symbol = p.symbol
+            market = p.market
+            shares = p.shares
+            avg_cost = p.avg_cost
             session.add(TradeLog(
                 symbol=symbol,
                 market=market,
@@ -395,13 +424,12 @@ async def dashboard_portfolio_snapshot(request: Request) -> JSONResponse:
                 trade_date=snap_date,
                 note=SNAPSHOT_NOTE,
             ))
-            inserted += 1
             if (symbol, market) not in covered:
                 warnings.append(f'{symbol}({market}): no price data')
 
         session.commit()
 
-    return JSONResponse({'ok': True, 'imported': inserted, 'warnings': warnings})
+    return JSONResponse({'ok': True, 'imported': inserted, 'snapshot_date': snap_date.isoformat(), 'warnings': warnings})
 
 
 @router.post('/dashboard/cards/from-template', tags=['dashboard'])
@@ -419,8 +447,6 @@ async def dashboard_create_card_from_template(request: Request) -> JSONResponse:
     if not template_name or not symbol or not market:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail='template, symbol, market required')
 
-    from src.strategy.templates import apply_overrides, get_template
-
     try:
         tpl = get_template(template_name)
     except KeyError as e:
@@ -429,6 +455,10 @@ async def dashboard_create_card_from_template(request: Request) -> JSONResponse:
     overrides = body.get('overrides') or {}
     if overrides:
         tpl = apply_overrides(tpl, overrides)
+    try:
+        validate_template_rules(tpl)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
 
     with get_session() as session:
         card = StrategyCard(
