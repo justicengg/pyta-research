@@ -147,6 +147,10 @@ def _build_parser() -> argparse.ArgumentParser:
     scheduler_sub.add_parser('run-once')
     scheduler_sub.add_parser('start')
 
+    pipeline = sub.add_parser('pipeline', help='Run the full daily pipeline (graceful)')
+    pipeline.add_argument('--strict', action='store_true',
+                          help='Fail fast on first error instead of graceful degradation')
+
     return parser
 
 
@@ -391,6 +395,18 @@ def main() -> None:
         if args.scheduler_cmd == 'start':
             svc.start()
             return
+
+    if args.command == 'pipeline':
+        svc = PipelineScheduler()
+        graceful = not args.strict
+        results = svc.run_once(graceful=graceful)
+        passed = sum(v for v in results.values())
+        failed = len(results) - passed
+        for step, ok in results.items():
+            mark = 'OK' if ok else 'FAIL'
+            print(f'  [{mark}] {step}')
+        print(f'pipeline done: {passed}/{len(results)} passed, {failed} failed')
+        return
 
 
 if __name__ == '__main__':

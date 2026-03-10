@@ -51,6 +51,7 @@ class DashboardManualExecution(BaseModel):
     card_id: int | None = None
     symbol: str
     market: str
+    direction: str = 'buy'
     response: str = 'accepted'
     reason: str | None = None
     source: str
@@ -58,6 +59,13 @@ class DashboardManualExecution(BaseModel):
     executed_quantity: float | None = None
     executed_at: datetime | None = None
     request_id: str | None = None
+
+    @field_validator('direction')
+    @classmethod
+    def direction_valid(cls, value: str) -> str:
+        if value not in ('buy', 'sell'):
+            raise ValueError("direction must be 'buy' or 'sell'")
+        return value
 
 
 class DashboardPositionItem(BaseModel):
@@ -138,6 +146,23 @@ def _audit_reason(base_reason: str | None, operator: str, request_id: str | None
     ip = source_ip or '-'
     body = base_reason or ''
     return f'[op={operator}][req={rid}][ip={ip}] {body}'.strip()
+
+
+_ACTION_DIRECTION_MAP = {
+    'enter': 'buy',
+    'exit': 'sell',
+    'trim': 'sell',
+    'add': 'buy',
+}
+
+
+def _action_to_direction(action: str) -> str | None:
+    """Map an action_queue action to a trade_log direction.
+
+    Returns None for informational actions (hold, watch, review) that
+    should not produce a trade record.
+    """
+    return _ACTION_DIRECTION_MAP.get(action)
 
 
 @router.get('/dashboard', response_class=HTMLResponse, tags=['dashboard'])
@@ -333,6 +358,27 @@ async def dashboard_respond(request: Request) -> JSONResponse:
             executed_quantity=body.executed_quantity,
             executed_at=now,
         ))
+
+        # Trade log feedback: accepted with price+qty → record the trade
+        if (
+            body.response == 'accepted'
+            and body.executed_price is not None
+            and body.executed_quantity is not None
+        ):
+            direction = _action_to_direction(action.action)
+            if direction is not None:
+                session.add(TradeLog(
+                    symbol=action.symbol,
+                    market=action.market,
+                    card_id=action.card_id,
+                    direction=direction,
+                    price=body.executed_price,
+                    shares=body.executed_quantity,
+                    amount=round(body.executed_price * body.executed_quantity, 6),
+                    trade_date=now.date(),
+                    note='dashboard_respond',
+                ))
+
         session.commit()
         session.refresh(action)
         final_status = action.status
@@ -346,7 +392,13 @@ async def dashboard_executions(request: Request) -> JSONResponse:
     _verify_same_origin(request)
     _require_csrf(request)
 
-    body = DashboardManualExecution(**(await request.json()))
+    try:
+        body = DashboardManualExecution(**(await request.json()))
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=e.errors(include_url=False, include_context=False),
+        )
     if body.source not in {'manual_override', 'external_trade'}:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail='Invalid source')
 
@@ -368,6 +420,21 @@ async def dashboard_executions(request: Request) -> JSONResponse:
             executed_at=executed_at,
         )
         session.add(row)
+
+        # Trade log feedback: record the trade when price+qty present
+        if body.executed_price is not None and body.executed_quantity is not None:
+            session.add(TradeLog(
+                symbol=body.symbol,
+                market=body.market,
+                card_id=body.card_id,
+                direction=body.direction,
+                price=body.executed_price,
+                shares=body.executed_quantity,
+                amount=round(body.executed_price * body.executed_quantity, 6),
+                trade_date=executed_at.date(),
+                note=body.source,
+            ))
+
         session.commit()
         session.refresh(row)
         execution_id = row.id
