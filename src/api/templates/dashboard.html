@@ -179,14 +179,14 @@
   </section>
 </main>
 
-<script id="portfolio-data" type="application/json">{{ portfolio_json }}</script>
-<script id="risk-data" type="application/json">{{ risk_json }}</script>
-<script id="decision-data" type="application/json">{{ decision_json }}</script>
-<script id="pending-actions-data" type="application/json">{{ pending_actions_json }}</script>
-<script id="handled-actions-data" type="application/json">{{ handled_actions_json }}</script>
-<script id="cards-data" type="application/json">{{ cards_json }}</script>
-<script id="executions-data" type="application/json">{{ executions_json }}</script>
-<script id="dashboard-meta" type="application/json">{{ {"csrf_token": csrf_token, "write_enabled": write_enabled}|tojson }}</script>
+<script id="portfolio-data" type="application/json">{{ portfolio_json|safe }}</script>
+<script id="risk-data" type="application/json">{{ risk_json|safe }}</script>
+<script id="decision-data" type="application/json">{{ decision_json|safe }}</script>
+<script id="pending-actions-data" type="application/json">{{ pending_actions_json|safe }}</script>
+<script id="handled-actions-data" type="application/json">{{ handled_actions_json|safe }}</script>
+<script id="cards-data" type="application/json">{{ cards_json|safe }}</script>
+<script id="executions-data" type="application/json">{{ executions_json|safe }}</script>
+<script id="dashboard-meta" type="application/json">{{ {"csrf_token": csrf_token, "write_enabled": write_enabled}|tojson|safe }}</script>
 
 <script>
 (function () {
