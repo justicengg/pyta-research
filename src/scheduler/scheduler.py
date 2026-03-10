@@ -35,20 +35,57 @@ class PipelineScheduler:
     def __init__(self) -> None:
         self.scheduler = BlockingScheduler(timezone=settings.scheduler_timezone)
 
-    def run_once(self) -> None:
-        self._with_retry(self._run_market, max_attempts=3)
-        self._with_retry(self._run_fundamental, max_attempts=3)
-        self._with_retry(self._run_macro, max_attempts=3)
-        self._with_retry(self._run_factors, max_attempts=3)
-        self._with_retry(self._run_quality, max_attempts=2)
-        self._with_retry(self._run_queue, max_attempts=2)
-        self._with_retry(self._run_report, max_attempts=2)
+    def run_once(self, graceful: bool = True) -> dict[str, bool]:
+        """Run the full daily pipeline.
+
+        When *graceful* is True (default for scheduled runs), each step logs
+        errors but does **not** block subsequent steps.  Returns a dict mapping
+        step name → success boolean.
+        """
+        steps: list[tuple[str, callable, int]] = [
+            ('market', self._run_market, 3),
+            ('fundamental', self._run_fundamental, 3),
+            ('macro', self._run_macro, 3),
+            ('factors', self._run_factors, 3),
+            ('quality', self._run_quality, 2),
+            ('queue', self._run_queue, 2),
+            ('report', self._run_report, 2),
+        ]
+        results: dict[str, bool] = {}
+        for name, fn, attempts in steps:
+            if graceful:
+                results[name] = self._run_step_safe(name, fn, max_attempts=attempts)
+            else:
+                self._with_retry(fn, max_attempts=attempts)
+                results[name] = True
+
+        passed = sum(v for v in results.values())
+        failed = len(results) - passed
+        logger.info('pipeline complete: %s/%s passed, %s failed', passed, len(results), failed)
+        return results
 
     def start(self) -> None:
         trigger = CronTrigger(hour=settings.scheduler_cron_hour, minute=settings.scheduler_cron_minute)
         self.scheduler.add_job(self.run_once, trigger=trigger, id='daily_pipeline', replace_existing=True)
         logger.info('scheduler started')
         self.scheduler.start()
+
+    def _run_step_safe(self, name: str, fn, max_attempts: int = 3) -> bool:
+        """Run a pipeline step with retries; return True on success, False on failure.
+
+        Unlike ``_with_retry`` this never raises — it logs the final error and
+        returns False so the pipeline can continue.
+        """
+        for attempt in range(1, max_attempts + 1):
+            try:
+                fn()
+                return True
+            except Exception as exc:
+                logger.error('step %s failed attempt=%s/%s', name, attempt, max_attempts, exc_info=exc)
+                if attempt < max_attempts:
+                    time.sleep(2 ** attempt)
+        logger.error('step %s failed after %s attempts — skipping', name, max_attempts)
+        return False
 
     def _with_retry(self, fn, max_attempts: int = 3) -> None:
         for attempt in range(1, max_attempts + 1):
