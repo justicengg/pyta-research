@@ -157,6 +157,11 @@ class RoundCompletePayload(BaseModel):
     key_actions_summary: str               # 关键行动摘要
     convergence_score: float = Field(ge=0, le=1)  # 收敛度评分
     should_continue: bool                  # Orchestrator 判断：继续 or 输出
+    # 异常情况处理
+    is_forced_output: bool = False         # 是否强制输出（未收敛）
+    oscillation_detected: bool = False     # 是否检测到振荡
+    degraded_agents: list[str] = []        # 本轮降级的 Agent 列表
+    queue_depth: int = 0                   # 当前事件队列深度
 
 
 class RoundComplete(SandboxEvent):
@@ -255,6 +260,9 @@ class AgentActionPayload(BaseModel):
     target_price: Optional[str] = None  # 目标价
     holding_period: Optional[str] = None  # 预期持仓周期
     reasoning_ref: Optional[UUID] = None  # 关联 Track 2 叙事的 id
+    # 异常降级
+    is_degraded: bool = False              # Agent 降级标记
+    degraded_reason: Optional[str] = None  # 降级原因
 
 
 class AgentAction(SandboxEvent):
