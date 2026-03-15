@@ -169,6 +169,12 @@ class RoundCompletePayload(BaseModel):
     oscillation_detected: bool = False     # 是否检测到振荡
     degraded_agents: list[str] = []        # 本轮降级的 Agent 列表
     queue_depth: int = 0                   # 当前事件队列深度
+    # 系统健康与降级
+    health_status: str = "healthy"              # "healthy" / "degraded" / "critical"
+    data_completeness: str = "complete"         # "complete" / "partial" / "stale"
+    channel_status: dict = {}                   # {"CH-A": "ok", "CH-B": "ok", "CH-C": "stale"}
+    adjusted_threshold: float = 0.75            # 实际使用的收敛阈值（可能被下调过）
+    penalty_factor: float = 1.0                 # Agent 降级惩罚系数
 
 
 class RoundComplete(SandboxEvent):
