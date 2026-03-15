@@ -112,6 +112,9 @@ class SandboxEvent(BaseModel):
     source: str                # agent_id | "system" | "user"
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     trace_id: Optional[UUID] = None  # 关联 Track 1 + Track 2
+    # 长/短事件分类
+    event_duration: str = "short"       # "short" | "long"
+    phase: Optional[str] = None         # "A" | "B" | "C" (仅长事件)
 
 
 # ============================================================
@@ -141,6 +144,10 @@ class RoundTickPayload(BaseModel):
     injected_event: Optional[str] = None   # 本轮注入的外部事件描述
     market_state_summary: str              # 当前市场状态摘要
     active_agents: list[str]               # 本轮参与的 agent_id 列表
+    # 长事件追踪
+    long_event_ref: Optional[UUID] = None   # 如果当前在处理长事件，指向触发事件的 id
+    long_event_phase: Optional[str] = None  # "A" | "B" | "C"
+    rounds_remaining: Optional[int] = None  # 长事件剩余推演预算
 
 
 class RoundTick(SandboxEvent):
