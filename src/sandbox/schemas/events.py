@@ -112,6 +112,9 @@ class SandboxEvent(BaseModel):
     source: str                # agent_id | "system" | "user"
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     trace_id: Optional[UUID] = None  # 关联 Track 1 + Track 2
+    # 长/短事件分类
+    event_duration: str = "short"       # "short" | "long"
+    phase: Optional[str] = None         # "A" | "B" | "C" (仅长事件)
 
 
 # ============================================================
@@ -141,6 +144,10 @@ class RoundTickPayload(BaseModel):
     injected_event: Optional[str] = None   # 本轮注入的外部事件描述
     market_state_summary: str              # 当前市场状态摘要
     active_agents: list[str]               # 本轮参与的 agent_id 列表
+    # 长事件追踪
+    long_event_ref: Optional[UUID] = None   # 如果当前在处理长事件，指向触发事件的 id
+    long_event_phase: Optional[str] = None  # "A" | "B" | "C"
+    rounds_remaining: Optional[int] = None  # 长事件剩余推演预算
 
 
 class RoundTick(SandboxEvent):
@@ -157,6 +164,11 @@ class RoundCompletePayload(BaseModel):
     key_actions_summary: str               # 关键行动摘要
     convergence_score: float = Field(ge=0, le=1)  # 收敛度评分
     should_continue: bool                  # Orchestrator 判断：继续 or 输出
+    # 异常情况处理
+    is_forced_output: bool = False         # 是否强制输出（未收敛）
+    oscillation_detected: bool = False     # 是否检测到振荡
+    degraded_agents: list[str] = []        # 本轮降级的 Agent 列表
+    queue_depth: int = 0                   # 当前事件队列深度
 
 
 class RoundComplete(SandboxEvent):
@@ -255,6 +267,9 @@ class AgentActionPayload(BaseModel):
     target_price: Optional[str] = None  # 目标价
     holding_period: Optional[str] = None  # 预期持仓周期
     reasoning_ref: Optional[UUID] = None  # 关联 Track 2 叙事的 id
+    # 异常降级
+    is_degraded: bool = False              # Agent 降级标记
+    degraded_reason: Optional[str] = None  # 降级原因
 
 
 class AgentAction(SandboxEvent):
