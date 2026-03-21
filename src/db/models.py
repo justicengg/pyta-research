@@ -233,3 +233,13 @@ class TradeLog(Base):
     trade_date: Mapped[datetime] = mapped_column(Date, nullable=False)
     note: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+# Import sandbox memory models so they share the main SQLAlchemy metadata registry.
+from src.sandbox.schemas.memory import (  # noqa: E402,F401
+    AgentSnapshot,
+    Checkpoint,
+    ReportRecord,
+    SandboxEventRecord,
+    SandboxSession,
+)
