@@ -1,0 +1,67 @@
+:root {
+  --fs-xs: 11px;
+  --fs-sm: 14px;
+  --fs-md: 18px;
+  --fs-lg: 22px;
+  --fs-xl: 27px;
+  --fs-2xl: 34px;
+
+  --lh-tight: 1.25;
+  --lh-base: 1.5;
+  --lh-relaxed: 1.65;
+
+  --ls-tight: -0.03em;
+  --ls-normal: 0em;
+  --ls-wide: 0.06em;
+  --ls-wider: 0.12em;
+
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 24px;
+  --r-2xl: 32px;
+  --r-full: 9999px;
+
+  --sans: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --bg: hsl(40, 18%, 95%);
+  --surface: hsl(0, 0%, 100%);
+  --surface-subtle: hsl(40, 14%, 98%);
+  --surface-overlay: hsl(40, 10%, 96%);
+  --border: hsl(35, 12%, 87%);
+  --border-subtle: hsl(35, 10%, 92%);
+  --text-1: hsl(25, 14%, 10%);
+  --text-2: hsl(25, 8%, 36%);
+  --text-3: hsl(25, 6%, 56%);
+
+  --accent: hsl(161, 72%, 28%);
+  --orange: hsl(24, 65%, 50%);
+  --lime: hsl(72, 76%, 58%);
+  --lime-glow: hsla(72, 76%, 58%, 0.15);
+
+  --tint-traditional: hsl(161, 38%, 96%);
+  --tint-offshore: hsl(218, 38%, 96%);
+  --tint-retail: hsl(24, 45%, 96%);
+  --tint-quant: hsl(258, 32%, 96%);
+  --tint-short-term: hsl(145, 32%, 96%);
+
+  --grid-line: rgba(80, 68, 52, 0.055);
+  --canvas-bg: hsl(40, 14%, 98%);
+
+  --shadow-sm: 0 1px 4px hsl(30 14% 6% / 0.06), 0 1px 2px hsl(30 14% 6% / 0.04);
+  --shadow-md: 0 4px 16px hsl(30 14% 6% / 0.07), 0 2px 6px hsl(30 14% 6% / 0.04);
+  --shadow-lg: 0 12px 36px hsl(30 14% 6% / 0.09), 0 4px 12px hsl(30 14% 6% / 0.05);
+  --shadow-xl: 0 24px 56px hsl(30 14% 6% / 0.11), 0 8px 20px hsl(30 14% 6% / 0.06);
+
+  --left-rail: 300px;
+}
