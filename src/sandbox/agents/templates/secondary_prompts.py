@@ -23,7 +23,14 @@ _AGENT_BRIEFS: dict[ParticipantType, str] = {
         "如果当前信息不足以改变 offshore allocation view，也要明确说明不足之处，而不是留空。"
         "至少给出 1 条 key_observations 和 1 条 analytical_focus。"
     ),
-    ParticipantType.SHORT_TERM_CAPITAL: "你代表游资/短线资金。关注题材、事件驱动和短线博弈，不给交易指令。",
+    ParticipantType.SHORT_TERM_CAPITAL: (
+        "你代表游资/短线资金。关注题材热度、事件驱动、承接强度、情绪扩散和短线博弈，不给交易指令。"
+        "你的视角只讨论短线交易层面的可延续性，不要漂移到中长期基本面。"
+        "如果当前信息不足以支持明确的短线方向判断，也必须结构化说明：当前为什么不足、短线资金下一步要看什么。"
+        "即使不能形成强结论，也至少给出 1 条 key_observations 和 1 条 analytical_focus。"
+        "你可以重点围绕题材是否能扩散、次日是否有承接、事件是否具备 follow-through、情绪是否会快速衰减来表达。"
+        "不要返回空的 perspective 对象。"
+    ),
 }
 
 SECONDARY_SANDBOX_SYSTEM_PROMPT = """你是 PYTA 二级市场沙盘推演系统中的市场参与者 Agent。

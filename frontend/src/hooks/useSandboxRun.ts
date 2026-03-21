@@ -1,0 +1,133 @@
+import { useMemo, useState } from 'react'
+import { mapRunResponseToCanvasState } from '../lib/adapters'
+import { runSandbox } from '../lib/api'
+import { mockCanvasState } from '../lib/mock/canvasState'
+import type { CanvasState, StreamItem } from '../lib/types/canvas'
+import type { CanvasRunState, SandboxInputEvent } from '../lib/types/sandbox'
+
+export type SandboxRunController = {
+  canvasState: CanvasState
+  backendState: CanvasRunState | null
+  draft: string
+  setDraft: (value: string) => void
+  currentInputEvents: SandboxInputEvent[]
+  isRunning: boolean
+  error: string | null
+  qualityLabel: string
+  submit: () => Promise<void>
+}
+
+type Options = {
+  initialDraft?: string
+}
+
+export function useSandboxRun(options: Options = {}): SandboxRunController {
+  const [draft, setDraft] = useState(options.initialDraft ?? mockCanvasState.commandDraft)
+  const [canvasState, setCanvasState] = useState<CanvasState>(mockCanvasState)
+  const [backendState, setBackendState] = useState<CanvasRunState | null>(null)
+  const [currentInputEvents, setCurrentInputEvents] = useState<SandboxInputEvent[]>([])
+  const [isRunning, setIsRunning] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const qualityLabel = useMemo(() => {
+    if (!backendState) return 'Mock'
+    return `${backendState.quality} · ${backendState.stopReason ?? 'running'}`
+  }, [backendState])
+
+  async function submit() {
+    const content = draft.trim()
+    if (!content || isRunning) {
+      return
+    }
+
+    const inputEvents = buildInputEvents(content)
+    setCurrentInputEvents(inputEvents)
+    setError(null)
+    setIsRunning(true)
+    setCanvasState((current) => ({
+      ...current,
+      leftPanel: {
+        ...current.leftPanel,
+        liveEvents: inputEvents.map<StreamItem>((event) => ({
+          title: event.source,
+          description: event.content,
+        })),
+      },
+    }))
+
+    try {
+      const response = await runSandbox({
+        ticker: '0700.HK',
+        market: 'HK',
+        events: inputEvents,
+        roundTimeoutMs: 30000,
+        narrativeGuide: content,
+      })
+
+      const mapped = mapRunResponseToCanvasState(response, { inputEvents })
+      setBackendState(mapped)
+      setCanvasState(mergeCanvasState(mapped, inputEvents))
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Sandbox run failed'
+      setError(message)
+    } finally {
+      setIsRunning(false)
+    }
+  }
+
+  return {
+    canvasState,
+    backendState,
+    draft,
+    setDraft,
+    currentInputEvents,
+    isRunning,
+    error,
+    qualityLabel,
+    submit,
+  }
+}
+
+function buildInputEvents(content: string): SandboxInputEvent[] {
+  return [
+    {
+      eventId: `cli-${Date.now()}`,
+      eventType: 'manual_input',
+      content,
+      source: 'frontend_console',
+      timestamp: new Date().toISOString(),
+      symbol: '0700.HK',
+      metadata: {
+        inputMode: 'minimal_loop',
+      },
+    },
+  ]
+}
+
+function mergeCanvasState(runState: CanvasRunState, inputEvents: SandboxInputEvent[]): CanvasState {
+  const positionMap = new Map(mockCanvasState.agents.map((agent) => [agent.id, agent.position]))
+
+  return {
+    quality: runState.quality,
+    commandDraft: mockCanvasState.commandDraft,
+    leftPanel: {
+      ...mockCanvasState.leftPanel,
+      liveEvents: inputEvents.map<StreamItem>((event) => ({
+        title: event.source,
+        description: event.content,
+      })),
+    },
+    agents: runState.agents.map((agent) => ({
+      id: agent.id,
+      title: agent.title,
+      subtitle: agent.subtitle,
+      tint: agent.tint,
+      status: agent.status,
+      summary: agent.summary,
+      observations: agent.observations,
+      concerns: agent.concerns,
+      focus: agent.focus,
+      position: positionMap.get(agent.id) ?? {},
+    })),
+  }
+}
