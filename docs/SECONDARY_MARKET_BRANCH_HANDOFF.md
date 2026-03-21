@@ -63,6 +63,16 @@ Recommended order:
 - Summary text should be generated from `key_observations + analytical_focus`, not by adding a new summary schema field
 - Input contract should stay aligned with structured `events[]`
 
+## Collaboration Rule
+
+For each implementation round:
+
+1. discuss and align the plan first
+2. wait for explicit confirmation
+3. then start coding
+
+Do not jump directly into implementation before plan alignment.
+
 ## Working Tree Note
 
 The current repository has uncommitted local design files. Treat them carefully and avoid destructive cleanup.
