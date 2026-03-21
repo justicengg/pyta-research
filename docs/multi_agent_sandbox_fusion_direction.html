@@ -1,0 +1,1794 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>多 Agent 沙盘推演</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /*
+    ╔══════════════════════════════════════════════════════╗
+    ║              DESIGN TOKEN SYSTEM                     ║
+    ║                                                      ║
+    ║  Type Scale  : 1.25 (Major Third), base 14 px        ║
+    ║    xs  = 14 ÷ 1.25   ≈ 11 px                        ║
+    ║    sm  = 14 px  (base)                               ║
+    ║    md  = 14 × 1.25   ≈ 18 px                        ║
+    ║    lg  = 14 × 1.25²  ≈ 22 px                        ║
+    ║    xl  = 14 × 1.25³  ≈ 27 px                        ║
+    ║    2xl = 14 × 1.25⁴  ≈ 34 px                        ║
+    ║                                                      ║
+    ║  Spacing     : 8 px grid                             ║
+    ║    sp-1=4  sp-2=8  sp-3=12  sp-4=16                 ║
+    ║    sp-5=20 sp-6=24 sp-8=32  sp-10=40                ║
+    ║                                                      ║
+    ║  Radius      : 8 px base                             ║
+    ║    sm=8  md=12  lg=16  xl=24  2xl=32                 ║
+    ║                                                      ║
+    ║  Color       : HSL, consistent hue-angle steps       ║
+    ║    Light / Dark / Auto (prefers-color-scheme)        ║
+    ╚══════════════════════════════════════════════════════╝
+    */
+
+    :root {
+      /* ── Type Scale ── */
+      --fs-xs:  11px;
+      --fs-sm:  14px;
+      --fs-md:  18px;
+      --fs-lg:  22px;
+      --fs-xl:  27px;
+      --fs-2xl: 34px;
+
+      /* ── Line Heights ── */
+      --lh-tight:   1.25;
+      --lh-base:    1.5;
+      --lh-relaxed: 1.65;
+
+      /* ── Letter Spacing ── */
+      --ls-tight:  -0.03em;
+      --ls-normal:  0em;
+      --ls-wide:    0.06em;
+      --ls-wider:   0.12em;
+
+      /* ── Spacing (8 px grid) ── */
+      --sp-1:  4px;
+      --sp-2:  8px;
+      --sp-3:  12px;
+      --sp-4:  16px;
+      --sp-5:  20px;
+      --sp-6:  24px;
+      --sp-8:  32px;
+      --sp-10: 40px;
+      --sp-12: 48px;
+
+      /* ── Border Radius (8 px base) ── */
+      --r-sm:   8px;
+      --r-md:   12px;
+      --r-lg:   16px;
+      --r-xl:   24px;
+      --r-2xl:  32px;
+      --r-full: 9999px;
+
+      /* ── Typography ── */
+      --sans: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, sans-serif;
+
+      /* ── Light Mode: warm neutral base ── */
+      --bg:               hsl(40, 18%, 95%);
+      --surface:          hsl(0, 0%, 100%);
+      --surface-subtle:   hsl(40, 14%, 98%);
+      --surface-overlay:  hsl(40, 10%, 96%);
+      --border:           hsl(35, 12%, 87%);
+      --border-subtle:    hsl(35, 10%, 92%);
+
+      --text-1:           hsl(25, 14%, 10%);
+      --text-2:           hsl(25,  8%, 36%);
+      --text-3:           hsl(25,  6%, 56%);
+
+      /* ── Accent Palette ── */
+      --accent:           hsl(161, 72%, 28%);
+      --accent-fg:        hsl(161, 72%, 22%);
+      --lime:             hsl(72, 76%, 58%);
+      --lime-glow:        hsla(72, 76%, 58%, 0.15);
+      --blue:             hsl(218, 55%, 52%);
+      --orange:           hsl(24, 65%, 50%);
+      --purple:           hsl(258, 44%, 54%);
+
+      /* ── Agent Tints ── */
+      --tint-sandbox:     hsl(161, 38%, 96%);
+      --tint-macro:       hsl(218, 38%, 96%);
+      --tint-sentiment:   hsl(24,  45%, 96%);
+      --tint-user:        hsl(258, 32%, 96%);
+      --tint-decision:    hsl(145, 32%, 96%);
+
+      /* ── Canvas ── */
+      --grid-line:        rgba(80, 68, 52, 0.055);
+      --canvas-bg:        hsl(40, 14%, 98%);
+
+      /* ── Shadows ── */
+      --shadow-sm: 0 1px 4px hsl(30 14% 6% / 0.06),
+                   0 1px 2px hsl(30 14% 6% / 0.04);
+      --shadow-md: 0 4px 16px hsl(30 14% 6% / 0.07),
+                   0 2px  6px hsl(30 14% 6% / 0.04);
+      --shadow-lg: 0 12px 36px hsl(30 14% 6% / 0.09),
+                   0  4px 12px hsl(30 14% 6% / 0.05);
+      --shadow-xl: 0 24px 56px hsl(30 14% 6% / 0.11),
+                   0  8px 20px hsl(30 14% 6% / 0.06);
+
+      /* ── Layout ── */
+      --left-rail:  300px;
+      --right-rail: 300px;
+    }
+
+    /* ── Dark Mode ── */
+    [data-theme="dark"] {
+      --bg:               hsl(222, 18%, 8%);
+      --surface:          hsl(222, 16%, 12%);
+      --surface-subtle:   hsl(222, 14%, 15%);
+      --surface-overlay:  hsl(222, 13%, 18%);
+      --border:           hsl(222, 14%, 22%);
+      --border-subtle:    hsl(222, 14%, 18%);
+
+      --text-1:           hsl(210, 10%, 92%);
+      --text-2:           hsl(210,  6%, 58%);
+      --text-3:           hsl(210,  5%, 38%);
+
+      --tint-sandbox:     hsl(161, 22%, 11%);
+      --tint-macro:       hsl(218, 22%, 11%);
+      --tint-sentiment:   hsl(24,  22%, 11%);
+      --tint-user:        hsl(258, 18%, 11%);
+      --tint-decision:    hsl(145, 18%, 11%);
+
+      --grid-line:        rgba(255, 255, 255, 0.04);
+      --canvas-bg:        hsl(222, 16%, 10%);
+
+      --shadow-sm: 0 1px 4px hsl(222 22% 2% / 0.4),
+                   0 1px 2px hsl(222 22% 2% / 0.3);
+      --shadow-md: 0 4px 16px hsl(222 22% 2% / 0.4),
+                   0 2px  6px hsl(222 22% 2% / 0.25);
+      --shadow-lg: 0 12px 36px hsl(222 22% 2% / 0.5),
+                   0  4px 12px hsl(222 22% 2% / 0.3);
+      --shadow-xl: 0 24px 56px hsl(222 22% 2% / 0.6),
+                   0  8px 20px hsl(222 22% 2% / 0.35);
+    }
+
+    /* ── Auto Mode (system preference) ── */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]):not([data-theme="dark"]) {
+        --bg:               hsl(222, 18%, 8%);
+        --surface:          hsl(222, 16%, 12%);
+        --surface-subtle:   hsl(222, 14%, 15%);
+        --surface-overlay:  hsl(222, 13%, 18%);
+        --border:           hsl(222, 14%, 22%);
+        --border-subtle:    hsl(222, 14%, 18%);
+
+        --text-1:           hsl(210, 10%, 92%);
+        --text-2:           hsl(210,  6%, 58%);
+        --text-3:           hsl(210,  5%, 38%);
+
+        --tint-sandbox:     hsl(161, 22%, 11%);
+        --tint-macro:       hsl(218, 22%, 11%);
+        --tint-sentiment:   hsl(24,  22%, 11%);
+        --tint-user:        hsl(258, 18%, 11%);
+        --tint-decision:    hsl(145, 18%, 11%);
+
+        --grid-line:        rgba(255, 255, 255, 0.04);
+        --canvas-bg:        hsl(222, 16%, 10%);
+
+        --shadow-sm: 0 1px 4px hsl(222 22% 2% / 0.4),
+                     0 1px 2px hsl(222 22% 2% / 0.3);
+        --shadow-md: 0 4px 16px hsl(222 22% 2% / 0.4),
+                     0 2px  6px hsl(222 22% 2% / 0.25);
+        --shadow-lg: 0 12px 36px hsl(222 22% 2% / 0.5),
+                     0  4px 12px hsl(222 22% 2% / 0.3);
+        --shadow-xl: 0 24px 56px hsl(222 22% 2% / 0.6),
+                     0  8px 20px hsl(222 22% 2% / 0.35);
+      }
+    }
+
+    /* ═══════════════════════════════════════
+       RESET
+    ═══════════════════════════════════════ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--sans);
+      font-size: var(--fs-sm);
+      line-height: var(--lh-base);
+      color: var(--text-1);
+      background: var(--bg);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ═══════════════════════════════════════
+       LAYOUT SHELL
+    ═══════════════════════════════════════ */
+    .shell {
+      height: 100vh;
+      display: grid;
+      grid-template-columns: var(--left-rail) minmax(0, 1fr) var(--right-rail);
+      gap: var(--sp-3);
+      padding: var(--sp-3);
+    }
+
+    /* ═══════════════════════════════════════
+       TYPOGRAPHY UTILITIES
+    ═══════════════════════════════════════ */
+    .eyebrow {
+      font-size: var(--fs-xs);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: var(--ls-wider);
+      color: var(--text-3);
+      margin-bottom: var(--sp-2);
+    }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR
+    ═══════════════════════════════════════ */
+    .sidebar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-2xl);
+      box-shadow: var(--shadow-lg);
+      overflow: visible;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      position: relative;
+      transition:
+        width 0.2s ease,
+        min-width 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        background 0.2s ease;
+      min-width: 0;
+    }
+
+    .sidebar.collapsed {
+      width: var(--sp-4);
+      min-width: var(--sp-4);
+      border-color: transparent;
+      box-shadow: none;
+      background: transparent;
+    }
+
+    /* Sidebar Header */
+    .sidebar-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: var(--sp-3);
+      padding: var(--sp-4) var(--sp-4) var(--sp-3);
+      border-bottom: 1px solid var(--border-subtle);
+      background: linear-gradient(
+        180deg,
+        var(--surface)        0%,
+        var(--surface-subtle) 100%
+      );
+    }
+
+    .sidebar.collapsed .sidebar-head {
+      padding: 0;
+      border-bottom: 0;
+      background: transparent;
+    }
+
+    .sidebar-head h2 {
+      font-size: var(--fs-md);
+      font-weight: 600;
+      letter-spacing: var(--ls-tight);
+      color: var(--text-1);
+      line-height: var(--lh-tight);
+    }
+
+    .head-actions {
+      display: flex;
+      gap: var(--sp-2);
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .icon-btn {
+      width: var(--sp-8);
+      height: var(--sp-8);
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-2);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--fs-md);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+
+    .icon-btn:hover {
+      background: var(--surface-overlay);
+      color: var(--text-1);
+    }
+
+    /* Collapse Dot */
+    .collapse-dot {
+      position: absolute;
+      top: var(--sp-6);
+      width: var(--sp-3);
+      height: var(--sp-3);
+      border-radius: var(--r-full);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      box-shadow: var(--shadow-sm);
+      display: none;
+      cursor: pointer;
+      z-index: 20;
+      transition: background 0.15s;
+    }
+
+    .collapse-dot:hover { background: var(--surface-overlay); }
+    .collapse-dot.left  { left:  var(--sp-1); }
+    .collapse-dot.right { right: var(--sp-1); }
+
+    .sidebar.collapsed .collapse-dot { display: block; }
+
+    .sidebar.collapsed .sidebar-head > :not(.collapse-dot),
+    .sidebar.collapsed .side-search,
+    .sidebar.collapsed .sidebar-body,
+    .sidebar.collapsed .sidebar-footer {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Search */
+    .side-search {
+      padding: var(--sp-3) var(--sp-4) 0;
+    }
+
+    .side-search input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--r-full);
+      background: var(--surface-subtle);
+      padding: var(--sp-2) var(--sp-4);
+      font-size: var(--fs-xs);
+      font-family: var(--sans);
+      color: var(--text-2);
+      outline: none;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .side-search input:focus {
+      border-color: var(--border);
+      background: var(--surface);
+    }
+
+    /* Sidebar Body */
+    .sidebar-body {
+      flex: 1;
+      overflow: auto;
+      padding: var(--sp-4);
+    }
+
+    .section { margin-bottom: var(--sp-5); }
+
+    .section-label {
+      font-size: var(--fs-xs);
+      font-weight: 600;
+      color: var(--text-3);
+      margin-bottom: var(--sp-2);
+      letter-spacing: var(--ls-wider);
+      text-transform: uppercase;
+    }
+
+    /* Stream */
+    .stream { display: grid; gap: var(--sp-2); }
+
+    .stream-item {
+      padding: var(--sp-3);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--r-md);
+      background: var(--surface-subtle);
+    }
+
+    .stream-item strong {
+      display: block;
+      font-size: var(--fs-xs);
+      font-weight: 600;
+      color: var(--text-1);
+      margin-bottom: var(--sp-1);
+    }
+
+    .stream-item span {
+      color: var(--text-2);
+      font-size: var(--fs-xs);
+      line-height: var(--lh-relaxed);
+    }
+
+    .inline-entry {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--sp-3);
+      padding: var(--sp-2) 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .inline-entry:last-child {
+      border-bottom: 0;
+    }
+
+    .inline-entry-main {
+      min-width: 0;
+    }
+
+    .inline-entry-title {
+      display: block;
+      font-size: var(--fs-xs);
+      font-weight: 600;
+      color: var(--text-1);
+      margin-bottom: 2px;
+    }
+
+    .inline-entry-sub {
+      display: block;
+      color: var(--text-2);
+      font-size: var(--fs-xs);
+      line-height: var(--lh-base);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Sidebar Footer */
+    .sidebar-footer {
+      padding: var(--sp-3) var(--sp-4) var(--sp-4);
+      border-top: 1px solid var(--border-subtle);
+      color: var(--text-3);
+      font-size: var(--fs-xs);
+      line-height: var(--lh-relaxed);
+      background: var(--surface-subtle);
+    }
+
+    .settings-wrap {
+      position: static;
+    }
+
+    .settings-popover {
+      position: absolute;
+      top: 96px;
+      left: var(--sp-4);
+      right: var(--sp-4);
+      width: auto;
+      max-height: min(68vh, 700px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      box-shadow: var(--shadow-lg);
+      z-index: 40;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      transform: translateY(-8px) scale(0.98);
+      pointer-events: none;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      overflow: hidden;
+    }
+
+    .settings-popover.open {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .settings-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--sp-3);
+      padding: var(--sp-3) var(--sp-3) var(--sp-2);
+      border-bottom: 1px solid var(--border-subtle);
+      background: linear-gradient(
+        180deg,
+        var(--surface) 0%,
+        var(--surface-subtle) 100%
+      );
+    }
+
+    .settings-head h3 {
+      font-size: var(--fs-sm);
+      font-weight: 600;
+      letter-spacing: var(--ls-tight);
+      color: var(--text-1);
+      line-height: var(--lh-tight);
+    }
+
+    .settings-head p {
+      margin-top: var(--sp-1);
+      color: var(--text-2);
+      font-size: var(--fs-xs);
+      line-height: var(--lh-relaxed);
+    }
+
+    .settings-body {
+      flex: 1;
+      overflow: auto;
+      padding: var(--sp-3);
+    }
+
+    .settings-group {
+      margin-bottom: var(--sp-4);
+    }
+
+    .settings-card {
+      padding: var(--sp-2) 0;
+      border: 0;
+      border-bottom: 1px solid var(--border-subtle);
+      border-radius: 0;
+      background: transparent;
+      margin-bottom: 0;
+    }
+
+    .settings-card:last-child {
+      border-bottom: 0;
+    }
+
+    .settings-card strong {
+      display: block;
+      font-size: var(--fs-xs);
+      font-weight: 600;
+      color: var(--text-1);
+      margin-bottom: var(--sp-1);
+    }
+
+    .settings-card span,
+    .settings-card p {
+      display: block;
+      color: var(--text-2);
+      font-size: var(--fs-xs);
+      line-height: var(--lh-relaxed);
+    }
+
+    .truncate-tip {
+      position: relative;
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: help;
+    }
+
+    .truncate-tip:hover::after,
+    .truncate-tip:focus-visible::after {
+      content: attr(data-tip);
+      position: absolute;
+      left: 0;
+      top: calc(100% + 6px);
+      max-width: 280px;
+      padding: 8px 10px;
+      border-radius: var(--r-md);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      color: var(--text-2);
+      line-height: var(--lh-relaxed);
+      white-space: normal;
+      z-index: 60;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--sp-2);
+      margin-top: var(--sp-2);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: var(--sp-1) var(--sp-2);
+      border-radius: var(--r-full);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-size: var(--fs-xs);
+      color: var(--text-2);
+      white-space: nowrap;
+    }
+
+    .status-pill::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--text-3);
+      flex-shrink: 0;
+    }
+
+    .status-pill.success::before { background: var(--accent); }
+    .status-pill.warning::before { background: var(--orange); }
+    .status-pill.error::before { background: #c44949; }
+
+    .settings-footnote {
+      padding: var(--sp-2) var(--sp-3) var(--sp-3);
+      border-top: 1px solid var(--border-subtle);
+      color: var(--text-3);
+      font-size: var(--fs-xs);
+      line-height: var(--lh-relaxed);
+      background: var(--surface-subtle);
+    }
+
+    .status-list {
+      display: grid;
+      gap: 0;
+    }
+
+    .status-row {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sp-2);
+      padding: var(--sp-2) 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .status-row:last-child {
+      border-bottom: 0;
+    }
+
+    .status-main {
+      min-width: 0;
+    }
+
+    .status-title {
+      display: block;
+      font-size: var(--fs-xs);
+      font-weight: 600;
+      color: var(--text-1);
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .status-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--sp-2);
+      justify-content: flex-start;
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    /* ═══════════════════════════════════════
+       STAGE WRAP (center column)
+    ═══════════════════════════════════════ */
+    .stage-wrap {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-2xl);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stage-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: var(--sp-4);
+      padding: var(--sp-5) var(--sp-6) var(--sp-4);
+      border-bottom: 1px solid var(--border-subtle);
+      background: linear-gradient(
+        180deg,
+        var(--surface)        0%,
+        var(--surface-subtle) 100%
+      );
+    }
+
+    .stage-head h2 {
+      font-size: var(--fs-lg);
+      font-weight: 600;
+      letter-spacing: var(--ls-tight);
+      color: var(--text-1);
+      line-height: var(--lh-tight);
+    }
+
+    .stage-head p {
+      margin-top: var(--sp-2);
+      color: var(--text-2);
+      font-size: var(--fs-xs);
+      line-height: var(--lh-relaxed);
+      max-width: 540px;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--sp-2);
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .chip {
+      display: inline-flex;
+      padding: var(--sp-1) var(--sp-3);
+      border-radius: var(--r-full);
+      background: var(--surface-overlay);
+      border: 1px solid var(--border);
+      color: var(--text-2);
+      font-size: var(--fs-xs);
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    /* ── Theme Toggle ── */
+    .theme-btn {
+      height: 28px;
+      padding: 0 var(--sp-3);
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-2);
+      font-size: var(--fs-xs);
+      font-weight: 500;
+      font-family: var(--sans);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: var(--sp-1);
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+      letter-spacing: 0.01em;
+    }
+
+    .theme-btn:hover {
+      background: var(--surface-overlay);
+      color: var(--text-1);
+    }
+
+    /* Stage Footer */
+    .stage-footer {
+      padding: var(--sp-3) var(--sp-6) var(--sp-4);
+      border-top: 1px solid var(--border-subtle);
+      color: var(--text-3);
+      font-size: var(--fs-xs);
+      line-height: var(--lh-relaxed);
+      background: var(--surface-subtle);
+    }
+
+    /* ═══════════════════════════════════════
+       CANVAS STAGE
+    ═══════════════════════════════════════ */
+    .stage {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      background:
+        radial-gradient(circle at 50% 46%, hsla(161, 70%, 35%, 0.04), transparent 38%),
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+        var(--canvas-bg);
+      background-size: auto, 24px 24px, 24px 24px, auto;
+      overflow: hidden;
+    }
+
+    .canvas-layer {
+      position: absolute;
+      inset: 0;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+
+    /* ═══════════════════════════════════════
+       COMMAND CONSOLE
+    ═══════════════════════════════════════ */
+    .command {
+      position: absolute;
+      left: 50%;
+      bottom: var(--sp-4);
+      transform: translateX(-50%);
+      width: min(880px, calc(100% - var(--sp-10)));
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-xl);
+      box-shadow: var(--shadow-xl);
+      padding: var(--sp-3) var(--sp-4);
+      z-index: 9;
+    }
+
+    .command-box { display: grid; gap: var(--sp-2); }
+
+    .command textarea {
+      width: 100%;
+      min-height: 72px;
+      max-height: 160px;
+      resize: vertical;
+      border: 0;
+      padding: var(--sp-1);
+      font: var(--fs-sm)/var(--lh-base) var(--sans);
+      color: var(--text-1);
+      background: transparent;
+      outline: none;
+    }
+
+    .command textarea::placeholder { color: var(--text-3); }
+
+    .composer-tools {
+      display: flex;
+      align-items: center;
+      gap: var(--sp-3);
+    }
+
+    /* Plus Button */
+    .plus-wrap { position: relative; }
+
+    .plus-btn {
+      width: var(--sp-8);
+      height: var(--sp-8);
+      border-radius: var(--r-md);
+      border: 1px solid var(--border);
+      background: var(--surface-overlay);
+      font-size: 22px;
+      font-weight: 300;
+      line-height: 1;
+      color: var(--text-2);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .plus-btn:hover {
+      background: var(--surface-overlay);
+      color: var(--text-1);
+    }
+
+    /* Mode Select */
+    .mode-select {
+      display: inline-flex;
+      align-items: center;
+      border: 0;
+      background: transparent;
+      font-size: var(--fs-xs);
+      font-weight: 500;
+      font-family: var(--sans);
+      color: var(--text-2);
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      padding: 0 var(--sp-4) 0 0;
+      background-image:
+        linear-gradient(45deg,  transparent    50%, var(--text-3) 50%),
+        linear-gradient(135deg, var(--text-3)  50%, transparent   50%);
+      background-position:
+        calc(100% - 9px) calc(50% - 1px),
+        calc(100% - 5px) calc(50% - 1px);
+      background-size: 4px 4px, 4px 4px;
+      background-repeat: no-repeat;
+      outline: none;
+    }
+
+    /* Plus Menu */
+    .plus-menu {
+      position: absolute;
+      left: 0;
+      bottom: calc(100% + var(--sp-2));
+      width: 220px;
+      padding: var(--sp-2);
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: var(--r-xl);
+      box-shadow: var(--shadow-xl);
+      display: none;
+      z-index: 10;
+    }
+
+    .plus-menu.open { display: grid; gap: var(--sp-1); }
+
+    .menu-item {
+      width: 100%;
+      text-align: left;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-subtle);
+      color: var(--text-1);
+      border-radius: var(--r-md);
+      padding: var(--sp-3);
+      font-size: var(--fs-xs);
+      font-weight: 600;
+      font-family: var(--sans);
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s;
+    }
+
+    .menu-item:hover {
+      background: var(--surface-overlay);
+      border-color: var(--border);
+    }
+
+    .menu-item small {
+      display: block;
+      margin-top: var(--sp-1);
+      color: var(--text-3);
+      font-size: 10px;
+      font-weight: 400;
+    }
+
+    /* ═══════════════════════════════════════
+       CANVAS: HALO & ORBITS
+    ═══════════════════════════════════════ */
+    .halo {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 480px;
+      height: 480px;
+      transform: translate(-50%, -50%);
+      border-radius: var(--r-full);
+      background: radial-gradient(circle, var(--lime-glow) 0%, transparent 68%);
+      pointer-events: none;
+    }
+
+    .orbit {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      border-radius: var(--r-full);
+      border: 1px dashed var(--border-subtle);
+    }
+
+    .orbit.one { width: 520px; height: 520px; }
+    .orbit.two { width: 700px; height: 700px; opacity: 0.5; }
+
+    /* ═══════════════════════════════════════
+       CANVAS: CENTER CORE
+    ═══════════════════════════════════════ */
+    .center-core {
+      position: absolute;
+      left: 50%;
+      top: 49%;
+      transform: translate(-50%, -50%);
+      width: 256px;
+      min-height: 160px;
+      border-radius: var(--r-xl);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-xl);
+      padding: var(--sp-5);
+      text-align: center;
+      z-index: 4;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .center-core h3 {
+      font-size: var(--fs-lg);
+      font-weight: 600;
+      letter-spacing: var(--ls-tight);
+      color: var(--text-1);
+      margin-bottom: var(--sp-2);
+      line-height: var(--lh-tight);
+    }
+
+    .center-core p {
+      color: var(--text-2);
+      font-size: var(--fs-xs);
+      line-height: var(--lh-relaxed);
+    }
+
+    .center-tags {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: var(--sp-2);
+      margin-top: var(--sp-3);
+    }
+
+    .core-tag {
+      display: inline-flex;
+      padding: var(--sp-1) var(--sp-2);
+      border-radius: var(--r-full);
+      font-size: var(--fs-xs);
+      font-weight: 500;
+      background: var(--surface-overlay);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-2);
+    }
+
+    /* ═══════════════════════════════════════
+       CANVAS: AGENT NODES
+    ═══════════════════════════════════════ */
+    .agent {
+      position: absolute;
+      width: 136px;
+      height: 136px;
+      border-radius: var(--r-full);
+      display: grid;
+      place-items: center;
+      padding: var(--sp-4);
+      text-align: center;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      background: var(--surface);
+      z-index: 3;
+      cursor: grab;
+      user-select: none;
+      transition: box-shadow 0.2s;
+    }
+
+    .agent strong {
+      display: block;
+      font-size: var(--fs-xs);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--text-1);
+      margin-bottom: var(--sp-1);
+    }
+
+    .agent span {
+      display: block;
+      color: var(--text-2);
+      font-size: 10px;
+      line-height: var(--lh-base);
+    }
+
+    .agent.active {
+      box-shadow: 0 0 0 8px var(--lime-glow), var(--shadow-lg);
+    }
+
+    .agent.sandbox   { background: var(--tint-sandbox);   }
+    .agent.macro     { background: var(--tint-macro);     }
+    .agent.sentiment { background: var(--tint-sentiment); }
+    .agent.user      { background: var(--tint-user);      }
+    .agent.decision  { background: var(--tint-decision);  }
+
+    /* ═══════════════════════════════════════
+       CANVAS: GHOST NODES
+    ═══════════════════════════════════════ */
+    .ghost-node {
+      position: absolute;
+      min-width: 128px;
+      max-width: 176px;
+      padding: var(--sp-3);
+      border-radius: var(--r-lg);
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-1);
+      font-size: var(--fs-xs);
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+      z-index: 2;
+      cursor: grab;
+      user-select: none;
+      line-height: var(--lh-tight);
+    }
+
+    .ghost-node small {
+      display: block;
+      margin-top: var(--sp-1);
+      color: var(--text-2);
+      font-size: 10px;
+      font-weight: 400;
+      line-height: var(--lh-relaxed);
+    }
+
+    .ghost-node.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px var(--lime-glow), var(--shadow-md);
+    }
+
+    .ghost-node.faded {
+      opacity: 0.4;
+      transform: scale(0.97);
+    }
+
+    /* ═══════════════════════════════════════
+       CANVAS: FLOW LINES (SVG)
+    ═══════════════════════════════════════ */
+    .flow-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .flow-line {
+      stroke: var(--border);
+      stroke-width: 1.5;
+      fill: none;
+    }
+
+    .flow-line-active {
+      stroke: var(--lime);
+      stroke-width: 2.5;
+      fill: none;
+      stroke-linecap: round;
+    }
+
+    .flow-line-output {
+      stroke: var(--blue);
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      opacity: 0.7;
+    }
+
+    /* ═══════════════════════════════════════
+       CANVAS: LEGEND
+    ═══════════════════════════════════════ */
+    .legend {
+      position: absolute;
+      left: var(--sp-6);
+      bottom: var(--sp-6);
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--sp-2);
+      z-index: 5;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .is-dragging { cursor: grabbing !important; }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--sp-2);
+      padding: var(--sp-2) var(--sp-3);
+      border-radius: var(--r-full);
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-2);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .dot {
+      width: var(--sp-2);
+      height: var(--sp-2);
+      border-radius: var(--r-full);
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
+    .dot.active  { background: var(--lime); }
+    .dot.history { background: var(--border); opacity: 0.5; }
+    .dot.output  { background: var(--blue); }
+
+    /* ═══════════════════════════════════════
+       RESPONSIVE
+    ═══════════════════════════════════════ */
+    @media (max-width: 1200px) {
+      body { overflow: auto; }
+
+      .shell {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: 100vh;
+      }
+
+      .sidebar.collapsed {
+        width: auto;
+        min-width: 0;
+        border-color: var(--border);
+        box-shadow: var(--shadow-md);
+        background: var(--surface);
+      }
+
+      .sidebar.collapsed .sidebar-head {
+        padding: var(--sp-4);
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .sidebar.collapsed .sidebar-head > :not(.collapse-dot),
+      .sidebar.collapsed .side-search,
+      .sidebar.collapsed .sidebar-body,
+      .sidebar.collapsed .sidebar-footer {
+        opacity: 1;
+        pointer-events: auto;
+      }
+
+      .sidebar.collapsed .collapse-dot { display: none; }
+
+      .stage-head { flex-direction: column; }
+      .chip-row { justify-content: flex-start; }
+      .stage { min-height: 960px; }
+
+      .command {
+        position: static;
+        transform: none;
+        width: auto;
+        margin: var(--sp-4);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell" id="fusionShell">
+
+    <!-- ── Left Sidebar: Information Layer ── -->
+    <aside class="sidebar" id="leftFusionSidebar">
+      <div class="sidebar-head">
+        <button class="collapse-dot left" data-toggle="leftFusionSidebar" aria-label="展开左侧边栏"></button>
+        <div>
+          <div class="eyebrow">左侧边栏</div>
+          <h2>信息层</h2>
+        </div>
+        <div class="head-actions">
+          <div class="settings-wrap">
+            <button class="icon-btn" id="openSettingsDrawer" aria-label="打开设置">⚙</button>
+            <div class="settings-popover" id="settingsDrawer">
+              <div class="settings-head">
+                <div>
+                  <div class="eyebrow">设置面板</div>
+                  <h3>数据接入与安全配置</h3>
+                  <p>这里负责密钥、企业私有接入，以及已接入数据的运行状态。</p>
+                </div>
+                <button class="icon-btn" id="closeSettingsDrawer" aria-label="关闭设置">✕</button>
+              </div>
+              <div class="settings-body">
+                <section class="settings-group">
+                  <div class="section-label">密码、密钥配置</div>
+                  <div class="settings-card">
+                    <strong>密钥保险箱</strong>
+                    <span class="truncate-tip" tabindex="0" data-tip="统一管理 API Key、Token、私有 Endpoint 等敏感字段，不通过模型层直接透传。">统一管理 API Key、Token、私有 Endpoint 等敏感字段，不通过模型层直接透传。</span>
+                    <div class="pill-row">
+                      <span class="status-pill success">凭证隔离</span>
+                      <span class="status-pill success">本地确认</span>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="settings-group">
+                  <div class="section-label">企业私有数据导入</div>
+                  <div class="settings-card">
+                    <strong>企业级私有接入</strong>
+                    <span class="truncate-tip" tabindex="0" data-tip="用于接入机构或企业自有数据，单独建立适配器体系与权限模型，不走公共 API 的轻量接入路径。">用于接入机构或企业自有数据，单独建立适配器体系与权限模型，不走公共 API 的轻量接入路径。</span>
+                    <div class="pill-row">
+                      <span class="status-pill warning">规划中</span>
+                      <span class="status-pill">企业专用</span>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="settings-group">
+                  <div class="section-label">适配器体系与权限模型</div>
+                  <div class="settings-card">
+                    <strong>适配器体系</strong>
+                    <span class="truncate-tip" tabindex="0" data-tip="不同来源通过统一适配层接入，避免每种输入都单独维护一条非标准链路。">不同来源通过统一适配层接入，避免每种输入都单独维护一条非标准链路。</span>
+                    <div class="pill-row">
+                      <span class="status-pill warning">设计中</span>
+                    </div>
+                  </div>
+                  <div class="settings-card">
+                    <strong>权限模型</strong>
+                    <span class="truncate-tip" tabindex="0" data-tip="围绕来源、凭证、企业数据和未来外部 Agent 的访问范围建立清晰权限边界。">围绕来源、凭证、企业数据和未来外部 Agent 的访问范围建立清晰权限边界。</span>
+                    <div class="pill-row">
+                      <span class="status-pill warning">待细化</span>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="settings-group">
+                  <div class="section-label">已接入数据传输状态</div>
+                  <div class="status-list">
+                    <div class="status-row">
+                      <div class="status-main">
+                        <span class="status-title truncate-tip" tabindex="0" data-tip="腾讯基本面信号源">腾讯基本面信号源</span>
+                      </div>
+                      <div class="status-meta">
+                        <span class="status-pill success">成功</span>
+                        <span class="status-pill">2 分钟前</span>
+                        <span class="status-pill">额度 420 / 500</span>
+                      </div>
+                    </div>
+                    <div class="status-row">
+                      <div class="status-main">
+                        <span class="status-title truncate-tip" tabindex="0" data-tip="港股科技新闻流">港股科技新闻流</span>
+                      </div>
+                      <div class="status-meta">
+                        <span class="status-pill warning">延迟</span>
+                        <span class="status-pill">5 分钟前</span>
+                      </div>
+                    </div>
+                    <div class="status-row">
+                      <div class="status-main">
+                        <span class="status-title truncate-tip" tabindex="0" data-tip="全球宏观观察流">全球宏观观察流</span>
+                      </div>
+                      <div class="status-meta">
+                        <span class="status-pill error">失败</span>
+                        <span class="status-pill">待重试</span>
+                        <span class="status-pill">额度 88 / 100</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+              <div class="settings-footnote">这里只承接第一层不该出现的信息。额度仅在 API 返回对应字段时显示；没有额度字段就不展示。</div>
+            </div>
+          </div>
+          <button class="icon-btn" data-toggle="leftFusionSidebar" aria-label="收起左侧边栏">⟨</button>
+        </div>
+      </div>
+      <div class="side-search">
+        <input type="text" value="搜索来源、事件、参考资料">
+      </div>
+      <div class="sidebar-body">
+        <section class="section">
+          <div class="section-label">外部 Agent</div>
+          <div class="inline-entry">
+            <div class="inline-entry-main">
+              <span class="inline-entry-title">外部 Agent 接入口</span>
+              <span class="inline-entry-sub">后续支持用户自定义 Agent 与内置 Agent 协作接入</span>
+            </div>
+            <span class="status-pill warning">预留</span>
+          </div>
+        </section>
+        <section class="section">
+          <div class="section-label">已接入数据</div>
+          <div class="ghost-node" style="position:static; min-width:0; max-width:none; margin-bottom:8px;">
+            腾讯基本面信号源
+            <small>Finnhub / 市场数据 / 基本面</small>
+          </div>
+          <div class="ghost-node" style="position:static; min-width:0; max-width:none; margin-bottom:8px;">
+            港股科技新闻流
+            <small>GNews / 新闻 / 事件驱动</small>
+          </div>
+          <div class="ghost-node" style="position:static; min-width:0; max-width:none;">
+            全球宏观观察流
+            <small>Macro Feed / 宏观 / 政策与流动性</small>
+          </div>
+        </section>
+        <section class="section">
+          <div class="section-label">实时信息流</div>
+          <div class="stream">
+            <div class="stream-item">
+              <strong>腾讯新闻事件</strong>
+              <span>GNews 刚标准化出一条新的事件，正向影响强度为 0.78。</span>
+            </div>
+            <div class="stream-item">
+              <strong>美联储政策观察</strong>
+              <span>宏观流识别到更偏鹰派的变化，可能压制成长股估值。</span>
+            </div>
+            <div class="stream-item">
+              <strong>市场情绪波动</strong>
+              <span>情绪流识别到短线风险偏好回暖，但持续性仍有待确认。</span>
+            </div>
+          </div>
+        </section>
+        <section class="section">
+          <div class="section-label">推荐信息流</div>
+          <div class="stream">
+            <div class="stream-item">
+              <strong>地缘政治观察包</strong>
+              <span>适合补充中长期推演里的外部风险输入，可后续一键接入。</span>
+            </div>
+            <div class="stream-item">
+              <strong>社交媒体情绪包</strong>
+              <span>适合增强短期情绪判断，对事件驱动和市场温度更敏感。</span>
+            </div>
+            <div class="stream-item">
+              <strong>行业景气跟踪流</strong>
+              <span>适合把板块轮动、产业链景气和基本面叙事结合起来。</span>
+            </div>
+          </div>
+        </section>
+      </div>
+      <div class="sidebar-footer">左侧信息层只负责输入上下文：已接入数据、实时信息流、推荐信息流。安全配置继续留在齿轮设置里，不出现在第一层。</div>
+    </aside>
+
+    <!-- ── Center: Research Canvas / Stage ── -->
+    <section class="stage-wrap">
+      <div class="stage-head">
+        <div>
+          <div class="eyebrow">融合方向</div>
+          <h2>多 Agent 沙盘推演</h2>
+          <p>核心场景在中心，多个市场参与者 Agent 围绕其运转。最近动作最清晰，历史步骤逐渐淡化，最终只把收敛结果送去右侧观察区。</p>
+        </div>
+        <div class="chip-row">
+          <span class="chip">舞台感更强</span>
+          <span class="chip">过程不生硬</span>
+          <span class="chip">适合多 Agent 扩展</span>
+          <button class="theme-btn" id="themeBtn" title="切换主题">Auto</button>
+        </div>
+      </div>
+
+      <div class="stage" id="fusionStage">
+        <div class="canvas-layer" id="fusionCanvasLayer">
+          <div class="halo"></div>
+          <div class="orbit one"></div>
+          <div class="orbit two"></div>
+
+          <svg class="flow-svg" viewBox="0 0 1400 860" preserveAspectRatio="none">
+            <path class="flow-line"        d="M 245 228 C 375 204, 470 198, 590 250"/>
+            <path class="flow-line"        d="M 1125 236 C 1010 196, 930 200, 822 250"/>
+            <path class="flow-line"        d="M 318 612 C 438 548, 520 500, 612 466"/>
+            <path class="flow-line-output" d="M 1096 620 C 984 560, 912 510, 824 468"/>
+            <path class="flow-line-active" d="M 695 430 C 750 516, 806 560, 905 604"/>
+            <circle cx="940" cy="553" r="5"   fill="var(--lime)"/>
+            <circle cx="992" cy="580" r="3.5" fill="var(--lime)" opacity="0.72"/>
+            <circle cx="1040" cy="603" r="2.5" fill="var(--lime)" opacity="0.44"/>
+          </svg>
+
+          <!-- Center Core -->
+          <div class="center-core fusion-draggable">
+            <h3>腾讯 / 港股科技</h3>
+            <p>当前推演对象仍然放在舞台中心。所有 Agent 围绕这个核心对象提供反应、解释、修正和收敛。</p>
+            <div class="center-tags">
+              <span class="core-tag">核心场景</span>
+              <span class="core-tag">3 个月</span>
+              <span class="core-tag">持续推演</span>
+            </div>
+          </div>
+
+          <!-- Agent Nodes -->
+          <div class="agent sandbox active fusion-draggable" style="left:118px; top:156px;">
+            <div>
+              <strong>传统机构 Agent</strong>
+              <span>重估值、仓位与中长期配置</span>
+            </div>
+          </div>
+
+          <div class="agent macro fusion-draggable" style="right:126px; top:156px;">
+            <div>
+              <strong>海外资金 Agent</strong>
+              <span>跟随全球流动性与风险偏好变化</span>
+            </div>
+          </div>
+
+          <div class="agent sentiment fusion-draggable" style="left:160px; bottom:128px;">
+            <div>
+              <strong>普通散户 Agent</strong>
+              <span>更受叙事、情绪与热点影响</span>
+            </div>
+          </div>
+
+          <div class="agent user fusion-draggable" style="left:448px; bottom:62px;">
+            <div>
+              <strong>量化机构 Agent</strong>
+              <span>按规则、信号与模型快速调整</span>
+            </div>
+          </div>
+
+          <div class="agent decision active fusion-draggable" style="right:146px; bottom:116px;">
+            <div>
+              <strong>游资 / 短线资金 Agent</strong>
+              <span>偏题材、博弈与事件驱动</span>
+            </div>
+          </div>
+
+          <!-- Ghost Nodes -->
+          <div class="ghost-node faded fusion-draggable" style="left:332px; top:244px;">
+            新闻事件
+            <small>腾讯合作扩张改善海外分发预期</small>
+          </div>
+
+          <div class="ghost-node fusion-draggable" style="left:532px; top:196px;">
+            机构判断
+            <small>传统机构更重长期赔率，但不会忽视当前估值约束</small>
+          </div>
+
+          <div class="ghost-node faded fusion-draggable" style="right:332px; top:278px;">
+            海外反馈
+            <small>外部流动性与风险偏好仍在压制成长资产弹性</small>
+          </div>
+
+          <div class="ghost-node active fusion-draggable" style="right:222px; bottom:248px;">
+            当前活跃步骤
+            <small>游资与散户情绪正在放大最新事件流的短线方向感</small>
+          </div>
+
+          <div class="ghost-node fusion-draggable" style="right:146px; bottom:62px;">
+            收敛结果
+            <small>市场参与者分歧仍在，短线偏热，但中期判断开始向积极方向收敛</small>
+          </div>
+
+          <!-- Legend -->
+          <div class="legend fusion-draggable">
+            <span class="legend-item"><span class="dot active"></span>当前活跃步骤</span>
+            <span class="legend-item"><span class="dot history"></span>历史步骤</span>
+            <span class="legend-item"><span class="dot output"></span>即将输出到观察区</span>
+          </div>
+        </div>
+
+        <!-- Command Console -->
+        <section class="command">
+          <div class="command-box">
+            <textarea placeholder="输入你的下一步操作，回车运行，Shift + Enter 换行。">让这 5 个市场参与者 Agent 继续推进腾讯当前场景，把最新事件流、外部条件与参与者反馈整合成新的收敛结果。</textarea>
+            <div class="composer-tools">
+              <div class="plus-wrap">
+                <button id="plusBtn" class="plus-btn" aria-label="打开功能菜单">+</button>
+                <div id="plusMenu" class="plus-menu">
+                  <button class="menu-item">连接来源<small>接入 API、数据流或外部数据源</small></button>
+                  <button class="menu-item">加载技能<small>引入工具和可复用能力</small></button>
+                  <button class="menu-item">加载 Agent<small>添加内置或未来外部 Agent</small></button>
+                  <button class="menu-item">场景设置<small>调整沙盘推演参数与叙述方式</small></button>
+                  <button class="menu-item">安全配置<small>打开敏感 API 和密钥设置</small></button>
+                </div>
+              </div>
+              <select class="mode-select" aria-label="模式切换">
+                <option selected>极简模式</option>
+                <option>专家模式</option>
+              </select>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="stage-footer">
+        这版的关键不是把"过程"做成硬时间轴，而是让过程成为一种轻痕迹。用户可以感受到哪些 Agent 正在参与、最近哪一步最关键、哪些判断已经变成历史背景，同时画面依然保持舒展和克制。
+      </div>
+    </section>
+
+    <!-- ── Right Sidebar: Observation Area ── -->
+    <aside class="sidebar" id="rightFusionSidebar">
+      <div class="sidebar-head">
+        <button class="collapse-dot right" data-toggle="rightFusionSidebar" aria-label="展开右侧边栏"></button>
+        <div>
+          <div class="eyebrow">右侧边栏</div>
+          <h2>观察区</h2>
+        </div>
+        <div class="head-actions">
+          <button class="icon-btn" data-toggle="rightFusionSidebar" aria-label="收起右侧边栏">⟩</button>
+        </div>
+      </div>
+      <div class="side-search">
+        <input type="text" value="搜索决策、动作、待处理卡片">
+      </div>
+      <div class="sidebar-body">
+        <section class="section">
+          <div class="section-label">决策输出</div>
+          <div class="ghost-node" style="position:static; min-width:0; max-width:none; margin-bottom:8px;">
+            当前摘要
+            <small>腾讯的质量逻辑仍在，但宏观压制暂时限制了短期上行空间。右侧只收敛画布上的结果。</small>
+          </div>
+          <div class="ghost-node" style="position:static; min-width:0; max-width:none;">
+            风险提示
+            <small>美联储路径和全球成长情绪，是当前画布状态下最关键的两个风险源。</small>
+          </div>
+        </section>
+        <section class="section">
+          <div class="section-label">动作队列</div>
+          <div class="stream">
+            <div class="stream-item">
+              <strong>决策卡</strong>
+              <span>如果情绪恢复且正向事件流持续，则准备分阶段增持规则。</span>
+            </div>
+            <div class="stream-item">
+              <strong>执行建议</strong>
+              <span>在下一个宏观事件进入之前，先保持当前仓位不变。</span>
+            </div>
+          </div>
+        </section>
+      </div>
+      <div class="sidebar-footer">右侧观察区只放收敛后的结果与外部条件配置。Agent 的推演过程和沙盘变化，应继续留在中间画布里。</div>
+    </aside>
+
+  </div>
+
+  <script>
+    /* ── Theme Toggle ── */
+    const themeBtn   = document.getElementById("themeBtn");
+    const themes     = ["auto", "light", "dark"];
+    const themeIcons = { auto: "Auto", light: "Light", dark: "Dark" };
+    let currentTheme = localStorage.getItem("pyta-theme") || "auto";
+
+    function applyTheme(theme) {
+      if (theme === "auto") {
+        document.documentElement.removeAttribute("data-theme");
+      } else {
+        document.documentElement.setAttribute("data-theme", theme);
+      }
+      if (themeBtn) themeBtn.textContent = themeIcons[theme];
+      localStorage.setItem("pyta-theme", theme);
+    }
+
+    if (themeBtn) {
+      themeBtn.addEventListener("click", () => {
+        const idx = themes.indexOf(currentTheme);
+        currentTheme = themes[(idx + 1) % themes.length];
+        applyTheme(currentTheme);
+      });
+    }
+
+    applyTheme(currentTheme);
+
+    /* ── Settings Popover ── */
+    const openSettingsDrawer = document.getElementById("openSettingsDrawer");
+    const closeSettingsDrawer = document.getElementById("closeSettingsDrawer");
+    const settingsDrawer = document.getElementById("settingsDrawer");
+
+    if (openSettingsDrawer && settingsDrawer) {
+      openSettingsDrawer.addEventListener("click", (e) => {
+        e.stopPropagation();
+        settingsDrawer.classList.toggle("open");
+      });
+    }
+
+    if (closeSettingsDrawer && settingsDrawer) {
+      closeSettingsDrawer.addEventListener("click", () => {
+        settingsDrawer.classList.remove("open");
+      });
+    }
+
+    /* ── Sidebar Collapse ── */
+    const fusionShell = document.getElementById("fusionShell");
+
+    function syncFusionLayout() {
+      if (!fusionShell) return;
+      const lc = document.getElementById("leftFusionSidebar")?.classList.contains("collapsed");
+      const rc = document.getElementById("rightFusionSidebar")?.classList.contains("collapsed");
+      fusionShell.style.setProperty("--left-rail",  lc ? "16px" : "300px");
+      fusionShell.style.setProperty("--right-rail", rc ? "16px" : "300px");
+    }
+
+    function bindToggle(id) {
+      const panel = document.getElementById(id);
+      if (!panel) return;
+      document.querySelectorAll('[data-toggle="' + id + '"]').forEach((btn) => {
+        btn.addEventListener("click", () => {
+          panel.classList.toggle("collapsed");
+          syncFusionLayout();
+        });
+      });
+    }
+
+    bindToggle("leftFusionSidebar");
+    bindToggle("rightFusionSidebar");
+    syncFusionLayout();
+
+    /* ── Draggable Canvas ── */
+    function makeFusionDraggables() {
+      const stage = document.getElementById("fusionStage");
+      const layer = document.getElementById("fusionCanvasLayer");
+      if (!stage || !layer) return;
+
+      const canvasState = { x: 0, y: 0, scale: 1 };
+
+      function applyCanvasTransform() {
+        layer.style.transform =
+          `translate(${canvasState.x}px, ${canvasState.y}px) scale(${canvasState.scale})`;
+      }
+
+      applyCanvasTransform();
+
+      const items = layer.querySelectorAll(".fusion-draggable");
+      items.forEach((item) => {
+        const layerRect = layer.getBoundingClientRect();
+        const itemRect  = item.getBoundingClientRect();
+        const left = (itemRect.left - layerRect.left) / canvasState.scale;
+        const top  = (itemRect.top  - layerRect.top)  / canvasState.scale;
+        item.style.left   = left + "px";
+        item.style.top    = top  + "px";
+        item.style.right  = "auto";
+        item.style.bottom = "auto";
+        if (item.classList.contains("center-core")) {
+          item.style.transform = "none";
+        }
+      });
+
+      let active = null, activePointerId = null;
+      let offsetX = 0,  offsetY = 0;
+      let panning = false, panPointerId = null;
+      let panStartX = 0, panStartY = 0, startPanX = 0, startPanY = 0;
+
+      function pointToCanvas(clientX, clientY) {
+        const r = stage.getBoundingClientRect();
+        return {
+          x: (clientX - r.left - canvasState.x) / canvasState.scale,
+          y: (clientY - r.top  - canvasState.y) / canvasState.scale,
+        };
+      }
+
+      items.forEach((item) => {
+        item.addEventListener("pointerdown", (e) => {
+          if (e.button !== 0) return;
+          active = item;
+          activePointerId = e.pointerId;
+          const pt = pointToCanvas(e.clientX, e.clientY);
+          offsetX = pt.x - parseFloat(item.style.left || "0");
+          offsetY = pt.y - parseFloat(item.style.top  || "0");
+          item.classList.add("is-dragging");
+          item.setPointerCapture?.(e.pointerId);
+          e.stopPropagation();
+        });
+
+        item.addEventListener("pointerup", (e) => {
+          item.classList.remove("is-dragging");
+          item.releasePointerCapture?.(e.pointerId);
+          active = null;
+          activePointerId = null;
+        });
+      });
+
+      stage.addEventListener("wheel", (e) => {
+        if (e.target.closest(".command")) return;
+        e.preventDefault();
+        const rect = stage.getBoundingClientRect();
+        const px = e.clientX - rect.left;
+        const py = e.clientY - rect.top;
+        const factor = e.deltaY < 0 ? 1.08 : 0.92;
+        const next = Math.min(1.85, Math.max(0.7, canvasState.scale * factor));
+        const wx = (px - canvasState.x) / canvasState.scale;
+        const wy = (py - canvasState.y) / canvasState.scale;
+        canvasState.x = px - wx * next;
+        canvasState.y = py - wy * next;
+        canvasState.scale = next;
+        applyCanvasTransform();
+      }, { passive: false });
+
+      stage.addEventListener("pointerdown", (e) => {
+        if (e.button !== 0) return;
+        if (e.target.closest(".fusion-draggable") || e.target.closest(".command")) return;
+        panning = true;
+        panPointerId = e.pointerId;
+        panStartX = e.clientX; panStartY = e.clientY;
+        startPanX = canvasState.x; startPanY = canvasState.y;
+        stage.setPointerCapture?.(e.pointerId);
+      });
+
+      stage.addEventListener("pointermove", (e) => {
+        if (active && e.pointerId === activePointerId) {
+          const pt = pointToCanvas(e.clientX, e.clientY);
+          const maxL = stage.clientWidth  - active.offsetWidth;
+          const maxT = stage.clientHeight - active.offsetHeight;
+          active.style.left = Math.min(Math.max(0, pt.x - offsetX), maxL) + "px";
+          active.style.top  = Math.min(Math.max(0, pt.y - offsetY), maxT) + "px";
+          return;
+        }
+        if (panning && e.pointerId === panPointerId) {
+          canvasState.x = startPanX + (e.clientX - panStartX);
+          canvasState.y = startPanY + (e.clientY - panStartY);
+          applyCanvasTransform();
+        }
+      });
+
+      stage.addEventListener("pointerup", (e) => {
+        if (active && e.pointerId === activePointerId) {
+          active.classList.remove("is-dragging");
+          active = null; activePointerId = null;
+        }
+        if (panning && e.pointerId === panPointerId) {
+          panning = false; panPointerId = null;
+          stage.releasePointerCapture?.(e.pointerId);
+        }
+      });
+
+      stage.addEventListener("pointerleave", () => {
+        if (active) { active.classList.remove("is-dragging"); active = null; activePointerId = null; }
+        panning = false; panPointerId = null;
+      });
+    }
+
+    makeFusionDraggables();
+
+    /* ── Plus Menu ── */
+    const plusBtn  = document.getElementById("plusBtn");
+    const plusMenu = document.getElementById("plusMenu");
+
+    plusBtn.addEventListener("click", () => plusMenu.classList.toggle("open"));
+
+    document.addEventListener("click", (e) => {
+      if (!plusMenu.contains(e.target) && e.target !== plusBtn) {
+        plusMenu.classList.remove("open");
+      }
+      if (settingsDrawer && !settingsDrawer.contains(e.target) && e.target !== openSettingsDrawer) {
+        settingsDrawer.classList.remove("open");
+      }
+    });
+  </script>
+</body>
+</html>
