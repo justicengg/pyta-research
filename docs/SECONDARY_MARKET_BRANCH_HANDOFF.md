@@ -2,7 +2,7 @@
 
 ## Branch
 
-- Recommended development branch: `codex/secondary-market-mvp`
+- Recommended development branch: `PYTA/secondary-market-mvp`
 - Base branch target: `origin/main`
 
 ## Why This Branch Exists
@@ -15,7 +15,7 @@ This branch is intended to be the clean implementation line for the **secondary 
 
 Do **not** continue implementation directly on `main`.
 
-Use `codex/secondary-market-mvp` as the development line for the next coding phase.
+Use `PYTA/secondary-market-mvp` as the development line for the next coding phase.
 
 ## Implementation Scope
 
@@ -49,7 +49,7 @@ Start from schema and orchestration alignment first, not UI.
 Recommended order:
 
 1. Sync latest `origin/main`
-2. Switch to `codex/secondary-market-mvp`
+2. Switch to `PYTA/secondary-market-mvp`
 3. Align sandbox schema from old `AgentAction / AgentSignal` world to the new `AgentPerspective / AgentNarrative` world
 4. Add secondary-market orchestrator and parallel fan-out runner
 5. Add timeout-window logic with fallback to previous-round perspective before degraded output
