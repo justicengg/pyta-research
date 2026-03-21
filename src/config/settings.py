@@ -86,5 +86,17 @@ class Settings(BaseSettings):
     #   FEISHU_WEBHOOK_URL=https://open.feishu.cn/open-apis/bot/v2/hook/<token>
     feishu_webhook_url: str = ''
 
+    # Sandbox LLM — OpenAI-compatible endpoint for Layer 2 secondary-market agents.
+    # Leave api key / model empty to run the sandbox in stub mode.
+    # Override via .env, e.g.:
+    #   LLM_API_KEY=sk-...
+    #   LLM_BASE_URL=https://api.openai.com/v1
+    #   LLM_MODEL=gpt-5.4-mini
+    llm_provider: str = 'openai_compatible'
+    llm_api_key: str = ''
+    llm_base_url: str = 'https://api.openai.com/v1'
+    llm_model: str = ''
+    llm_timeout_seconds: float = 20.0
+
 
 settings = Settings()

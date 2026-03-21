@@ -56,6 +56,58 @@ Recommended order:
 6. Add `RoundComplete` and `MarketReadingReport`
 7. Expose minimal sandbox API
 
+## Current Delivery Status
+
+The secondary-market MVP branch now includes:
+
+1. schema foundation rebuild
+2. secondary orchestrator + parallel runner
+3. synchronous sandbox API
+4. sandbox persistence + migration
+5. real-LLM-ready integration path
+6. stability pass for persistence / fallback
+7. developer CLI for local sandbox runs
+
+## Developer CLI
+
+The branch now provides a local developer CLI:
+
+```bash
+python -m src.sandbox.cli sandbox run-secondary ...
+python -m src.sandbox.cli sandbox inspect ...
+python -m src.sandbox.cli sandbox replay-last ...
+python -m src.sandbox.cli sandbox agent-dry-run ...
+```
+
+Recommended usage:
+
+1. run one sandbox round from a structured JSON file
+2. inspect persisted results by `sandbox_id`
+3. replay a previous sandbox using persisted input events
+4. dry-run a single market participant agent for prompt tuning
+
+### Input format
+
+`run-secondary` and `agent-dry-run` currently accept **structured file input only**:
+
+- a JSON array of events
+- or a JSON object with an `events` array
+
+### Example
+
+```bash
+python -m src.sandbox.cli sandbox run-secondary \
+  --ticker 0700.HK \
+  --market HK \
+  --input /tmp/pyta_events.json \
+  --json
+```
+
+### Note
+
+The CLI is a developer console, not a user-facing product surface.
+It is meant for local iteration, prompt tuning, replay, and debugging.
+
 ## Important Constraints
 
 - Do not reintroduce `buy / sell / hold`, target price, stop loss, or position simulation into Layer 2 / Layer 3
