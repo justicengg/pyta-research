@@ -22,6 +22,10 @@ export type AgentCardData = {
   round?: number      // which inference round this data came from
   sentiment: AgentSentiment
   confidence: number  // 0–100
+  // Topology fields
+  ring?: number         // 1 = base agent, 2 = derived conclusion, 3 = synthesis node
+  parentId?: string | null  // null = base agent; string = parent agent id
+  angleHint?: number    // preferred angle in radians (inherited from parent)
 }
 
 export type RoundRecord = {
@@ -36,7 +40,7 @@ export type AgentEdge = {
   id: string
   from: string   // agentId or 'center'
   to: string     // agentId or 'center'
-  type: 'spoke' | 'peer'
+  type: 'spoke' | 'peer' | 'derivation' | 'synthesis'
   label?: string
 }
 

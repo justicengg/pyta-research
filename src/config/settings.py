@@ -96,7 +96,9 @@ class Settings(BaseSettings):
     llm_api_key: str = ''
     llm_base_url: str = 'https://api.openai.com/v1'
     llm_model: str = ''
-    llm_timeout_seconds: float = 20.0
+    # Raise default to 60 s — reasoning-model providers (MiniMax-M2.7, Qwen-Max)
+    # spend 10-30 s on internal CoT before emitting the first token.
+    llm_timeout_seconds: float = 60.0
 
 
 settings = Settings()

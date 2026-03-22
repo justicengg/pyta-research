@@ -1,16 +1,14 @@
 import { useRef, useState } from 'react'
 
 type Props = {
-  onRun: () => void
-  isRunning: boolean
   onSceneSettings?: () => void
   onReset?: () => void
   zoomPercent?: number
 }
 
-export function CanvasToolbar({ onRun, isRunning, onSceneSettings, onReset, zoomPercent = 100 }: Props) {
+export function CanvasToolbar({ onSceneSettings, onReset, zoomPercent = 100 }: Props) {
   const [offset, setOffset] = useState({ x: 0, y: 0 })
-  const [hidden, setHidden] = useState(false)
+  const [hidden, setHidden] = useState(true)
   const dragging = useRef(false)
   const lastPos = useRef({ x: 0, y: 0 })
 
@@ -87,17 +85,6 @@ export function CanvasToolbar({ onRun, isRunning, onSceneSettings, onReset, zoom
       </button>
 
       <span className="toolbar-zoom-pct">{zoomPercent}%</span>
-
-      <div className="toolbar-sep" />
-
-      <button
-        className={`toolbar-btn toolbar-btn-run${isRunning ? ' running' : ''}`}
-        onClick={onRun}
-        disabled={isRunning}
-        data-no-pan
-      >
-        {isRunning ? '推演中…' : '▶ 运行推演'}
-      </button>
 
       <div className="toolbar-sep" />
 

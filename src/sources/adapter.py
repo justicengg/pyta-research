@@ -63,7 +63,7 @@ async def fetch_initial_events(
     Returns empty list on any error (non-fatal — connector is already saved).
     """
     try:
-        provider = get_provider(provider_id)
+        provider = get_provider(provider_id, custom_config)
     except KeyError:
         return []
 
@@ -154,6 +154,41 @@ async def fetch_initial_events(
                     }
                     for i, a in enumerate(articles)
                     if a.get("title")
+                ]
+
+            if provider_id == "alltick":
+                resp = await client.get(
+                    f"{base}/quote-b-api/trade-tick",
+                    headers=headers,
+                    params={
+                        **params,
+                        "query": json.dumps(
+                            {
+                                "trace": connector_id,
+                                "data": {"code": "BTCUSDT"},
+                            }
+                        ),
+                    },
+                )
+                if resp.status_code != 200:
+                    return []
+                payload = resp.json()
+                data = payload.get("data", {})
+                items = data if isinstance(data, list) else [data] if data else []
+                return [
+                    {
+                        "id": f"{connector_id}_{i}_{now}",
+                        "connector_id": connector_id,
+                        "provider_id": provider_id,
+                        "title": item.get("code") or item.get("symbol") or "AllTick tick",
+                        "summary": f"最新价 {item.get('last')}" if item.get("last") is not None else "AllTick 实时行情接入成功",
+                        "dimension": "real_time_market_data",
+                        "impact_direction": "neutral",
+                        "impact_strength": 0.5,
+                        "published_at": now,
+                        "ingested_at": now,
+                    }
+                    for i, item in enumerate(items[:10])
                 ]
 
     except Exception:

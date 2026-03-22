@@ -93,23 +93,45 @@ function EdgeLine({ edge, fromPos, toPos, fromIsCenter, toIsCenter }: EdgeLinePr
   const fc = fromIsCenter ? getCenterAnchor(fromPos) : getCardCenter(fromPos)
   const tc = toIsCenter   ? getCenterAnchor(toPos)   : getCardCenter(toPos)
 
-  const isSpoke = edge.type === 'spoke'
+  const isSpoke      = edge.type === 'spoke'
+  const isDerivation = edge.type === 'derivation'
+  const isSynthesis  = edge.type === 'synthesis'
+
   // Shorten so line doesn't poke through the card/core visuals
   const startGap = fromIsCenter ? CENTER_HALF_W * 0.7 : CARD_WIDTH * 0.35
   const endGap   = toIsCenter   ? CENTER_HALF_W * 0.7 : CARD_WIDTH * 0.35
 
   const { sx, sy, ex, ey } = shortenLine(fc.cx, fc.cy, tc.cx, tc.cy, startGap, endGap)
 
-  const lateralOffset = isSpoke ? 45 : 25
+  const lateralOffset = isSpoke ? 45 : (isDerivation || isSynthesis) ? 20 : 25
   const d = bezierPath(sx, sy, ex, ey, lateralOffset)
 
-  // Spoke color = agent tint, peer color = neutral gray
+  // Color scheme per edge type
   const agentId = fromIsCenter ? edge.to : edge.from
   const tint = AGENT_TINT[agentId] ?? 'traditional'
-  const strokeColor = isSpoke ? (TINT_COLORS[tint] ?? '#888') : 'var(--border, #888)'
-  const strokeWidth  = isSpoke ? (hovered ? 2.5 : 1.5) : (hovered ? 1.5 : 1)
-  const opacity      = isSpoke ? (hovered ? 0.9 : 0.55) : (hovered ? 0.7 : 0.35)
-  const dashArray    = isSpoke ? undefined : '5 4'
+  const tintColor = TINT_COLORS[tint] ?? '#888'
+
+  const strokeColor =
+    isSpoke                    ? tintColor :
+    isDerivation || isSynthesis ? tintColor :
+    'var(--border, #888)'
+
+  const strokeWidth =
+    isSpoke      ? (hovered ? 2.5 : 1.5) :
+    isDerivation ? (hovered ? 1.5 : 1.0) :
+    isSynthesis  ? (hovered ? 2.0 : 1.5) :
+    (hovered ? 1.5 : 1)
+
+  const opacity =
+    isSpoke      ? (hovered ? 0.9 : 0.55) :
+    isDerivation ? (hovered ? 0.7 : 0.35) :
+    isSynthesis  ? (hovered ? 0.8 : 0.45) :
+    (hovered ? 0.7 : 0.35)
+
+  const dashArray =
+    isSpoke                    ? undefined :
+    isDerivation || isSynthesis ? '3 3' :
+    '5 4'
 
   const arrowId = `arrow-${edge.id}`
 

@@ -30,7 +30,7 @@ export function CenterCoreCard({ sceneParams, onSceneParamsChange }: Props) {
     }
     document.addEventListener('mousedown', onMouseDown)
     return () => document.removeEventListener('mousedown', onMouseDown)
-  })
+  }, [editing])
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter') { e.preventDefault(); handleSave() }

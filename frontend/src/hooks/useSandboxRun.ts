@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { mapRunResponseToCanvasState } from '../lib/adapters'
 import { runSandbox } from '../lib/api'
 import { mockCanvasState } from '../lib/mock/canvasState'
-import type { CanvasState, RecentEvent, RoundRecord, SceneParams } from '../lib/types/canvas'
+import type { AgentCardData, AgentEdge, CanvasState, RecentEvent, RoundRecord, SceneParams } from '../lib/types/canvas'
 import type { CanvasRunState, SandboxInputEvent } from '../lib/types/sandbox'
 
 export type SandboxRunController = {
@@ -89,7 +89,8 @@ export function useSandboxRun(options: Options = {}): SandboxRunController {
       setBackendState(mapped)
 
       const round = currentRound
-      const newCanvasState = mergeCanvasState(mapped, inputEvents, round)
+      const prevSummaries = roundHistory[roundHistory.length - 1]?.agentSummaries ?? {}
+      const newCanvasState = mergeCanvasState(mapped, inputEvents, round, prevSummaries)
       setCanvasState(newCanvasState)
 
       // Record this round in history
@@ -161,9 +162,57 @@ function buildPreviousContext(history: RoundRecord[]): string {
 function mergeCanvasState(
   runState: CanvasRunState,
   inputEvents: SandboxInputEvent[],
-  round: number
+  round: number,
+  prevSummaries: Record<string, string> = {}
 ): CanvasState {
   const positionMap = new Map(mockCanvasState.agents.map((agent) => [agent.id, agent.position]))
+
+  // Build ring-1 base agents
+  const baseAgents: AgentCardData[] = runState.agents.map((agent) => ({
+    id: agent.id,
+    title: agent.title,
+    subtitle: agent.subtitle,
+    tint: agent.tint,
+    status: agent.status,
+    summary: agent.summary,
+    observations: agent.observations,
+    concerns: agent.concerns,
+    focus: agent.focus,
+    position: positionMap.get(agent.id) ?? { x: 0, y: 0 },
+    round,
+    sentiment: (agent.bias === 'mixed' ? 'neutral' : agent.bias ?? 'neutral') as 'bullish' | 'neutral' | 'bearish',
+    confidence: agent.confidence ?? 0,
+    ring: 1,
+    parentId: null,
+  }))
+
+  // Derive ring-2 child nodes for agents whose summary changed from previous round
+  const childNodes: AgentCardData[] = []
+  const derivationEdges: AgentEdge[] = []
+
+  if (round > 1 && Object.keys(prevSummaries).length > 0) {
+    for (const agent of baseAgents) {
+      const prevSummary = prevSummaries[agent.id]
+      if (prevSummary && prevSummary !== agent.summary) {
+        const childId = `${agent.id}_r${round}`
+        childNodes.push({
+          ...agent,
+          id: childId,
+          title: `${agent.title} · R${round}`,
+          subtitle: '新观点',
+          ring: 2,
+          parentId: agent.id,
+        })
+        derivationEdges.push({
+          id: `deriv-${agent.id}-r${round}`,
+          from: agent.id,
+          to: childId,
+          type: 'derivation',
+          label: `R${round} 衍生`,
+        })
+      }
+    }
+  }
 
   return {
     quality: runState.quality,
@@ -179,21 +228,7 @@ function mergeCanvasState(
         syncedAt: '刚刚',
       })),
     },
-    agents: runState.agents.map((agent) => ({
-      id: agent.id,
-      title: agent.title,
-      subtitle: agent.subtitle,
-      tint: agent.tint,
-      status: agent.status,
-      summary: agent.summary,
-      observations: agent.observations,
-      concerns: agent.concerns,
-      focus: agent.focus,
-      position: positionMap.get(agent.id) ?? { x: 0, y: 0 },
-      round,
-      sentiment: (agent.bias === 'mixed' ? 'neutral' : agent.bias ?? 'neutral') as 'bullish' | 'neutral' | 'bearish',
-      confidence: agent.confidence ?? 0,
-    })),
-    edges: mockCanvasState.edges,
+    agents: [...baseAgents, ...childNodes],
+    edges: [...mockCanvasState.edges, ...derivationEdges],
   }
 }

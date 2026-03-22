@@ -16,6 +16,12 @@ const THEMES: { value: Theme; label: string }[] = [
   { value: 'auto', label: 'Auto' },
 ]
 
+const TIMEOUT_OPTIONS: { value: number; label: string }[] = [
+  { value: 30,  label: '30s  (快速模型)' },
+  { value: 60,  label: '60s  (推理模型)' },
+  { value: 90,  label: '90s  (慢速/大模型)' },
+]
+
 export function SettingsPopover({ theme, setTheme, onClose, anchorRef }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState({ top: 0, left: 0 })
@@ -32,6 +38,7 @@ export function SettingsPopover({ theme, setTheme, onClose, anchorRef }: Props) 
   const [apiKey, setApiKey] = useState('')
   const [baseUrl, setBaseUrl] = useState('https://api.minimaxi.com/v1')
   const [model, setModel] = useState('')
+  const [timeoutSeconds, setTimeoutSeconds] = useState<number>(60)
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
 
@@ -41,6 +48,9 @@ export function SettingsPopover({ theme, setTheme, onClose, anchorRef }: Props) 
         setLlmConfigured(s.configured)
         setBaseUrl(s.base_url || 'https://api.minimaxi.com/v1')
         setModel(s.model || '')
+        // Snap to nearest option, or keep raw value
+        const knownOption = TIMEOUT_OPTIONS.find((o) => o.value === s.timeout_seconds)
+        setTimeoutSeconds(knownOption ? knownOption.value : (s.timeout_seconds ?? 60))
       })
       .catch(() => setLlmConfigured(false))
   }, [])
@@ -58,7 +68,7 @@ export function SettingsPopover({ theme, setTheme, onClose, anchorRef }: Props) 
     setSaving(true)
     setSaveMsg(null)
     try {
-      await saveLLMConfig({ api_key: apiKey, base_url: baseUrl, model })
+      await saveLLMConfig({ api_key: apiKey, base_url: baseUrl, model, timeout_seconds: timeoutSeconds })
       setLlmConfigured(true)
       setApiKey('')
       setSaveMsg('已保存 ✓')
@@ -130,6 +140,26 @@ export function SettingsPopover({ theme, setTheme, onClose, anchorRef }: Props) 
           placeholder={llmConfigured ? '••••••••••••••••' : '输入 API Key'}
           autoComplete="off"
         />
+      </div>
+
+      {/* ── 推演超时 ── */}
+      <div className="settings-field">
+        <label className="settings-field-label">Agent 超时</label>
+        <div className="settings-timeout-row">
+          {TIMEOUT_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              className={`settings-timeout-btn${timeoutSeconds === opt.value ? ' active' : ''}`}
+              onClick={() => setTimeoutSeconds(opt.value)}
+              type="button"
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="settings-timeout-hint">
+          MiniMax-M2.7 / Qwen 推理模型建议选 60s
+        </p>
       </div>
 
       <div className="settings-save-row">

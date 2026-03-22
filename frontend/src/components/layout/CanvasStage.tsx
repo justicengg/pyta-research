@@ -2,13 +2,13 @@ import { useCallback, useRef, useState } from 'react'
 import type { CanvasState, RoundRecord, SceneParams } from '../../lib/types/canvas'
 import type { SandboxInputEvent } from '../../lib/types/sandbox'
 import { useCanvasViewport } from '../../hooks/useCanvasViewport'
+import { useTopologyLayout, TOPOLOGY_CENTER } from '../../hooks/useTopologyLayout'
 import { AgentNode } from '../canvas/AgentNode'
 import { CanvasBackground } from '../canvas/CanvasBackground'
-import { CanvasToolbar } from '../canvas/CanvasToolbar'
 import { CenterCoreCard } from '../canvas/CenterCoreCard'
 import { EdgeLayer } from '../canvas/EdgeLayer'
-import { EventChips } from '../canvas/EventChips'
 import { CommandConsole } from './CommandConsole'
+import { EventsPanel } from './EventsPanel'
 
 type AgentPos = { x: number; y: number }
 
@@ -27,10 +27,8 @@ type Props = {
   onSceneParamsChange: (p: SceneParams) => void
 }
 
-// Center core anchor — center-core uses left:50% top:49% translate(-50%,-50%).
-// Canvas layer is ~960px wide × 760px tall → visual center ≈ (480, 370)
-// Adjust to match actual orbital center used in mock positions
-const CENTER_POS: AgentPos = { x: 480, y: 270 }
+// Center core anchor — matches TOPOLOGY_CENTER from useTopologyLayout
+const CENTER_POS: AgentPos = TOPOLOGY_CENTER
 
 export function CanvasStage({
   state,
@@ -50,17 +48,27 @@ export function CanvasStage({
   const { panX, panY, zoom, zoomPercent, isPanning, stagePointerHandlers, resetViewport } =
     useCanvasViewport(stageRef)
 
-  // Lifted agent positions — initialized from state, then updated by drag
-  const [agentPositions, setAgentPositions] = useState<Record<string, AgentPos>>(() =>
-    Object.fromEntries(state.agents.map((a) => [a.id, { x: a.position.x, y: a.position.y }]))
-  )
+  // Computed positions from topology layout algorithm
+  const computedPositions = useTopologyLayout(state.agents)
+
+  // Drag overrides — user drag moves nodes away from computed positions
+  const [dragOverrides, setDragOverrides] = useState<Record<string, AgentPos>>({})
+
+  // Events panel open state (Layer 3 right-side panel)
+  const [eventsPanelOpen, setEventsPanelOpen] = useState(false)
+
+  // Final positions: computed topology base + any drag overrides
+  const agentPositions: Record<string, AgentPos> = {}
+  for (const agent of state.agents) {
+    agentPositions[agent.id] = dragOverrides[agent.id] ?? computedPositions[agent.id] ?? { x: 0, y: 0 }
+  }
 
   const handleAgentDragMove = useCallback((id: string, dx: number, dy: number) => {
-    setAgentPositions((prev) => ({
-      ...prev,
-      [id]: { x: prev[id].x + dx, y: prev[id].y + dy },
-    }))
-  }, [])
+    setDragOverrides((prev) => {
+      const base = prev[id] ?? computedPositions[id] ?? { x: 0, y: 0 }
+      return { ...prev, [id]: { x: base.x + dx, y: base.y + dy } }
+    })
+  }, [computedPositions])
 
   return (
     <section className="stage-wrap">
@@ -109,7 +117,7 @@ export function CanvasStage({
           />
 
           {/* Agent nodes */}
-          {state.agents.map((agent) => (
+          {state.agents.map((agent, i) => (
             <AgentNode
               key={agent.id}
               agent={agent}
@@ -117,23 +125,24 @@ export function CanvasStage({
               zoom={zoom}
               onDragMove={handleAgentDragMove}
               isRunning={isRunning}
+              nodeIndex={i}
             />
           ))}
 
           {error ? <div className="canvas-error">{error}</div> : null}
         </div>
 
-        {/* Toolbar — outside canvas-layer so it stays fixed during pan/zoom */}
-        <CanvasToolbar
-          onRun={onSubmit}
-          isRunning={isRunning}
-          onSceneSettings={() => {/* TODO: open scene settings modal */}}
-          onReset={resetViewport}
-          zoomPercent={zoomPercent}
-        />
-
-        {/* Event chips — outside canvas-layer, not affected by transform */}
-        <EventChips onSelect={(title) => onDraftChange(title)} />
+        {/* Corner controls — zoom readout + reset */}
+        <div className="canvas-corner-controls" data-no-pan>
+          <span className="corner-zoom">{zoomPercent}%</span>
+          <button
+            className="corner-reset"
+            onClick={resetViewport}
+            title="重置视图 (Reset view)"
+          >
+            ⌖
+          </button>
+        </div>
       </div>
 
       {/* Zone C — Command console */}
@@ -146,6 +155,17 @@ export function CanvasStage({
         currentRound={currentRound}
         roundHistory={roundHistory}
         currentInputEvents={currentInputEvents}
+        onEventsToggle={() => setEventsPanelOpen((v) => !v)}
+      />
+
+      {/* Layer 3 — Events side panel (viewport-anchored, slides in from right) */}
+      <EventsPanel
+        isOpen={eventsPanelOpen}
+        onClose={() => setEventsPanelOpen(false)}
+        onSelectEvent={(title) => {
+          onDraftChange(title)
+          setEventsPanelOpen(false)
+        }}
       />
     </section>
   )

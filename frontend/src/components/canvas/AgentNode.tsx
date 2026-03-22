@@ -13,9 +13,10 @@ type Props = {
   zoom: number
   onDragMove: (id: string, dx: number, dy: number) => void
   isRunning?: boolean
+  nodeIndex?: number  // position in the rendered list, used for stagger animation
 }
 
-export function AgentNode({ agent, position, zoom, onDragMove, isRunning = false }: Props) {
+export function AgentNode({ agent, position, zoom, onDragMove, isRunning = false, nodeIndex = 0 }: Props) {
   const dragRef = useRef<{ active: boolean; lastX: number; lastY: number }>({
     active: false,
     lastX: 0,
@@ -50,10 +51,13 @@ export function AgentNode({ agent, position, zoom, onDragMove, isRunning = false
     setIsDragging(false)
   }
 
+  const ring = agent.ring ?? 1
+  const ringClass = `agent-cluster--ring-${ring}`
+
   return (
     <div
-      className={`agent-cluster${isDragging ? ' agent-cluster--dragging' : ''}`}
-      style={{ left: position.x, top: position.y }}
+      className={`agent-cluster ${ringClass}${isDragging ? ' agent-cluster--dragging' : ''}`}
+      style={{ left: position.x, top: position.y, '--node-index': nodeIndex } as React.CSSProperties}
       data-no-pan
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
