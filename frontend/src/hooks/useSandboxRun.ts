@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { mapRunResponseToCanvasState } from '../lib/adapters'
 import { runSandbox } from '../lib/api'
 import { mockCanvasState } from '../lib/mock/canvasState'
-import type { CanvasState, RecentEvent } from '../lib/types/canvas'
+import type { CanvasState, RecentEvent, RoundRecord } from '../lib/types/canvas'
 import type { CanvasRunState, SandboxInputEvent } from '../lib/types/sandbox'
 
 export type SandboxRunController = {
@@ -14,6 +14,8 @@ export type SandboxRunController = {
   isRunning: boolean
   error: string | null
   qualityLabel: string
+  currentRound: number
+  roundHistory: RoundRecord[]
   submit: () => Promise<void>
 }
 
@@ -28,6 +30,8 @@ export function useSandboxRun(options: Options = {}): SandboxRunController {
   const [currentInputEvents, setCurrentInputEvents] = useState<SandboxInputEvent[]>([])
   const [isRunning, setIsRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [currentRound, setCurrentRound] = useState(1)
+  const [roundHistory, setRoundHistory] = useState<RoundRecord[]>([])
 
   const qualityLabel = useMemo(() => {
     if (!backendState) return 'Mock'
@@ -54,10 +58,16 @@ export function useSandboxRun(options: Options = {}): SandboxRunController {
           impactDirection: 'neutral',
           impactStrength: 0,
           summary: event.content,
-          syncedAt: '방금',
+          syncedAt: '方才',
         })),
       },
     }))
+
+    // Build context string from previous rounds for the LLM
+    const previousContext = buildPreviousContext(roundHistory)
+    const narrativeWithContext = previousContext
+      ? `[历史推演上下文]\n${previousContext}\n\n[本轮指令]\n${content}`
+      : content
 
     try {
       const response = await runSandbox({
@@ -65,12 +75,28 @@ export function useSandboxRun(options: Options = {}): SandboxRunController {
         market: 'HK',
         events: inputEvents,
         roundTimeoutMs: 60000,
-        narrativeGuide: content,
+        narrativeGuide: narrativeWithContext,
       })
 
       const mapped = mapRunResponseToCanvasState(response, { inputEvents })
       setBackendState(mapped)
-      setCanvasState(mergeCanvasState(mapped, inputEvents))
+
+      const round = currentRound
+      const newCanvasState = mergeCanvasState(mapped, inputEvents, round)
+      setCanvasState(newCanvasState)
+
+      // Record this round in history
+      const record: RoundRecord = {
+        round,
+        narrative: content,
+        agentSummaries: Object.fromEntries(
+          mapped.agents.map((a) => [a.id, a.summary])
+        ),
+        quality: mapped.quality,
+        timestamp: new Date().toISOString(),
+      }
+      setRoundHistory((prev) => [...prev, record])
+      setCurrentRound((prev) => prev + 1)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Sandbox run failed'
       setError(message)
@@ -88,6 +114,8 @@ export function useSandboxRun(options: Options = {}): SandboxRunController {
     isRunning,
     error,
     qualityLabel,
+    currentRound,
+    roundHistory,
     submit,
   }
 }
@@ -108,7 +136,24 @@ function buildInputEvents(content: string): SandboxInputEvent[] {
   ]
 }
 
-function mergeCanvasState(runState: CanvasRunState, inputEvents: SandboxInputEvent[]): CanvasState {
+// Summarize past rounds into a compact context block for the LLM
+function buildPreviousContext(history: RoundRecord[]): string {
+  if (history.length === 0) return ''
+  return history
+    .map((r) => {
+      const summaries = Object.entries(r.agentSummaries)
+        .map(([id, s]) => `  - ${id}: ${s}`)
+        .join('\n')
+      return `第 ${r.round} 轮（${r.narrative.slice(0, 60)}…）\n${summaries}`
+    })
+    .join('\n\n')
+}
+
+function mergeCanvasState(
+  runState: CanvasRunState,
+  inputEvents: SandboxInputEvent[],
+  round: number
+): CanvasState {
   const positionMap = new Map(mockCanvasState.agents.map((agent) => [agent.id, agent.position]))
 
   return {
@@ -136,6 +181,7 @@ function mergeCanvasState(runState: CanvasRunState, inputEvents: SandboxInputEve
       concerns: agent.concerns,
       focus: agent.focus,
       position: positionMap.get(agent.id) ?? { x: 0, y: 0 },
+      round,
     })),
     edges: mockCanvasState.edges,
   }

@@ -61,7 +61,14 @@ export function AgentNode({ agent, position, zoom, onDragMove }: Props) {
     >
       <div className={`agent agent-${agent.tint}`}>
         <div className="agent-copy">
-          <strong>{agent.title}</strong>
+          <div className="agent-title-row">
+            <strong>{agent.title}</strong>
+            {agent.round != null && (
+              <span className="agent-round-badge" title={`第 ${agent.round} 轮推演结果`}>
+                R{agent.round}
+              </span>
+            )}
+          </div>
           <span>{agent.subtitle}</span>
           <p>{agent.summary}</p>
         </div>

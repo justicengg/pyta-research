@@ -11,6 +11,15 @@ export type AgentCardData = {
   concerns: string[]
   focus: string[]
   position: { x: number; y: number }
+  round?: number  // which inference round this data came from
+}
+
+export type RoundRecord = {
+  round: number
+  narrative: string
+  agentSummaries: Record<string, string>  // agentId → summary
+  quality: 'complete' | 'partial' | 'degraded'
+  timestamp: string
 }
 
 export type AgentEdge = {

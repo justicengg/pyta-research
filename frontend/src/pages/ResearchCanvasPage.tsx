@@ -16,6 +16,8 @@ export function ResearchCanvasPage() {
     error,
     qualityLabel,
     currentInputEvents,
+    currentRound,
+    roundHistory,
   } = useSandboxRun({
     initialDraft: mockCanvasState.commandDraft,
   })
@@ -38,6 +40,8 @@ export function ResearchCanvasPage() {
         isRunning={isRunning}
         error={error}
         qualityLabel={qualityLabel}
+        currentRound={currentRound}
+        roundHistory={roundHistory}
       />
     </div>
   )

@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import type { CanvasState } from '../../lib/types/canvas'
+import type { CanvasState, RoundRecord } from '../../lib/types/canvas'
 import { useCanvasViewport } from '../../hooks/useCanvasViewport'
 import { AgentNode } from '../canvas/AgentNode'
 import { CanvasBackground } from '../canvas/CanvasBackground'
@@ -18,6 +18,8 @@ type Props = {
   isRunning: boolean
   error: string | null
   qualityLabel: string
+  currentRound: number
+  roundHistory: RoundRecord[]
 }
 
 // Center core anchor — matches center-core CSS: translate(-50%,-50%) at left:550px top:300px
@@ -32,6 +34,8 @@ export function CanvasStage({
   isRunning,
   error,
   qualityLabel,
+  currentRound,
+  roundHistory,
 }: Props) {
   const stageRef = useRef<HTMLDivElement>(null)
   const { panX, panY, zoom, zoomPercent, isPanning, stagePointerHandlers, resetViewport } =
@@ -134,6 +138,8 @@ export function CanvasStage({
         onSubmit={onSubmit}
         isRunning={isRunning}
         error={error}
+        currentRound={currentRound}
+        roundHistory={roundHistory}
       />
     </section>
   )

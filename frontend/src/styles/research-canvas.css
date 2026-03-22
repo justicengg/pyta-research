@@ -1459,6 +1459,138 @@ select.field-input {
   line-height: var(--lh-base);
 }
 
+/* ── Agent title row (title + round badge) ───────────────────────── */
+.agent-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-1);
+}
+
+.agent-round-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+/* ── Round timeline (above command textarea) ─────────────────────── */
+.round-timeline {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-1) 0;
+  margin-bottom: 2px;
+}
+
+.round-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+  cursor: default;
+  transition: opacity 0.15s;
+}
+
+.round-dot--done {
+  background: var(--accent);
+  color: var(--surface);
+  opacity: 0.75;
+}
+
+.round-dot--done:hover { opacity: 1; }
+
+.round-dot--next {
+  background: var(--surface-overlay);
+  border: 2px dashed var(--border);
+  color: var(--text-3);
+  font-size: 9px;
+}
+
+.round-label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-2);
+  margin-left: var(--sp-1);
+}
+
+.round-quality {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 7px;
+  border-radius: 99px;
+  margin-left: auto;
+}
+
+.round-quality--complete {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+.round-quality--partial {
+  background: color-mix(in srgb, var(--orange) 12%, transparent);
+  color: var(--orange);
+}
+
+.round-quality--degraded {
+  background: color-mix(in srgb, #c44949 10%, transparent);
+  color: #c44949;
+}
+
+/* ── Prev round context hint ─────────────────────────────────────── */
+.prev-round-hint {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-2);
+  background: var(--surface-subtle);
+  border-radius: var(--r-md);
+  border-left: 2px solid color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.prev-round-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wider);
+  color: var(--text-3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.prev-round-text {
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  line-height: var(--lh-base);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── fix: agent-copy strong no longer has margin (moved to title-row) */
+.agent-title-row strong {
+  display: block;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  margin: 0;
+}
+
 @media (max-width: 1440px) {
   .agent-cluster {
     width: 248px;
