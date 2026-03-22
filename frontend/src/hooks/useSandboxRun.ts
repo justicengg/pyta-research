@@ -64,7 +64,7 @@ export function useSandboxRun(options: Options = {}): SandboxRunController {
         ticker: '0700.HK',
         market: 'HK',
         events: inputEvents,
-        roundTimeoutMs: 30000,
+        roundTimeoutMs: 60000,
         narrativeGuide: content,
       })
 

@@ -90,7 +90,13 @@ class SandboxLLMClient:
 
         raise ValueError(f"Unsupported LLM content format: {type(content).__name__}")
 
+    def _strip_think_tags(self, content: str) -> str:
+        """Remove <think>...</think> reasoning blocks produced by reasoning models (e.g. MiniMax-M2.7)."""
+        return re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
+
     def _extract_json_text(self, content: str) -> str:
+        # Strip reasoning-model think blocks before parsing
+        content = self._strip_think_tags(content)
         stripped = content.strip()
         if not stripped:
             raise ValueError("LLM response content is empty")

@@ -30,7 +30,7 @@ export function SettingsPopover({ theme, setTheme, onClose, anchorRef }: Props) 
   // LLM config state
   const [llmConfigured, setLlmConfigured] = useState<boolean | null>(null)
   const [apiKey, setApiKey] = useState('')
-  const [baseUrl, setBaseUrl] = useState('https://api.minimax.chat/v1')
+  const [baseUrl, setBaseUrl] = useState('https://api.minimaxi.com/v1')
   const [model, setModel] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
@@ -39,7 +39,7 @@ export function SettingsPopover({ theme, setTheme, onClose, anchorRef }: Props) 
     fetchLLMStatus()
       .then((s) => {
         setLlmConfigured(s.configured)
-        setBaseUrl(s.base_url || 'https://api.minimax.chat/v1')
+        setBaseUrl(s.base_url || 'https://api.minimaxi.com/v1')
         setModel(s.model || '')
       })
       .catch(() => setLlmConfigured(false))
@@ -103,7 +103,7 @@ export function SettingsPopover({ theme, setTheme, onClose, anchorRef }: Props) 
           type="text"
           value={baseUrl}
           onChange={(e) => setBaseUrl(e.target.value)}
-          placeholder="https://api.minimax.chat/v1"
+          placeholder="e.g. https://api.minimaxi.com/v1（需包含 /v1）"
         />
       </div>
 
