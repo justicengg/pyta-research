@@ -1130,6 +1130,70 @@
   width: fit-content;
 }
 
+/* ── Field tooltip ───────────────────────────────────────────────── */
+.field-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--sp-1);
+  vertical-align: middle;
+}
+
+.field-tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--text-3);
+  color: var(--text-3);
+  font-size: 9px;
+  font-weight: 600;
+  cursor: default;
+  line-height: 1;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.field-tooltip-wrap:hover .field-tooltip-icon {
+  border-color: var(--text-1);
+  color: var(--text-1);
+}
+
+.field-tooltip-box {
+  display: none;
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  width: 260px;
+  background: var(--text-1);
+  color: var(--surface);
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  line-height: 1.6;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-md);
+  pointer-events: none;
+  z-index: 100;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.field-tooltip-box::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--text-1);
+}
+
+.field-tooltip-wrap:hover .field-tooltip-box {
+  display: block;
+}
+
 .provider-card-custom {
   border-style: dashed;
 }

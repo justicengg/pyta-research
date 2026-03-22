@@ -192,15 +192,25 @@ export function AddSourceModal({ onClose, onCreated }: Props) {
                   onChange={(e) => setCustomBaseUrl(e.target.value)}
                 />
 
-                <label className="field-label">认证方式</label>
+                <label className="field-label">
+                  认证方式 Auth Style
+                  <span className="field-tooltip-wrap">
+                    <span className="field-tooltip-icon">?</span>
+                    <span className="field-tooltip-box">
+                      <strong>Query Param</strong> — key 附在 URL 参数里，如 ?token=xxx。最常见，GNews / Finnhub 都用这种。<br /><br />
+                      <strong>Bearer Token</strong> — key 放在请求头 Authorization: Bearer xxx。多数现代 API 使用。<br /><br />
+                      <strong>X-API-Key</strong> — key 放在自定义请求头，如 X-Api-Key: xxx。部分平台专用格式。
+                    </span>
+                  </span>
+                </label>
                 <select
                   className="field-input"
                   value={customAuthStyle}
                   onChange={(e) => setCustomAuthStyle(e.target.value as typeof customAuthStyle)}
                 >
-                  <option value="query_param">Query Param（?key=xxx）</option>
-                  <option value="bearer">Bearer Token（Authorization: Bearer xxx）</option>
-                  <option value="x_api_key">X-API-Key Header</option>
+                  <option value="query_param">Query Param — URL 参数（?key=xxx）</option>
+                  <option value="bearer">Bearer Token — 请求头（Authorization: Bearer xxx）</option>
+                  <option value="x_api_key">X-API-Key — 自定义请求头</option>
                 </select>
 
                 <label className="field-label">
