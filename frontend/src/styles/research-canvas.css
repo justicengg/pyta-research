@@ -624,12 +624,14 @@
   border-bottom: 1px solid var(--border-subtle);
 }
 
+.stage-head-left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
 .stage-head p {
-  margin-top: var(--sp-2);
-  color: var(--text-2);
-  font-size: var(--fs-xs);
-  line-height: var(--lh-relaxed);
-  max-width: 540px;
+  display: none; /* description hidden — context is self-evident */
 }
 
 .chip-row {
@@ -670,24 +672,110 @@
   inset: 0;
 }
 
+/* ── Floating draggable toolbar ─────────────────────────────────── */
 .canvas-toolbar {
   position: absolute;
   top: var(--sp-4);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: var(--sp-2);
-  padding: var(--sp-2);
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-md);
   box-shadow: var(--shadow-md);
+  user-select: none;
+  z-index: 20;
 }
 
-.canvas-toolbar button {
+.toolbar-drag-handle {
+  cursor: grab;
+  color: var(--text-3);
+  font-size: 14px;
+  padding: 0 var(--sp-1);
+  line-height: 1;
+  touch-action: none;
+}
+.toolbar-drag-handle:active { cursor: grabbing; }
+
+.toolbar-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border-subtle);
+  margin: 0 var(--sp-1);
+  flex-shrink: 0;
+}
+
+.toolbar-btn {
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-2);
   border-radius: var(--r-full);
   padding: var(--sp-1) var(--sp-3);
   font-size: var(--fs-xs);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.toolbar-btn:hover {
+  background: var(--surface-overlay);
+  color: var(--text-1);
+}
+
+.toolbar-btn-run {
+  background: var(--text-1);
+  color: var(--surface);
+  border-color: var(--text-1);
+  font-weight: 500;
+}
+.toolbar-btn-run:hover:not(:disabled) { opacity: 0.85; }
+.toolbar-btn-run:disabled,
+.toolbar-btn-run.running {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.toolbar-hide {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px var(--sp-1);
+  border-radius: var(--r-sm);
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+.toolbar-hide:hover {
+  color: var(--text-1);
+  background: var(--surface-overlay);
+}
+
+.toolbar-restore {
+  position: absolute;
+  top: var(--sp-4);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-3);
+  font-size: 16px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 20;
+  transition: color 0.15s, box-shadow 0.15s;
+}
+.toolbar-restore:hover {
+  color: var(--text-1);
+  box-shadow: var(--shadow-md);
 }
 
 .halo,
