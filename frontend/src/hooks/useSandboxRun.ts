@@ -182,6 +182,8 @@ function mergeCanvasState(
       focus: agent.focus,
       position: positionMap.get(agent.id) ?? { x: 0, y: 0 },
       round,
+      sentiment: (agent.bias === 'mixed' ? 'neutral' : agent.bias ?? 'neutral') as 'bullish' | 'neutral' | 'bearish',
+      confidence: agent.confidence ?? 0,
     })),
     edges: mockCanvasState.edges,
   }

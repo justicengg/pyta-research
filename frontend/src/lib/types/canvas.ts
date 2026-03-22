@@ -1,5 +1,7 @@
 export type AgentStatus = 'live' | 'reused_last_round' | 'degraded'
 
+export type AgentSentiment = 'bullish' | 'neutral' | 'bearish'
+
 export type AgentCardData = {
   id: string
   title: string
@@ -11,7 +13,9 @@ export type AgentCardData = {
   concerns: string[]
   focus: string[]
   position: { x: number; y: number }
-  round?: number  // which inference round this data came from
+  round?: number      // which inference round this data came from
+  sentiment: AgentSentiment
+  confidence: number  // 0–100
 }
 
 export type RoundRecord = {
