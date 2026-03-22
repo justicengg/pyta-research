@@ -665,11 +665,21 @@
     var(--canvas-bg);
   background-size: auto, 24px 24px, 24px 24px, auto;
   overflow: hidden;
+  /* Pan + zoom: prevent native browser scroll/touch gestures from hijacking drag */
+  touch-action: none;
+  cursor: grab;
+}
+
+.stage.panning {
+  cursor: grabbing;
 }
 
 .canvas-layer {
   position: absolute;
   inset: 0;
+  /* transform-origin must be top-left for zoom-to-cursor math */
+  transform-origin: 0 0;
+  will-change: transform;
 }
 
 /* ── Floating draggable toolbar ─────────────────────────────────── */
@@ -751,6 +761,16 @@
 .toolbar-hide:hover {
   color: var(--text-1);
   background: var(--surface-overlay);
+}
+
+.toolbar-zoom-pct {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-3);
+  min-width: 34px;
+  text-align: center;
+  user-select: none;
+  pointer-events: none;
 }
 
 .toolbar-restore {
@@ -841,6 +861,19 @@
 .agent-cluster {
   position: absolute;
   width: 280px;
+  cursor: grab;
+  user-select: none;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  will-change: transform;
+}
+
+.agent-cluster:active,
+.agent-cluster--dragging {
+  cursor: grabbing;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+  transform: scale(1.02);
+  z-index: 10;
+  transition: box-shadow 0.08s ease;
 }
 
 .agent {

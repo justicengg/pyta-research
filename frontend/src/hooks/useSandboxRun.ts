@@ -135,7 +135,8 @@ function mergeCanvasState(runState: CanvasRunState, inputEvents: SandboxInputEve
       observations: agent.observations,
       concerns: agent.concerns,
       focus: agent.focus,
-      position: positionMap.get(agent.id) ?? {},
+      position: positionMap.get(agent.id) ?? { x: 0, y: 0 },
     })),
+    edges: mockCanvasState.edges,
   }
 }

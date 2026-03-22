@@ -1,5 +1,3 @@
-import type { CSSProperties } from 'react'
-
 export type AgentStatus = 'live' | 'reused_last_round' | 'degraded'
 
 export type AgentCardData = {
@@ -12,16 +10,15 @@ export type AgentCardData = {
   observations: string[]
   concerns: string[]
   focus: string[]
-  position: {
-    top?: string
-    left?: string
-    right?: string
-    bottom?: string
-  }
+  position: { x: number; y: number }
 }
 
-export type PositionedCanvasAgentCard = Omit<AgentCardData, 'position'> & {
-  position: CSSProperties
+export type AgentEdge = {
+  id: string
+  from: string   // agentId or 'center'
+  to: string     // agentId or 'center'
+  type: 'spoke' | 'peer'
+  label?: string
 }
 
 export type ConnectorStatus = 'healthy' | 'syncing' | 'error' | 'inactive'
@@ -63,4 +60,5 @@ export type CanvasState = {
   }
   commandDraft: string
   agents: AgentCardData[]
+  edges: AgentEdge[]
 }

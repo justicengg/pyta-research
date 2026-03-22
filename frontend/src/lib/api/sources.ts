@@ -20,7 +20,7 @@ export type ConnectorResponse = {
   cost: string
   usage_level: string
   capabilities: string[]
-  status: 'healthy' | 'error' | 'inactive'
+  status: 'healthy' | 'syncing' | 'error' | 'inactive'
   error_message: string | null
   last_synced_at: string | null
   created_at: string

@@ -88,7 +88,9 @@ export const mockCanvasState: CanvasState = {
       observations: ['当前利好更像正向信号，而不是足以直接推动大规模加仓的决定性证据。'],
       concerns: ['单一事件不足以完全重估中长期赔率。'],
       focus: ['继续观察后续基本面兑现与风险偏好变化。'],
-      position: { left: '118px', top: '156px' },
+      // Orbital layout: ellipse Rx=280 Ry=200, center=(550,300), pentagon from top
+      // traditional_institution — top vertex (12 o'clock)
+      position: { x: 410, y: 76 },
     },
     {
       id: 'offshore_capital',
@@ -100,7 +102,8 @@ export const mockCanvasState: CanvasState = {
       observations: ['当前事件对港股科技情绪有帮助，但尚不足以单独改变 offshore allocation。'],
       concerns: ['若全球 risk-off 再次强化，回撤动作会先于加仓发生。'],
       focus: ['继续看跨市场相对吸引力和流动性方向。'],
-      position: { right: '126px', top: '156px' },
+      // offshore_capital — upper-right (~2 o'clock)
+      position: { x: 716, y: 218 },
     },
     {
       id: 'retail',
@@ -112,7 +115,8 @@ export const mockCanvasState: CanvasState = {
       observations: ['单条利好足以提升关注度和跟风意愿。'],
       concerns: ['持续性仍取决于后续事件流是否接力。'],
       focus: ['观察热度扩散速度和社交讨论情绪。'],
-      position: { left: '160px', bottom: '128px' },
+      // retail — lower-left (~8 o'clock)
+      position: { x: 245, y: 442 },
     },
     {
       id: 'quant_institution',
@@ -124,7 +128,8 @@ export const mockCanvasState: CanvasState = {
       observations: ['当前信号可触发短期模型关注，但仍要看 follow-through data。'],
       concerns: ['如果后续量价配合不足，模型权重会迅速回落。'],
       focus: ['继续跟踪量价、波动与横向板块联动。'],
-      position: { left: '448px', bottom: '62px' },
+      // quant_institution — upper-left (~10 o'clock)
+      position: { x: 124, y: 218 },
     },
     {
       id: 'short_term_capital',
@@ -136,8 +141,22 @@ export const mockCanvasState: CanvasState = {
       observations: ['题材可交易性提升，短线博弈空间打开。'],
       concerns: ['如果热度没有延续，回落会很快。'],
       focus: ['盯住次日承接、板块联动与情绪扩散。'],
-      position: { right: '146px', bottom: '116px' },
+      // short_term_capital — lower-right (~4 o'clock)
+      position: { x: 575, y: 442 },
     },
+  ],
+  // Edges: 5 spoke edges (agent → center) + 3 peer influence edges
+  edges: [
+    // Hub-and-spoke: all agents → center core
+    { id: 'e-trad-center',    from: 'traditional_institution', to: 'center', type: 'spoke', label: '传递机构视角' },
+    { id: 'e-offshore-center', from: 'offshore_capital',       to: 'center', type: 'spoke', label: '传递资金流向' },
+    { id: 'e-retail-center',  from: 'retail',                  to: 'center', type: 'spoke', label: '传递情绪动向' },
+    { id: 'e-quant-center',   from: 'quant_institution',       to: 'center', type: 'spoke', label: '传递量化信号' },
+    { id: 'e-short-center',   from: 'short_term_capital',      to: 'center', type: 'spoke', label: '传递博弈动向' },
+    // Peer influence edges
+    { id: 'e-quant-short',    from: 'quant_institution',  to: 'short_term_capital',      type: 'peer', label: '信号传导' },
+    { id: 'e-short-retail',   from: 'short_term_capital', to: 'retail',                  type: 'peer', label: '情绪扩散' },
+    { id: 'e-offshore-trad',  from: 'offshore_capital',   to: 'traditional_institution', type: 'peer', label: '资金流向参考' },
   ],
 }
 

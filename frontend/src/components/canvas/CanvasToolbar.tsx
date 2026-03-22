@@ -4,9 +4,11 @@ type Props = {
   onRun: () => void
   isRunning: boolean
   onSceneSettings?: () => void
+  onReset?: () => void
+  zoomPercent?: number
 }
 
-export function CanvasToolbar({ onRun, isRunning, onSceneSettings }: Props) {
+export function CanvasToolbar({ onRun, isRunning, onSceneSettings, onReset, zoomPercent = 100 }: Props) {
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [hidden, setHidden] = useState(false)
   const dragging = useRef(false)
@@ -35,6 +37,7 @@ export function CanvasToolbar({ onRun, isRunning, onSceneSettings }: Props) {
     return (
       <button
         className="toolbar-restore"
+        data-no-pan
         onClick={() => setHidden(false)}
         title="显示工具栏"
       >
@@ -46,6 +49,7 @@ export function CanvasToolbar({ onRun, isRunning, onSceneSettings }: Props) {
   return (
     <div
       className="canvas-toolbar"
+      data-no-pan
       style={{
         transform: `translate(calc(-50% + ${offset.x}px), ${offset.y}px)`,
       }}
@@ -66,14 +70,31 @@ export function CanvasToolbar({ onRun, isRunning, onSceneSettings }: Props) {
       <button
         className="toolbar-btn"
         onClick={onSceneSettings}
+        data-no-pan
       >
         场景设置
       </button>
+
+      <div className="toolbar-sep" />
+
+      <button
+        className="toolbar-btn"
+        onClick={onReset}
+        data-no-pan
+        title="重置视图到初始位置 (Reset view)"
+      >
+        ⌖ 重置
+      </button>
+
+      <span className="toolbar-zoom-pct">{zoomPercent}%</span>
+
+      <div className="toolbar-sep" />
 
       <button
         className={`toolbar-btn toolbar-btn-run${isRunning ? ' running' : ''}`}
         onClick={onRun}
         disabled={isRunning}
+        data-no-pan
       >
         {isRunning ? '推演中…' : '▶ 运行推演'}
       </button>
