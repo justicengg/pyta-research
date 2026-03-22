@@ -27,7 +27,9 @@ class SandboxLLMClient:
         self.api_key = settings_store.get("llm_api_key") or settings.llm_api_key
         self.base_url = (settings_store.get("llm_base_url") or settings.llm_base_url).rstrip("/")
         self.model = settings_store.get("llm_model") or settings.llm_model
-        self.timeout = settings.llm_timeout_seconds
+        # DB value takes priority so timeout can be tuned without restart
+        timeout_raw = settings_store.get("llm_timeout_seconds")
+        self.timeout = float(timeout_raw) if timeout_raw else settings.llm_timeout_seconds
 
     @property
     def enabled(self) -> bool:

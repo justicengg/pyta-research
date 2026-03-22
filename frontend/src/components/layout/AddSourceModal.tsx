@@ -218,7 +218,7 @@ export function AddSourceModal({ onClose, onCreated }: Props) {
                 </label>
                 <input
                   className="field-input"
-                  placeholder={customAuthStyle === 'query_param' ? 'apikey' : 'X-Api-Key'}
+                  placeholder={customAuthStyle === 'query_param' ? 'token（如 AllTick / Finnhub）' : 'X-Api-Key'}
                   value={customAuthParam}
                   onChange={(e) => setCustomAuthParam(e.target.value)}
                 />
@@ -226,7 +226,7 @@ export function AddSourceModal({ onClose, onCreated }: Props) {
                 <label className="field-label">验证路径（可选）</label>
                 <input
                   className="field-input"
-                  placeholder="/status 或留空跳过验证"
+                  placeholder="/quote-b-api/... 或留空跳过验证"
                   value={customValidatePath}
                   onChange={(e) => setCustomValidatePath(e.target.value)}
                 />

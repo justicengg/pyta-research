@@ -1,9 +1,16 @@
-import type { CanvasState } from '../../lib/types/canvas'
+import { useCallback, useRef, useState } from 'react'
+import type { CanvasState, RoundRecord, SceneParams } from '../../lib/types/canvas'
+import type { SandboxInputEvent } from '../../lib/types/sandbox'
+import { useCanvasViewport } from '../../hooks/useCanvasViewport'
+import { useTopologyLayout, TOPOLOGY_CENTER } from '../../hooks/useTopologyLayout'
 import { AgentNode } from '../canvas/AgentNode'
 import { CanvasBackground } from '../canvas/CanvasBackground'
-import { CanvasToolbar } from '../canvas/CanvasToolbar'
-import { EventChips } from '../canvas/EventChips'
+import { CenterCoreCard } from '../canvas/CenterCoreCard'
+import { EdgeLayer } from '../canvas/EdgeLayer'
 import { CommandConsole } from './CommandConsole'
+import { EventsPanel } from './EventsPanel'
+
+type AgentPos = { x: number; y: number }
 
 type Props = {
   state: CanvasState
@@ -13,7 +20,15 @@ type Props = {
   isRunning: boolean
   error: string | null
   qualityLabel: string
+  currentRound: number
+  roundHistory: RoundRecord[]
+  currentInputEvents: SandboxInputEvent[]
+  sceneParams: SceneParams
+  onSceneParamsChange: (p: SceneParams) => void
 }
+
+// Center core anchor — matches TOPOLOGY_CENTER from useTopologyLayout
+const CENTER_POS: AgentPos = TOPOLOGY_CENTER
 
 export function CanvasStage({
   state,
@@ -23,66 +38,135 @@ export function CanvasStage({
   isRunning,
   error,
   qualityLabel,
+  currentRound,
+  roundHistory,
+  currentInputEvents,
+  sceneParams,
+  onSceneParamsChange,
 }: Props) {
+  const stageRef = useRef<HTMLDivElement>(null)
+  const { panX, panY, zoom, zoomPercent, isPanning, stagePointerHandlers, resetViewport } =
+    useCanvasViewport(stageRef)
+
+  // Computed positions from topology layout algorithm
+  const computedPositions = useTopologyLayout(state.agents)
+
+  // Drag overrides — user drag moves nodes away from computed positions
+  const [dragOverrides, setDragOverrides] = useState<Record<string, AgentPos>>({})
+
+  // Events panel open state (Layer 3 right-side panel)
+  const [eventsPanelOpen, setEventsPanelOpen] = useState(false)
+
+  // Final positions: computed topology base + any drag overrides
+  const agentPositions: Record<string, AgentPos> = {}
+  for (const agent of state.agents) {
+    agentPositions[agent.id] = dragOverrides[agent.id] ?? computedPositions[agent.id] ?? { x: 0, y: 0 }
+  }
+
+  const handleAgentDragMove = useCallback((id: string, dx: number, dy: number) => {
+    setDragOverrides((prev) => {
+      const base = prev[id] ?? computedPositions[id] ?? { x: 0, y: 0 }
+      return { ...prev, [id]: { x: base.x + dx, y: base.y + dy } }
+    })
+  }, [computedPositions])
+
   return (
     <section className="stage-wrap">
+
+      {/* Zone A — Context bar */}
       <div className="stage-head">
-        <div>
+        <div className="stage-head-left">
           <div className="eyebrow">融合方向</div>
           <h2>多 Agent 沙盘推演</h2>
-          <p>核心场景在中心，多个市场参与者 Agent 围绕其运转。最近动作最清晰，历史步骤逐渐淡化，最终只把收敛结果送去画布中的结果卡位。</p>
         </div>
         <div className="chip-row">
-          <span className={`chip ${isRunning ? 'chip-running' : ''}`}>{isRunning ? '运行中' : '就绪'}</span>
+          <span className={`chip ${isRunning ? 'chip-running' : ''}`}>
+            {isRunning ? '运行中' : '就绪'}
+          </span>
           <span className="chip quality-chip">{qualityLabel}</span>
         </div>
       </div>
 
-      <div className="stage">
-        <div className="canvas-layer">
+      {/* Zone B — Canvas viewport */}
+      <div
+        ref={stageRef}
+        className={`stage${isPanning ? ' panning' : ''}`}
+        {...stagePointerHandlers}
+      >
+        {/* canvas-layer transforms with pan + zoom */}
+        <div
+          className="canvas-layer"
+          style={{
+            transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
+            transformOrigin: '0 0',
+          }}
+        >
           <CanvasBackground />
-          <CanvasToolbar />
 
-          <div className="center-core">
-            <h3>腾讯 / 港股科技</h3>
-            <p>当前推演对象仍然放在舞台中心。所有 Agent 围绕这个核心对象提供反应、解释、修正和收敛。</p>
-            <div className="center-tags">
-              <span className="core-tag">核心场景</span>
-              <span className="core-tag">3 个月</span>
-              <span className="core-tag">持续推演</span>
-            </div>
-          </div>
+          {/* Edge layer — rendered before agent nodes so cards appear above edges */}
+          <EdgeLayer
+            edges={state.edges}
+            agentPositions={agentPositions}
+            centerPos={CENTER_POS}
+          />
 
-          {state.agents.map((agent) => (
-            <AgentNode key={agent.id} agent={agent} />
+          {/* Center core — editable scene params */}
+          <CenterCoreCard
+            sceneParams={sceneParams}
+            onSceneParamsChange={onSceneParamsChange}
+          />
+
+          {/* Agent nodes */}
+          {state.agents.map((agent, i) => (
+            <AgentNode
+              key={agent.id}
+              agent={agent}
+              position={agentPositions[agent.id]}
+              zoom={zoom}
+              onDragMove={handleAgentDragMove}
+              isRunning={isRunning}
+              nodeIndex={i}
+            />
           ))}
-
-          <div className="ghost-node faded hint-card hint-news">
-            新闻事件
-            <small>腾讯合作扩张改善海外分发预期</small>
-          </div>
-          <div className="ghost-node hint-card hint-institution">
-            机构判断
-            <small>传统机构更重长期赔率，但不会忽视当前估值约束</small>
-          </div>
-          <div className="ghost-node active hint-card hint-active">
-            当前活跃步骤
-            <small>游资与散户情绪正在放大最新事件流的短线方向感</small>
-          </div>
 
           {error ? <div className="canvas-error">{error}</div> : null}
         </div>
-        <EventChips onSelect={(title) => onDraftChange(title)} />
-        <CommandConsole
-          draft={draft}
-          onDraftChange={onDraftChange}
-          onSubmit={onSubmit}
-          isRunning={isRunning}
-          error={error}
-        />
+
+        {/* Corner controls — zoom readout + reset */}
+        <div className="canvas-corner-controls" data-no-pan>
+          <span className="corner-zoom">{zoomPercent}%</span>
+          <button
+            className="corner-reset"
+            onClick={resetViewport}
+            title="重置视图 (Reset view)"
+          >
+            ⌖
+          </button>
+        </div>
       </div>
 
-      <div className="stage-footer">这版前端共同基地工程先把结构、节点和结果卡位搭起来。现在底部控制台已经可以触发真实 secondary-market sandbox run，并把结果回写到节点与左侧信息流。</div>
+      {/* Zone C — Command console */}
+      <CommandConsole
+        draft={draft}
+        onDraftChange={onDraftChange}
+        onSubmit={onSubmit}
+        isRunning={isRunning}
+        error={error}
+        currentRound={currentRound}
+        roundHistory={roundHistory}
+        currentInputEvents={currentInputEvents}
+        onEventsToggle={() => setEventsPanelOpen((v) => !v)}
+      />
+
+      {/* Layer 3 — Events side panel (viewport-anchored, slides in from right) */}
+      <EventsPanel
+        isOpen={eventsPanelOpen}
+        onClose={() => setEventsPanelOpen(false)}
+        onSelectEvent={(title) => {
+          onDraftChange(title)
+          setEventsPanelOpen(false)
+        }}
+      />
     </section>
   )
 }

@@ -76,5 +76,18 @@
     "cost": "free",
     "usage_level": "operational",
     "capabilities": ["macro_tracking", "capital_flow", "policy_signal"]
+  },
+  "alltick": {
+    "title": "AllTick",
+    "description": "实时外汇、加密货币与股票行情数据，适合高频与实时监控场景",
+    "base_url": "https://quote.alltick.co",
+    "auth_style": "query_param",
+    "auth_param": "token",
+    "validate_path": "/quote-b-api/trade-tick?query=%7B%22trace%22%3A%22pyta-test%22%2C%22data%22%3A%7B%22code%22%3A%22BTCUSDT%22%7D%7D",
+    "source_channel": "market_data",
+    "coverage_dimension": "real_time_market_data",
+    "cost": "freemium",
+    "usage_level": "operational",
+    "capabilities": ["market_data", "real_time", "forex", "crypto", "stocks"]
   }
 }

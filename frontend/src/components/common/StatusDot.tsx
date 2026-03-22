@@ -6,11 +6,11 @@ const statusLabel: Record<AgentStatus, string> = {
   degraded: 'Degraded',
 }
 
-export function StatusDot({ status }: { status: AgentStatus }) {
+export function StatusDot({ status, isLoading }: { status: AgentStatus; isLoading?: boolean }) {
   return (
-    <span className={`status-chip status-${status}`}>
+    <span className={`status-chip status-${status}${isLoading ? ' status-thinking' : ''}`}>
       <span className="status-chip-dot" />
-      {statusLabel[status]}
+      {isLoading ? '思考中…' : statusLabel[status]}
     </span>
   )
 }

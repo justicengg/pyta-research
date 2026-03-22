@@ -4,6 +4,7 @@ export type LLMConfigStatus = {
   configured: boolean
   base_url: string
   model: string
+  timeout_seconds: number
 }
 
 export async function fetchLLMStatus(): Promise<LLMConfigStatus> {
@@ -16,6 +17,7 @@ export async function saveLLMConfig(payload: {
   api_key: string
   base_url: string
   model: string
+  timeout_seconds: number
 }): Promise<void> {
   const res = await fetch(`${BASE}/settings/llm`, {
     method: 'POST',

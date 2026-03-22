@@ -1,6 +1,12 @@
-import type { CSSProperties } from 'react'
-
 export type AgentStatus = 'live' | 'reused_last_round' | 'degraded'
+
+export type AgentSentiment = 'bullish' | 'neutral' | 'bearish'
+
+export type SceneParams = {
+  ticker: string       // e.g. '0700.HK'
+  market: string       // e.g. 'HK' | 'US' | 'A'
+  timeHorizon: string  // e.g. '3个月'
+}
 
 export type AgentCardData = {
   id: string
@@ -12,16 +18,30 @@ export type AgentCardData = {
   observations: string[]
   concerns: string[]
   focus: string[]
-  position: {
-    top?: string
-    left?: string
-    right?: string
-    bottom?: string
-  }
+  position: { x: number; y: number }
+  round?: number      // which inference round this data came from
+  sentiment: AgentSentiment
+  confidence: number  // 0–100
+  // Topology fields
+  ring?: number         // 1 = base agent, 2 = derived conclusion, 3 = synthesis node
+  parentId?: string | null  // null = base agent; string = parent agent id
+  angleHint?: number    // preferred angle in radians (inherited from parent)
 }
 
-export type PositionedCanvasAgentCard = Omit<AgentCardData, 'position'> & {
-  position: CSSProperties
+export type RoundRecord = {
+  round: number
+  narrative: string
+  agentSummaries: Record<string, string>  // agentId → summary
+  quality: 'complete' | 'partial' | 'degraded'
+  timestamp: string
+}
+
+export type AgentEdge = {
+  id: string
+  from: string   // agentId or 'center'
+  to: string     // agentId or 'center'
+  type: 'spoke' | 'peer' | 'derivation' | 'synthesis'
+  label?: string
 }
 
 export type ConnectorStatus = 'healthy' | 'syncing' | 'error' | 'inactive'
@@ -63,4 +83,5 @@ export type CanvasState = {
   }
   commandDraft: string
   agents: AgentCardData[]
+  edges: AgentEdge[]
 }

@@ -15,6 +15,13 @@ from typing import Any
 _DB_PATH = Path("pyta.db")
 
 
+def _ensure_column(conn: sqlite3.Connection, table: str, column: str, ddl: str) -> None:
+    cols = conn.execute(f"PRAGMA table_info({table})").fetchall()
+    existing = {row[1] for row in cols}
+    if column not in existing:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
+
+
 def _conn() -> sqlite3.Connection:
     conn = sqlite3.connect(_DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -44,6 +51,7 @@ def _conn() -> sqlite3.Connection:
         CREATE INDEX IF NOT EXISTS ix_source_event_ingested
             ON source_event (ingested_at DESC);
     """)
+    _ensure_column(conn, "source_connector", "custom_config", "TEXT")
     conn.commit()
     return conn
 

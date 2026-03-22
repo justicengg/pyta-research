@@ -88,7 +88,13 @@ export const mockCanvasState: CanvasState = {
       observations: ['当前利好更像正向信号，而不是足以直接推动大规模加仓的决定性证据。'],
       concerns: ['单一事件不足以完全重估中长期赔率。'],
       focus: ['继续观察后续基本面兑现与风险偏好变化。'],
-      position: { left: '118px', top: '156px' },
+      // Topology: ring 1, center=(600,450), radius=250, pentagon from top (72° steps)
+      // traditional_institution — 12 o'clock (-90°): orbital(600,200) → card(500,162)
+      position: { x: 500, y: 162 },
+      sentiment: 'neutral',
+      confidence: 62,
+      ring: 1,
+      parentId: null,
     },
     {
       id: 'offshore_capital',
@@ -100,7 +106,12 @@ export const mockCanvasState: CanvasState = {
       observations: ['当前事件对港股科技情绪有帮助，但尚不足以单独改变 offshore allocation。'],
       concerns: ['若全球 risk-off 再次强化，回撤动作会先于加仓发生。'],
       focus: ['继续看跨市场相对吸引力和流动性方向。'],
-      position: { right: '126px', top: '156px' },
+      // offshore_capital — ~2 o'clock (-18°): orbital(838,373) → card(738,335)
+      position: { x: 738, y: 335 },
+      sentiment: 'bullish',
+      confidence: 55,
+      ring: 1,
+      parentId: null,
     },
     {
       id: 'retail',
@@ -112,7 +123,12 @@ export const mockCanvasState: CanvasState = {
       observations: ['单条利好足以提升关注度和跟风意愿。'],
       concerns: ['持续性仍取决于后续事件流是否接力。'],
       focus: ['观察热度扩散速度和社交讨论情绪。'],
-      position: { left: '160px', bottom: '128px' },
+      // retail — ~8 o'clock (126°): orbital(453,652) → card(353,614)
+      position: { x: 353, y: 614 },
+      sentiment: 'bullish',
+      confidence: 78,
+      ring: 1,
+      parentId: null,
     },
     {
       id: 'quant_institution',
@@ -124,7 +140,12 @@ export const mockCanvasState: CanvasState = {
       observations: ['当前信号可触发短期模型关注，但仍要看 follow-through data。'],
       concerns: ['如果后续量价配合不足，模型权重会迅速回落。'],
       focus: ['继续跟踪量价、波动与横向板块联动。'],
-      position: { left: '448px', bottom: '62px' },
+      // quant_institution — ~10 o'clock (198°): orbital(362,373) → card(262,335)
+      position: { x: 262, y: 335 },
+      sentiment: 'neutral',
+      confidence: 71,
+      ring: 1,
+      parentId: null,
     },
     {
       id: 'short_term_capital',
@@ -136,8 +157,26 @@ export const mockCanvasState: CanvasState = {
       observations: ['题材可交易性提升，短线博弈空间打开。'],
       concerns: ['如果热度没有延续，回落会很快。'],
       focus: ['盯住次日承接、板块联动与情绪扩散。'],
-      position: { right: '146px', bottom: '116px' },
+      // short_term_capital — ~4 o'clock (54°): orbital(747,652) → card(647,614)
+      position: { x: 647, y: 614 },
+      sentiment: 'bullish',
+      confidence: 85,
+      ring: 1,
+      parentId: null,
     },
+  ],
+  // Edges: 5 spoke edges (agent → center) + 3 peer influence edges
+  edges: [
+    // Hub-and-spoke: all agents → center core
+    { id: 'e-trad-center',    from: 'traditional_institution', to: 'center', type: 'spoke', label: '传递机构视角' },
+    { id: 'e-offshore-center', from: 'offshore_capital',       to: 'center', type: 'spoke', label: '传递资金流向' },
+    { id: 'e-retail-center',  from: 'retail',                  to: 'center', type: 'spoke', label: '传递情绪动向' },
+    { id: 'e-quant-center',   from: 'quant_institution',       to: 'center', type: 'spoke', label: '传递量化信号' },
+    { id: 'e-short-center',   from: 'short_term_capital',      to: 'center', type: 'spoke', label: '传递博弈动向' },
+    // Peer influence edges
+    { id: 'e-quant-short',    from: 'quant_institution',  to: 'short_term_capital',      type: 'peer', label: '信号传导' },
+    { id: 'e-short-retail',   from: 'short_term_capital', to: 'retail',                  type: 'peer', label: '情绪扩散' },
+    { id: 'e-offshore-trad',  from: 'offshore_capital',   to: 'traditional_institution', type: 'peer', label: '资金流向参考' },
   ],
 }
 

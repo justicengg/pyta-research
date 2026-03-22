@@ -1,37 +1,96 @@
-import type { AgentCardData } from '../../lib/types/canvas'
+import { useState } from 'react'
+import type { AgentCardData, AgentSentiment } from '../../lib/types/canvas'
 
 type Props = {
   agent: AgentCardData
+  isRunning?: boolean
 }
 
-export function AgentResultCard({ agent }: Props) {
+const SENTIMENT_LABEL: Record<AgentSentiment, string> = {
+  bullish: '看多',
+  neutral: '中性',
+  bearish: '看空',
+}
+
+export function AgentResultCard({ agent, isRunning = false }: Props) {
+  const [expanded, setExpanded] = useState(false)
+  const confidence = Math.max(0, Math.min(100, agent.confidence ?? 0))
+  const hasDetails =
+    agent.observations.length > 0 ||
+    agent.concerns.length > 0 ||
+    agent.focus.length > 0
+
+  // Shimmer skeleton while inference is running
+  if (isRunning) {
+    return (
+      <div className="agent-result-card agent-result-card--loading">
+        <div className="arc-header shimmer-line" style={{ height: '24px', borderRadius: '99px', width: '60%' }} />
+        <div className="shimmer-line" style={{ height: '6px', borderRadius: '99px' }} />
+        <div className="shimmer-line" style={{ height: '14px', borderRadius: '4px', width: '90%' }} />
+        <div className="shimmer-line" style={{ height: '14px', borderRadius: '4px', width: '70%' }} />
+      </div>
+    )
+  }
+
   return (
-    <div className="agent-result-card">
-      <p className="agent-result-summary">{agent.summary}</p>
-      <div className="agent-result-group">
-        <strong>Observations</strong>
-        <ul>
-          {agent.observations.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
+    <div className="agent-result-card fade-in-card">
+      {/* Row 1: sentiment badge + confidence value */}
+      <div className="arc-header">
+        <span className={`sentiment-badge sentiment-badge--${agent.sentiment}`}>
+          {SENTIMENT_LABEL[agent.sentiment]}
+        </span>
+        <span className="confidence-value">{confidence}%</span>
       </div>
-      <div className="agent-result-group">
-        <strong>Concerns</strong>
-        <ul>
-          {agent.concerns.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
+
+      {/* Row 2: confidence bar */}
+      <div className="confidence-bar">
+        <div
+          className="confidence-bar-fill"
+          style={{ width: `${confidence}%` }}
+        />
       </div>
-      <div className="agent-result-group">
-        <strong>Focus</strong>
-        <ul>
-          {agent.focus.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      </div>
+
+      {/* Row 3: one-line stance */}
+      <p className="stance-summary">{agent.summary}</p>
+
+      {/* Row 4: expandable detail */}
+      {hasDetails && (
+        <>
+          <button
+            className={`detail-toggle${expanded ? ' detail-toggle--open' : ''}`}
+            onClick={() => setExpanded((v) => !v)}
+            aria-expanded={expanded}
+          >
+            <span>{expanded ? '收起详情' : '展开详情'}</span>
+            <svg className="detail-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+
+          {expanded && (
+            <div className="detail-content">
+              {agent.observations.length > 0 && (
+                <div className="agent-result-group">
+                  <strong>观察</strong>
+                  <ul>{agent.observations.map((item) => <li key={item}>{item}</li>)}</ul>
+                </div>
+              )}
+              {agent.concerns.length > 0 && (
+                <div className="agent-result-group">
+                  <strong>顾虑</strong>
+                  <ul>{agent.concerns.map((item) => <li key={item}>{item}</li>)}</ul>
+                </div>
+              )}
+              {agent.focus.length > 0 && (
+                <div className="agent-result-group">
+                  <strong>关注点</strong>
+                  <ul>{agent.focus.map((item) => <li key={item}>{item}</li>)}</ul>
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }
