@@ -27,9 +27,10 @@ type Props = {
   onSceneParamsChange: (p: SceneParams) => void
 }
 
-// Center core anchor — matches center-core CSS: translate(-50%,-50%) at left:550px top:300px
-// so its visual center in canvas coords is (550, 300)
-const CENTER_POS: AgentPos = { x: 550, y: 300 }
+// Center core anchor — center-core uses left:50% top:49% translate(-50%,-50%).
+// Canvas layer is ~960px wide × 760px tall → visual center ≈ (480, 370)
+// Adjust to match actual orbital center used in mock positions
+const CENTER_POS: AgentPos = { x: 480, y: 270 }
 
 export function CanvasStage({
   state,

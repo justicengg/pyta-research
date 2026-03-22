@@ -3,9 +3,9 @@ import type { AgentCardData } from '../../lib/types/canvas'
 import { StatusDot } from '../common/StatusDot'
 import { AgentResultCard } from './AgentResultCard'
 
-// Card dimensions used for edge anchor calculation (must match CSS)
-export const CARD_WIDTH = 280
-export const CARD_HEADER_HEIGHT = 88
+// Card dimensions used for edge anchor calculation (must match CSS .agent-cluster width)
+export const CARD_WIDTH = 200
+export const CARD_HEADER_HEIGHT = 76
 
 type Props = {
   agent: AgentCardData
