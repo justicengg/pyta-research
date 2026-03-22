@@ -52,10 +52,11 @@ def create_app() -> FastAPI:
         return {'pong': True}
 
     # ── business routers ──────────────────────────────────────────────────────
-    from src.api.routers import sandbox, user_settings, sources
+    from src.api.routers import sandbox, user_settings, sources, market
     app.include_router(sandbox.router, prefix='/api/v1', tags=['sandbox'])
     app.include_router(user_settings.router, prefix='/api/v1', tags=['settings'])
     app.include_router(sources.router, prefix='/api/v1', tags=['sources'])
+    app.include_router(market.router, prefix='/api/v1', tags=['market'])
 
     return app
 

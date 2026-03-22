@@ -65,6 +65,7 @@ def build_secondary_user_prompt(
     round_number: int,
     events: list[dict],
     narrative_guide: str | None = None,
+    market_data: dict | None = None,
 ) -> str:
     payload = {
         "agent_type": agent_type.value,
@@ -75,4 +76,7 @@ def build_secondary_user_prompt(
         "narrative_guide": narrative_guide or "",
         "events": events,
     }
+    # Inject real market data when available — agents use this as factual grounding
+    if market_data:
+        payload["market_data"] = market_data
     return json.dumps(payload, ensure_ascii=False, indent=2)
