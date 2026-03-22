@@ -1,5 +1,10 @@
+import { useEffect, useRef, useState } from 'react'
 import { IconButton } from '../common/IconButton'
-import type { CanvasState } from '../../lib/types/canvas'
+import { SettingsPopover } from './SettingsPopover'
+import { AddSourceModal } from './AddSourceModal'
+import { useTheme } from '../../hooks/useTheme'
+import { fetchConnectors, deleteConnector, type ConnectorResponse } from '../../lib/api/sources'
+import type { CanvasState, RecentEvent, RecommendedBundle } from '../../lib/types/canvas'
 import type { CanvasInputEvent, SandboxSessionStatus } from '../../lib/types/sandbox'
 
 type Props = {
@@ -11,54 +16,229 @@ type Props = {
   error: string | null
 }
 
-export function InformationPanel({ collapsed, onToggle, state, currentInputEvents, sessionStatus, error }: Props) {
+function ConnectorStatusDot({ status }: { status: ConnectorResponse['status'] }) {
+  const colorMap: Record<string, string> = {
+    healthy: 'var(--accent)',
+    syncing: 'var(--orange)',
+    error: '#c44949',
+    inactive: 'var(--text-3)',
+  }
   return (
-    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <span
+      className="connector-status-dot"
+      style={{ background: colorMap[status] ?? 'var(--text-3)' }}
+      title={status}
+    />
+  )
+}
+
+function ImpactBadge({ direction, strength }: { direction: RecentEvent['impactDirection']; strength: number }) {
+  const color = direction === 'positive' ? 'var(--accent)' : direction === 'negative' ? '#c44949' : 'var(--text-3)'
+  const sign = direction === 'positive' ? '+' : direction === 'negative' ? '−' : '·'
+  return (
+    <span className="impact-badge" style={{ color }}>
+      {sign}{(strength * 100).toFixed(0)}
+    </span>
+  )
+}
+
+function SourceCard({ source, onDelete }: { source: ConnectorResponse; onDelete: (id: string) => void }) {
+  const [confirming, setConfirming] = useState(false)
+
+  async function handleDelete() {
+    if (!confirming) { setConfirming(true); return }
+    await deleteConnector(source.id)
+    onDelete(source.id)
+  }
+
+  return (
+    <div className="connector-card">
+      <div className="connector-card-head">
+        <ConnectorStatusDot status={source.status} />
+        <span className="connector-title">{source.title}</span>
+        <span className="connector-cost">{source.cost}</span>
+        <button
+          className="connector-delete-btn"
+          onClick={handleDelete}
+          title={confirming ? '再次点击确认删除' : '移除此来源'}
+        >
+          {confirming ? '确认?' : '×'}
+        </button>
+      </div>
+      <div className="connector-meta">
+        <span className="connector-caps">{source.capabilities.join(' · ')}</span>
+        <span className="connector-sync">
+          {source.status === 'syncing' ? '同步中…' : source.last_synced_at ? source.last_synced_at : '—'}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function EventCard({ event }: { event: RecentEvent }) {
+  return (
+    <div className="event-card">
+      <div className="event-card-head">
+        <span className="event-title">{event.title}</span>
+        <ImpactBadge direction={event.impactDirection} strength={event.impactStrength} />
+      </div>
+      <p className="event-summary">{event.summary}</p>
+      <span className="event-meta">{event.dimension} · {event.syncedAt}</span>
+    </div>
+  )
+}
+
+function BundleRow({ bundle }: { bundle: RecommendedBundle }) {
+  return (
+    <div className="bundle-row">
+      <div className="bundle-row-main">
+        <span className="bundle-name">{bundle.name}</span>
+        <span className="bundle-reason">{bundle.reason}</span>
+      </div>
+      <button className="bundle-add-btn" aria-label="接入此 Bundle">+</button>
+    </div>
+  )
+}
+
+export function InformationPanel({ collapsed, onToggle, state, currentInputEvents, sessionStatus, error }: Props) {
+  const { theme, setTheme } = useTheme()
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [addSourceOpen, setAddSourceOpen] = useState(false)
+  const [liveConnectors, setLiveConnectors] = useState<ConnectorResponse[]>([])
+  const gearRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    fetchConnectors().then(setLiveConnectors).catch(console.error)
+  }, [])
+
+  function handleConnectorCreated(c: ConnectorResponse) {
+    setLiveConnectors((prev) => [c, ...prev])
+    setAddSourceOpen(false)
+  }
+
+  function handleConnectorDeleted(id: string) {
+    setLiveConnectors((prev) => prev.filter((c) => c.id !== id))
+  }
+
+  if (collapsed) {
+    return (
+      <aside className="sidebar collapsed">
+        <button
+          ref={gearRef}
+          className="sidebar-float-btn"
+          onClick={() => setSettingsOpen((v) => !v)}
+          aria-label="打开设置"
+        >
+          ⚙
+        </button>
+        {settingsOpen && (
+          <SettingsPopover
+            theme={theme}
+            setTheme={setTheme}
+            onClose={() => setSettingsOpen(false)}
+            anchorRef={gearRef}
+          />
+        )}
+        <button className="sidebar-float-btn" onClick={onToggle} aria-label="展开左侧边栏">
+          ⟩
+        </button>
+      </aside>
+    )
+  }
+
+  return (
+    <aside className="sidebar">
       <div className="sidebar-head">
-        <button className="collapse-dot left" onClick={onToggle} aria-label="展开左侧边栏" />
         <div>
-          <div className="eyebrow">左侧边栏</div>
+          <div className="eyebrow">Layer 1</div>
           <h2>信息层</h2>
         </div>
         <div className="head-actions">
-          <IconButton aria-label="打开设置">⚙</IconButton>
+          <div style={{ position: 'relative' }}>
+            <IconButton
+              ref={gearRef}
+              aria-label="打开设置"
+              onClick={() => setSettingsOpen((v) => !v)}
+            >⚙</IconButton>
+            {settingsOpen && (
+              <SettingsPopover
+                theme={theme}
+                setTheme={setTheme}
+                onClose={() => setSettingsOpen(false)}
+                anchorRef={gearRef}
+              />
+            )}
+          </div>
           <IconButton onClick={onToggle} aria-label="收起左侧边栏">⟨</IconButton>
         </div>
       </div>
+
       <div className="side-search">
-        <input type="text" defaultValue="搜索来源、事件、参考资料" />
+        <input type="text" placeholder="搜索来源、事件、参考资料" />
       </div>
+
       <div className="sidebar-body">
+
+        {/* SOURCES */}
         <section className="section">
-          <div className="section-label">当前运行</div>
-          <div className="stream-item current-run-card">
-            <strong>{sessionStatus}</strong>
-            <span>{error ?? (currentInputEvents.length ? `已提交 ${currentInputEvents.length} 条输入事件。` : '等待控制台提交。')}</span>
+          <div className="section-label-row">
+            <span className="section-label">Sources</span>
+            <button
+              className="section-action-btn"
+              aria-label="接入新来源"
+              onClick={() => setAddSourceOpen(true)}
+            >
+              + 接入
+            </button>
           </div>
+          {liveConnectors.length === 0 && (
+            <p className="section-empty">暂无接入来源，点击「+ 接入」添加数据源。</p>
+          )}
+          {liveConnectors.map((source) => (
+            <SourceCard key={source.id} source={source} onDelete={handleConnectorDeleted} />
+          ))}
         </section>
 
+        {addSourceOpen && (
+          <AddSourceModal
+            onClose={() => setAddSourceOpen(false)}
+            onCreated={handleConnectorCreated}
+          />
+        )}
+
+        {/* RECOMMENDED */}
         <section className="section">
-          <div className="section-label">当前输入事件</div>
-          <div className="stream">
-            {currentInputEvents.length > 0 ? (
-              currentInputEvents.map((item) => (
-                <div className="stream-item" key={item.eventId}>
-                  <strong>{item.eventType}</strong>
-                  <span>{item.content}</span>
-                  <span className="stream-meta">{item.source} · {new Date(item.timestamp).toLocaleString('zh-CN')}</span>
-                </div>
-              ))
-            ) : (
-              <div className="stream-item stream-item-empty">
-                <strong>暂无输入</strong>
-                <span>在底部控制台提交一次推演指令后，这里会显示当前输入事件。</span>
-              </div>
+          <div className="section-label">Recommended</div>
+          {state.leftPanel.recommendedBundles.map((bundle) => (
+            <BundleRow key={bundle.name} bundle={bundle} />
+          ))}
+        </section>
+
+        {/* RECENT EVENTS */}
+        <section className="section">
+          <div className="section-label">Recent Events</div>
+          {state.leftPanel.recentEvents.map((event) => (
+            <EventCard key={event.title} event={event} />
+          ))}
+        </section>
+
+        {/* SESSION */}
+        <section className="section">
+          <div className="section-label">Session</div>
+          <div className="session-row">
+            <span className={`session-status-dot ${sessionStatus === 'running' ? 'running' : ''}`} />
+            <span className="session-status-text">
+              {error ?? (sessionStatus === 'running' ? '推演运行中' : sessionStatus)}
+            </span>
+            {currentInputEvents.length > 0 && (
+              <span className="session-event-count">{currentInputEvents.length} 条输入</span>
             )}
           </div>
         </section>
 
+        {/* EXTERNAL AGENT */}
         <section className="section">
-          <div className="section-label">外部 Agent</div>
+          <div className="section-label">External Agent</div>
           <div className="inline-entry">
             <div className="inline-entry-main">
               <span className="inline-entry-title">外部 Agent 接入口</span>
@@ -68,41 +248,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
           </div>
         </section>
 
-        <section className="section">
-          <div className="section-label">已接入数据</div>
-          {state.leftPanel.connectedSources.map((item) => (
-            <div className="ghost-node static-card" key={item.title}>
-              {item.title}
-              <small>{item.description}</small>
-            </div>
-          ))}
-        </section>
-
-        <section className="section">
-          <div className="section-label">实时信息流</div>
-          <div className="stream">
-            {state.leftPanel.liveEvents.map((item) => (
-              <div className="stream-item" key={item.title}>
-                <strong>{item.title}</strong>
-                <span>{item.description}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="section">
-          <div className="section-label">推荐信息流</div>
-          <div className="stream">
-            {state.leftPanel.recommendedFeeds.map((item) => (
-              <div className="stream-item" key={item.title}>
-                <strong>{item.title}</strong>
-                <span>{item.description}</span>
-              </div>
-            ))}
-          </div>
-        </section>
       </div>
-      <div className="sidebar-footer">左侧信息层只负责输入上下文：已接入数据、实时信息流、推荐信息流。安全配置继续留在齿轮设置里，不出现在第一层。</div>
     </aside>
   )
 }

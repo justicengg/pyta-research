@@ -1,0 +1,80 @@
+{
+  "gnews": {
+    "title": "GNews API",
+    "description": "全球新闻信号，事件驱动型资讯流",
+    "base_url": "https://gnews.io/api/v4",
+    "auth_style": "query_param",
+    "auth_param": "token",
+    "validate_path": "/top-headlines?max=1&q=market",
+    "source_channel": "news_signal",
+    "coverage_dimension": "event_driven",
+    "cost": "free",
+    "usage_level": "exploratory",
+    "capabilities": ["news_signal", "event_driven"]
+  },
+  "finnhub": {
+    "title": "Finnhub",
+    "description": "市场数据与基本面研究，覆盖全球主要交易所",
+    "base_url": "https://finnhub.io/api/v1",
+    "auth_style": "query_param",
+    "auth_param": "token",
+    "validate_path": "/quote?symbol=AAPL",
+    "source_channel": "market_data",
+    "coverage_dimension": "fundamental_research",
+    "cost": "freemium",
+    "usage_level": "operational",
+    "capabilities": ["market_data", "fundamental_research"]
+  },
+  "alpha_vantage": {
+    "title": "Alpha Vantage",
+    "description": "股票、外汇、加密货币行情与技术指标",
+    "base_url": "https://www.alphavantage.co",
+    "auth_style": "query_param",
+    "auth_param": "apikey",
+    "validate_path": "/query?function=TIME_SERIES_INTRADAY&symbol=IBM&interval=5min&outputsize=compact",
+    "source_channel": "market_data",
+    "coverage_dimension": "technical_analysis",
+    "cost": "free",
+    "usage_level": "exploratory",
+    "capabilities": ["market_data", "technical_analysis", "forex", "crypto"]
+  },
+  "polygon": {
+    "title": "Polygon.io",
+    "description": "机构级实时与历史市场数据",
+    "base_url": "https://api.polygon.io",
+    "auth_style": "bearer",
+    "auth_param": "Authorization",
+    "validate_path": "/v2/aggs/ticker/AAPL/range/1/day/2023-01-09/2023-01-09",
+    "source_channel": "market_data",
+    "coverage_dimension": "institutional_data",
+    "cost": "paid",
+    "usage_level": "institutional_grade",
+    "capabilities": ["market_data", "options", "forex", "crypto", "real_time"]
+  },
+  "newsapi": {
+    "title": "NewsAPI",
+    "description": "全球 80,000+ 新闻来源聚合",
+    "base_url": "https://newsapi.org/v2",
+    "auth_style": "x_api_key",
+    "auth_param": "X-Api-Key",
+    "validate_path": "/top-headlines?country=us&pageSize=1",
+    "source_channel": "news_signal",
+    "coverage_dimension": "media_sentiment",
+    "cost": "freemium",
+    "usage_level": "exploratory",
+    "capabilities": ["news_signal", "media_sentiment", "event_driven"]
+  },
+  "fred": {
+    "title": "FRED (Federal Reserve)",
+    "description": "美联储宏观经济数据库，政策与流动性追踪",
+    "base_url": "https://api.stlouisfed.org/fred",
+    "auth_style": "query_param",
+    "auth_param": "api_key",
+    "validate_path": "/series?series_id=GDP&file_type=json",
+    "source_channel": "macro_tracking",
+    "coverage_dimension": "macro_policy",
+    "cost": "free",
+    "usage_level": "operational",
+    "capabilities": ["macro_tracking", "capital_flow", "policy_signal"]
+  }
+}

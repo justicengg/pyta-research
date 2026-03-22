@@ -1,0 +1,102 @@
+"""Source connector persistence — SQLite, same DB as settings_store.
+
+Table: source_connector
+  id           TEXT PRIMARY KEY  (uuid4)
+  provider_id  TEXT NOT NULL     (matches catalog.json key)
+  api_key      TEXT NOT NULL
+  status       TEXT NOT NULL     (healthy | error | inactive)
+  error_message TEXT
+  last_synced_at TEXT
+  created_at   TEXT NOT NULL
+"""
+from __future__ import annotations
+
+import sqlite3
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+_DB_PATH = Path("pyta.db")
+
+
+def _conn() -> sqlite3.Connection:
+    conn = sqlite3.connect(_DB_PATH)
+    conn.row_factory = sqlite3.Row
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS source_connector (
+            id            TEXT PRIMARY KEY,
+            provider_id   TEXT NOT NULL,
+            api_key       TEXT NOT NULL,
+            status        TEXT NOT NULL DEFAULT 'healthy',
+            error_message TEXT,
+            last_synced_at TEXT,
+            created_at    TEXT NOT NULL
+        )
+    """)
+    conn.commit()
+    return conn
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def list_connectors() -> list[dict[str, Any]]:
+    with _conn() as conn:
+        rows = conn.execute(
+            "SELECT id, provider_id, status, error_message, last_synced_at, created_at "
+            "FROM source_connector ORDER BY created_at DESC"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def get_connector(connector_id: str) -> dict[str, Any] | None:
+    with _conn() as conn:
+        row = conn.execute(
+            "SELECT * FROM source_connector WHERE id = ?", (connector_id,)
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def create_connector(provider_id: str, api_key: str) -> str:
+    """Insert a new connector and return its id."""
+    connector_id = str(uuid.uuid4())
+    with _conn() as conn:
+        conn.execute(
+            """INSERT INTO source_connector
+               (id, provider_id, api_key, status, created_at)
+               VALUES (?, ?, ?, 'healthy', ?)""",
+            (connector_id, provider_id, api_key, _now()),
+        )
+        conn.commit()
+    return connector_id
+
+
+def update_status(connector_id: str, status: str, error_message: str | None = None) -> None:
+    with _conn() as conn:
+        conn.execute(
+            """UPDATE source_connector
+               SET status = ?, error_message = ?, last_synced_at = ?
+               WHERE id = ?""",
+            (status, error_message, _now(), connector_id),
+        )
+        conn.commit()
+
+
+def delete_connector(connector_id: str) -> bool:
+    with _conn() as conn:
+        cur = conn.execute(
+            "DELETE FROM source_connector WHERE id = ?", (connector_id,)
+        )
+        conn.commit()
+    return cur.rowcount > 0
+
+
+def get_api_key(connector_id: str) -> str | None:
+    """Return raw api_key — only used internally by agent pipeline, never exposed to frontend."""
+    with _conn() as conn:
+        row = conn.execute(
+            "SELECT api_key FROM source_connector WHERE id = ?", (connector_id,)
+        ).fetchone()
+    return row[0] if row else None

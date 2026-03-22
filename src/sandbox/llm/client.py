@@ -9,6 +9,7 @@ from typing import Any
 
 import httpx
 
+from src.api import settings_store
 from src.config.settings import settings
 
 
@@ -22,9 +23,10 @@ class LLMResponse:
 class SandboxLLMClient:
     def __init__(self) -> None:
         self.provider = settings.llm_provider
-        self.api_key = settings.llm_api_key
-        self.base_url = settings.llm_base_url.rstrip("/")
-        self.model = settings.llm_model
+        # DB values take priority over .env — allows runtime reconfiguration
+        self.api_key = settings_store.get("llm_api_key") or settings.llm_api_key
+        self.base_url = (settings_store.get("llm_base_url") or settings.llm_base_url).rstrip("/")
+        self.model = settings_store.get("llm_model") or settings.llm_model
         self.timeout = settings.llm_timeout_seconds
 
     @property

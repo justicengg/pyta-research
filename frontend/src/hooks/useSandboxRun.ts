@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { mapRunResponseToCanvasState } from '../lib/adapters'
 import { runSandbox } from '../lib/api'
 import { mockCanvasState } from '../lib/mock/canvasState'
-import type { CanvasState, StreamItem } from '../lib/types/canvas'
+import type { CanvasState, RecentEvent } from '../lib/types/canvas'
 import type { CanvasRunState, SandboxInputEvent } from '../lib/types/sandbox'
 
 export type SandboxRunController = {
@@ -48,9 +48,13 @@ export function useSandboxRun(options: Options = {}): SandboxRunController {
       ...current,
       leftPanel: {
         ...current.leftPanel,
-        liveEvents: inputEvents.map<StreamItem>((event) => ({
-          title: event.source,
-          description: event.content,
+        recentEvents: inputEvents.map<RecentEvent>((event) => ({
+          title: event.eventType,
+          dimension: 'manual',
+          impactDirection: 'neutral',
+          impactStrength: 0,
+          summary: event.content,
+          syncedAt: '방금',
         })),
       },
     }))
@@ -112,9 +116,13 @@ function mergeCanvasState(runState: CanvasRunState, inputEvents: SandboxInputEve
     commandDraft: mockCanvasState.commandDraft,
     leftPanel: {
       ...mockCanvasState.leftPanel,
-      liveEvents: inputEvents.map<StreamItem>((event) => ({
-        title: event.source,
-        description: event.content,
+      recentEvents: inputEvents.map<RecentEvent>((event) => ({
+        title: event.eventType,
+        dimension: 'manual',
+        impactDirection: 'neutral',
+        impactStrength: 0,
+        summary: event.content,
+        syncedAt: '刚刚',
       })),
     },
     agents: runState.agents.map((agent) => ({
