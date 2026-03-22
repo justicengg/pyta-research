@@ -53,12 +53,12 @@ class SecondaryOrchestrator:
         )
         event_rows = self._persist_input_events(session, sandbox.id, round_number, events)
 
-        # ── Fetch real market data (yfinance) and inject into agent prompts ────
+        # ── Fetch real market data (yfinance, with DB cache) and inject into agent prompts ────
         market_data: dict[str, Any] | None = None
         try:
-            from src.data.enrichers.yfinance_enricher import fetch_canonical
+            from src.data.enrichers.yfinance_enricher import fetch_canonical_cached
             canonical = await asyncio.get_event_loop().run_in_executor(
-                None, fetch_canonical, ticker, market
+                None, fetch_canonical_cached, ticker, market, session
             )
             market_data = canonical.to_agent_context()
             logger.info("Market data fetched for %s: price=%s", ticker, market_data.get("price", {}).get("current"))

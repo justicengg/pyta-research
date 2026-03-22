@@ -19,6 +19,24 @@ from sqlalchemy.orm import Mapped, mapped_column
 from src.db.base import Base
 
 
+class MarketSnapshot(Base):
+    """Cached canonical security snapshot — serves as a write-through TTL cache
+    for yfinance (and future) enrichers and as the storage target for customer
+    data uploads."""
+
+    __tablename__ = "market_snapshot"
+    __table_args__ = (
+        UniqueConstraint("symbol", "market", "source", name="uq_snapshot_symbol_market_source"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    symbol: Mapped[str] = mapped_column(String(20), nullable=False)
+    market: Mapped[str] = mapped_column(String(10), nullable=False)
+    source: Mapped[str] = mapped_column(String(50), nullable=False, default="yfinance")
+    snapshot_json: Mapped[str] = mapped_column(Text, nullable=False)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class RawPrice(Base):
     __tablename__ = 'raw_price'
     __table_args__ = (

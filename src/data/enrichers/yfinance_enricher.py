@@ -4,7 +4,7 @@ This is the $0-cost built-in data source for the free/trial tier.
 yfinance scrapes Yahoo Finance; it is sufficient for US-listed securities.
 
 Usage:
-    from src.data.enrichers.yfinance_enricher import fetch_canonical
+    from src.data.enrichers.yfinance_enricher import fetch_canonical, fetch_canonical_cached
     data = fetch_canonical("NVDA", "US")
     print(data.to_agent_context())
 """
@@ -15,10 +15,36 @@ from datetime import datetime, timezone
 from typing import Any
 
 import yfinance as yf
+from sqlalchemy.orm import Session
 
 from src.data.canonical import CanonicalSecurityData, Fundamentals, PriceSnapshot
+from src.data.store import CanonicalDataStore
 
 logger = logging.getLogger(__name__)
+
+_store = CanonicalDataStore()
+
+
+def fetch_canonical_cached(symbol: str, market: str, session: Session) -> CanonicalSecurityData:
+    """Return a canonical snapshot, using the DB cache when the data is fresh.
+
+    Cache TTL is 5 minutes (CACHE_TTL_SECONDS).  On a cache miss the function
+    falls through to a live yfinance fetch and writes the result back to the DB.
+
+    Blocks synchronously — call via run_in_executor in async contexts.
+    """
+    cached = _store.get_fresh(session, symbol, market, source="yfinance")
+    if cached is not None:
+        return cached
+
+    fresh = fetch_canonical(symbol, market)
+    try:
+        _store.upsert(session, fresh)
+        session.commit()
+    except Exception as exc:
+        logger.warning("Failed to cache canonical data for %s/%s: %s", symbol, market, exc)
+        session.rollback()
+    return fresh
 
 
 def fetch_canonical(symbol: str, market: str) -> CanonicalSecurityData:
