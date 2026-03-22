@@ -2,7 +2,7 @@
 
 > **Last updated**: 2026-03-22
 > **Branch**: `PYTA/secondary-market-mvp`
-> **Status**: Layer 1 complete · Layer 2 in roadmap
+> **Status**: Layer 1 complete · Layer 2 核心完成（多轮推演已上线）
 
 ---
 
@@ -68,8 +68,10 @@ DB (user_settings) > .env > 代码默认值
 | Agent timeout | ✅ 60s，前后端同步 |
 | GNews 返回通用新闻 | ⚠️ free tier 限制，Finnhub 后改善 |
 | api_key 明文存储 | ⚠️ MVP 临时，生产需加密 |
-| Canvas Agent 卡片重叠 | 🔴 Layer 2 修复 |
-| Canvas Toolbar 无用按钮 | 🔴 Layer 2 清理 |
+| Canvas Agent 卡片重叠 | ✅ Layer 2 已修复（轨道布局） |
+| Canvas Toolbar 无用按钮 | ✅ Layer 2 已清理 |
+| 多轮推演上下文传递 | ✅ Direction A 已实现 |
+| SSE Streaming | 🔴 下一步 P0 任务 |
 
 ---
 
@@ -106,6 +108,9 @@ frontend/src/components/canvas/EventChips.tsx     事件chips
 
 ---
 
-## 6. 下一步：Layer 2
+## 6. Layer 2 交接
 
-详见 docs/LAYER2_ROADMAP.md
+Layer 2 核心已完成，详细状态、架构说明、下一步任务见：
+
+- **`docs/LAYER2_HANDOFF.md`** — Layer 2 完整交接文档（当前状态 + 技术决策 + 待续任务）
+- **`docs/LAYER2_ROADMAP.md`** — 原始路线图（部分内容已完成）
