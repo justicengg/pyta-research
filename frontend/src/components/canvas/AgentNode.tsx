@@ -12,9 +12,10 @@ type Props = {
   position: { x: number; y: number }
   zoom: number
   onDragMove: (id: string, dx: number, dy: number) => void
+  isRunning?: boolean
 }
 
-export function AgentNode({ agent, position, zoom, onDragMove }: Props) {
+export function AgentNode({ agent, position, zoom, onDragMove, isRunning = false }: Props) {
   const dragRef = useRef<{ active: boolean; lastX: number; lastY: number }>({
     active: false,
     lastX: 0,
@@ -72,9 +73,9 @@ export function AgentNode({ agent, position, zoom, onDragMove }: Props) {
           <span>{agent.subtitle}</span>
           <p>{agent.summary}</p>
         </div>
-        <StatusDot status={agent.status} />
+        <StatusDot status={agent.status} isLoading={isRunning} />
       </div>
-      <AgentResultCard agent={agent} />
+      <AgentResultCard agent={agent} isRunning={isRunning} />
     </div>
   )
 }

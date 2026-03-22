@@ -2,6 +2,12 @@ export type AgentStatus = 'live' | 'reused_last_round' | 'degraded'
 
 export type AgentSentiment = 'bullish' | 'neutral' | 'bearish'
 
+export type SceneParams = {
+  ticker: string       // e.g. '0700.HK'
+  market: string       // e.g. 'HK' | 'US' | 'A'
+  timeHorizon: string  // e.g. '3个月'
+}
+
 export type AgentCardData = {
   id: string
   title: string

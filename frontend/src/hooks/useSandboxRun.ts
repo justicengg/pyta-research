@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { mapRunResponseToCanvasState } from '../lib/adapters'
 import { runSandbox } from '../lib/api'
 import { mockCanvasState } from '../lib/mock/canvasState'
-import type { CanvasState, RecentEvent, RoundRecord } from '../lib/types/canvas'
+import type { CanvasState, RecentEvent, RoundRecord, SceneParams } from '../lib/types/canvas'
 import type { CanvasRunState, SandboxInputEvent } from '../lib/types/sandbox'
 
 export type SandboxRunController = {
@@ -16,6 +16,8 @@ export type SandboxRunController = {
   qualityLabel: string
   currentRound: number
   roundHistory: RoundRecord[]
+  sceneParams: SceneParams
+  setSceneParams: (p: SceneParams) => void
   submit: () => Promise<void>
 }
 
@@ -32,6 +34,11 @@ export function useSandboxRun(options: Options = {}): SandboxRunController {
   const [error, setError] = useState<string | null>(null)
   const [currentRound, setCurrentRound] = useState(1)
   const [roundHistory, setRoundHistory] = useState<RoundRecord[]>([])
+  const [sceneParams, setSceneParams] = useState<SceneParams>({
+    ticker: '0700.HK',
+    market: 'HK',
+    timeHorizon: '3个月',
+  })
 
   const qualityLabel = useMemo(() => {
     if (!backendState) return 'Mock'
@@ -71,8 +78,8 @@ export function useSandboxRun(options: Options = {}): SandboxRunController {
 
     try {
       const response = await runSandbox({
-        ticker: '0700.HK',
-        market: 'HK',
+        ticker: sceneParams.ticker,
+        market: sceneParams.market,
         events: inputEvents,
         roundTimeoutMs: 60000,
         narrativeGuide: narrativeWithContext,
@@ -116,6 +123,8 @@ export function useSandboxRun(options: Options = {}): SandboxRunController {
     qualityLabel,
     currentRound,
     roundHistory,
+    sceneParams,
+    setSceneParams,
     submit,
   }
 }

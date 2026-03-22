@@ -1,9 +1,11 @@
 import { useCallback, useRef, useState } from 'react'
-import type { CanvasState, RoundRecord } from '../../lib/types/canvas'
+import type { CanvasState, RoundRecord, SceneParams } from '../../lib/types/canvas'
+import type { SandboxInputEvent } from '../../lib/types/sandbox'
 import { useCanvasViewport } from '../../hooks/useCanvasViewport'
 import { AgentNode } from '../canvas/AgentNode'
 import { CanvasBackground } from '../canvas/CanvasBackground'
 import { CanvasToolbar } from '../canvas/CanvasToolbar'
+import { CenterCoreCard } from '../canvas/CenterCoreCard'
 import { EdgeLayer } from '../canvas/EdgeLayer'
 import { EventChips } from '../canvas/EventChips'
 import { CommandConsole } from './CommandConsole'
@@ -20,6 +22,9 @@ type Props = {
   qualityLabel: string
   currentRound: number
   roundHistory: RoundRecord[]
+  currentInputEvents: SandboxInputEvent[]
+  sceneParams: SceneParams
+  onSceneParamsChange: (p: SceneParams) => void
 }
 
 // Center core anchor — matches center-core CSS: translate(-50%,-50%) at left:550px top:300px
@@ -36,6 +41,9 @@ export function CanvasStage({
   qualityLabel,
   currentRound,
   roundHistory,
+  currentInputEvents,
+  sceneParams,
+  onSceneParamsChange,
 }: Props) {
   const stageRef = useRef<HTMLDivElement>(null)
   const { panX, panY, zoom, zoomPercent, isPanning, stagePointerHandlers, resetViewport } =
@@ -93,16 +101,11 @@ export function CanvasStage({
             centerPos={CENTER_POS}
           />
 
-          {/* Center core */}
-          <div className="center-core">
-            <h3>腾讯 / 港股科技</h3>
-            <p>核心推演对象。所有 Agent 围绕这个核心对象提供反应、解释、修正和收敛。</p>
-            <div className="center-tags">
-              <span className="core-tag">核心场景</span>
-              <span className="core-tag">3 个月</span>
-              <span className="core-tag">持续推演</span>
-            </div>
-          </div>
+          {/* Center core — editable scene params */}
+          <CenterCoreCard
+            sceneParams={sceneParams}
+            onSceneParamsChange={onSceneParamsChange}
+          />
 
           {/* Agent nodes */}
           {state.agents.map((agent) => (
@@ -112,6 +115,7 @@ export function CanvasStage({
               position={agentPositions[agent.id]}
               zoom={zoom}
               onDragMove={handleAgentDragMove}
+              isRunning={isRunning}
             />
           ))}
 
@@ -140,6 +144,7 @@ export function CanvasStage({
         error={error}
         currentRound={currentRound}
         roundHistory={roundHistory}
+        currentInputEvents={currentInputEvents}
       />
     </section>
   )

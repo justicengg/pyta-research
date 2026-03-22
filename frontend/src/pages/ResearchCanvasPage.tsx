@@ -18,6 +18,8 @@ export function ResearchCanvasPage() {
     currentInputEvents,
     currentRound,
     roundHistory,
+    sceneParams,
+    setSceneParams,
   } = useSandboxRun({
     initialDraft: mockCanvasState.commandDraft,
   })
@@ -42,6 +44,9 @@ export function ResearchCanvasPage() {
         qualityLabel={qualityLabel}
         currentRound={currentRound}
         roundHistory={roundHistory}
+        currentInputEvents={currentInputEvents}
+        sceneParams={sceneParams}
+        onSceneParamsChange={setSceneParams}
       />
     </div>
   )

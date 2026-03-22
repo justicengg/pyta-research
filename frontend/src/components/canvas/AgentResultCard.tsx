@@ -3,6 +3,7 @@ import type { AgentCardData, AgentSentiment } from '../../lib/types/canvas'
 
 type Props = {
   agent: AgentCardData
+  isRunning?: boolean
 }
 
 const SENTIMENT_LABEL: Record<AgentSentiment, string> = {
@@ -11,7 +12,7 @@ const SENTIMENT_LABEL: Record<AgentSentiment, string> = {
   bearish: '看空',
 }
 
-export function AgentResultCard({ agent }: Props) {
+export function AgentResultCard({ agent, isRunning = false }: Props) {
   const [expanded, setExpanded] = useState(false)
   const confidence = Math.max(0, Math.min(100, agent.confidence ?? 0))
   const hasDetails =
@@ -19,8 +20,20 @@ export function AgentResultCard({ agent }: Props) {
     agent.concerns.length > 0 ||
     agent.focus.length > 0
 
+  // Shimmer skeleton while inference is running
+  if (isRunning) {
+    return (
+      <div className="agent-result-card agent-result-card--loading">
+        <div className="arc-header shimmer-line" style={{ height: '24px', borderRadius: '99px', width: '60%' }} />
+        <div className="shimmer-line" style={{ height: '6px', borderRadius: '99px' }} />
+        <div className="shimmer-line" style={{ height: '14px', borderRadius: '4px', width: '90%' }} />
+        <div className="shimmer-line" style={{ height: '14px', borderRadius: '4px', width: '70%' }} />
+      </div>
+    )
+  }
+
   return (
-    <div className="agent-result-card">
+    <div className="agent-result-card fade-in-card">
       {/* Row 1: sentiment badge + confidence value */}
       <div className="arc-header">
         <span className={`sentiment-badge sentiment-badge--${agent.sentiment}`}>
