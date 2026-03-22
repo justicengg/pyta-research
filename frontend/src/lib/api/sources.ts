@@ -46,24 +46,39 @@ export async function fetchConnectors(): Promise<ConnectorResponse[]> {
 export async function validateConnector(
   provider_id: string,
   api_key: string,
+  custom_config?: CustomProviderConfig,
 ): Promise<ValidateResponse> {
   const res = await fetch(`${BASE}/sources/validate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ provider_id, api_key }),
+    body: JSON.stringify({ provider_id, api_key, custom_config }),
   })
   if (!res.ok) throw new Error('Validate request failed')
   return res.json()
 }
 
+export type CustomProviderConfig = {
+  title: string
+  base_url: string
+  auth_style: 'query_param' | 'bearer' | 'x_api_key'
+  auth_param: string
+  validate_path?: string
+  source_channel?: string
+  coverage_dimension?: string
+  cost?: string
+  usage_level?: string
+  capabilities?: string[]
+}
+
 export async function createConnector(
   provider_id: string,
   api_key: string,
+  custom_config?: CustomProviderConfig,
 ): Promise<ConnectorResponse> {
   const res = await fetch(`${BASE}/sources/connectors`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ provider_id, api_key }),
+    body: JSON.stringify({ provider_id, api_key, custom_config }),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))

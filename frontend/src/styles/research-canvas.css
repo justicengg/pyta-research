@@ -1130,6 +1130,15 @@
   width: fit-content;
 }
 
+.provider-card-custom {
+  border-style: dashed;
+}
+
+select.field-input {
+  appearance: none;
+  cursor: pointer;
+}
+
 .provider-desc {
   font-size: var(--fs-xs);
   color: var(--text-2);

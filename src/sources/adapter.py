@@ -24,7 +24,12 @@ def load_catalog() -> dict[str, Any]:
     return json.loads(_CATALOG_PATH.read_text())
 
 
-def get_provider(provider_id: str) -> dict[str, Any]:
+def get_provider(provider_id: str, custom_config: dict | None = None) -> dict[str, Any]:
+    """Return provider config from catalog, or from custom_config for custom providers."""
+    if provider_id == "custom":
+        if not custom_config:
+            raise KeyError("Custom provider requires custom_config")
+        return custom_config
     catalog = load_catalog()
     if provider_id not in catalog:
         raise KeyError(f"Unknown provider: {provider_id!r}")
@@ -50,6 +55,7 @@ async def fetch_initial_events(
     connector_id: str,
     provider_id: str,
     api_key: str,
+    custom_config: dict | None = None,
 ) -> list[dict]:
     """Fetch the first batch of events from a newly connected source.
 
@@ -156,15 +162,24 @@ async def fetch_initial_events(
     return []
 
 
-async def validate_connector(provider_id: str, api_key: str) -> tuple[bool, str]:
+async def validate_connector(
+    provider_id: str,
+    api_key: str,
+    custom_config: dict | None = None,
+) -> tuple[bool, str]:
     """Test connectivity for a provider + key pair.
 
     Returns (ok, error_message). error_message is empty string on success.
+    Custom providers with no validate_path skip validation and return True.
     """
     try:
-        provider = get_provider(provider_id)
+        provider = get_provider(provider_id, custom_config)
     except KeyError as e:
         return False, str(e)
+
+    # Custom providers may omit validate_path — skip validation
+    if not provider.get("validate_path"):
+        return True, ""
 
     url = provider["base_url"] + provider["validate_path"]
     headers, params = _build_auth(

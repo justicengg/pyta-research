@@ -23,6 +23,7 @@ def _conn() -> sqlite3.Connection:
             id            TEXT PRIMARY KEY,
             provider_id   TEXT NOT NULL,
             api_key       TEXT NOT NULL,
+            custom_config TEXT,
             status        TEXT NOT NULL DEFAULT 'healthy',
             error_message TEXT,
             last_synced_at TEXT,
@@ -61,22 +62,34 @@ def list_connectors() -> list[dict[str, Any]]:
 
 
 def get_connector(connector_id: str) -> dict[str, Any] | None:
+    import json
     with _conn() as conn:
         row = conn.execute(
             "SELECT * FROM source_connector WHERE id = ?", (connector_id,)
         ).fetchone()
-    return dict(row) if row else None
+    if not row:
+        return None
+    r = dict(row)
+    if r.get("custom_config"):
+        r["custom_config"] = json.loads(r["custom_config"])
+    return r
 
 
-def create_connector(provider_id: str, api_key: str) -> str:
+def create_connector(
+    provider_id: str,
+    api_key: str,
+    custom_config: dict | None = None,
+) -> str:
     """Insert a new connector and return its id."""
+    import json
     connector_id = str(uuid.uuid4())
+    config_json = json.dumps(custom_config) if custom_config else None
     with _conn() as conn:
         conn.execute(
             """INSERT INTO source_connector
-               (id, provider_id, api_key, status, created_at)
-               VALUES (?, ?, ?, 'healthy', ?)""",
-            (connector_id, provider_id, api_key, _now()),
+               (id, provider_id, api_key, custom_config, status, created_at)
+               VALUES (?, ?, ?, ?, 'healthy', ?)""",
+            (connector_id, provider_id, api_key, config_json, _now()),
         )
         conn.commit()
     return connector_id

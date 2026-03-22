@@ -39,14 +39,29 @@ class ConnectorResponse(BaseModel):
     created_at: str
 
 
+class CustomProviderConfig(BaseModel):
+    title: str
+    base_url: str
+    auth_style: str          # query_param | bearer | x_api_key
+    auth_param: str          # param name or header name
+    validate_path: str = "" # optional — empty means skip validation
+    source_channel: str = "custom"
+    coverage_dimension: str = "custom"
+    cost: str = "custom"
+    usage_level: str = "exploratory"
+    capabilities: list[str] = []
+
+
 class CreateConnectorRequest(BaseModel):
-    provider_id: str
+    provider_id: str                        # catalog key or "custom"
     api_key: str
+    custom_config: CustomProviderConfig | None = None  # required when provider_id == "custom"
 
 
 class ValidateRequest(BaseModel):
     provider_id: str
     api_key: str
+    custom_config: CustomProviderConfig | None = None
 
 
 class ValidateResponse(BaseModel):
@@ -70,16 +85,17 @@ class SourceEventResponse(BaseModel):
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _enrich(row: dict, catalog: dict) -> ConnectorResponse:
-    """Merge DB row with catalog metadata into a response object."""
-    provider = catalog.get(row["provider_id"], {})
+    """Merge DB row with catalog metadata (or custom_config) into a response."""
+    custom = row.get("custom_config") or {}
+    provider = custom if row["provider_id"] == "custom" else catalog.get(row["provider_id"], {})
     return ConnectorResponse(
         id=row["id"],
         provider_id=row["provider_id"],
         title=provider.get("title", row["provider_id"]),
-        source_channel=provider.get("source_channel", ""),
-        coverage_dimension=provider.get("coverage_dimension", ""),
-        cost=provider.get("cost", ""),
-        usage_level=provider.get("usage_level", ""),
+        source_channel=provider.get("source_channel", "custom"),
+        coverage_dimension=provider.get("coverage_dimension", "custom"),
+        cost=provider.get("cost", "custom"),
+        usage_level=provider.get("usage_level", "exploratory"),
         capabilities=provider.get("capabilities", []),
         status=row["status"],
         error_message=row.get("error_message"),
@@ -112,7 +128,8 @@ def list_connectors() -> list[ConnectorResponse]:
 @router.post("/sources/validate", response_model=ValidateResponse)
 async def validate_connector(body: ValidateRequest) -> ValidateResponse:
     """Test a provider + api_key pair before saving."""
-    ok, error = await adapter.validate_connector(body.provider_id, body.api_key)
+    custom = body.custom_config.model_dump() if body.custom_config else None
+    ok, error = await adapter.validate_connector(body.provider_id, body.api_key, custom)
     return ValidateResponse(ok=ok, error=error)
 
 
@@ -122,19 +139,23 @@ async def create_connector(body: CreateConnectorRequest) -> ConnectorResponse:
     if not body.api_key.strip():
         raise HTTPException(status_code=400, detail="api_key cannot be empty")
 
+    custom = body.custom_config.model_dump() if body.custom_config else None
+
+    if body.provider_id == "custom" and not custom:
+        raise HTTPException(status_code=400, detail="custom_config is required for custom providers")
+
     try:
-        adapter.get_provider(body.provider_id)
+        adapter.get_provider(body.provider_id, custom)
     except KeyError:
         raise HTTPException(status_code=400, detail=f"Unknown provider: {body.provider_id!r}")
 
-    ok, error = await adapter.validate_connector(body.provider_id, body.api_key.strip())
+    ok, error = await adapter.validate_connector(body.provider_id, body.api_key.strip(), custom)
     if not ok:
         raise HTTPException(status_code=422, detail=f"连接验证失败: {error}")
 
-    connector_id = store.create_connector(body.provider_id, body.api_key.strip())
+    connector_id = store.create_connector(body.provider_id, body.api_key.strip(), custom)
 
-    # Fetch initial events in background — non-fatal if it fails
-    events = await adapter.fetch_initial_events(connector_id, body.provider_id, body.api_key.strip())
+    events = await adapter.fetch_initial_events(connector_id, body.provider_id, body.api_key.strip(), custom)
     if events:
         store.save_events(events)
 
