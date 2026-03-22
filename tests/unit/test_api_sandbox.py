@@ -12,33 +12,14 @@ from src.db.session import configure_engine, get_session
 from src.sandbox.schemas.memory import Checkpoint, ReportRecord, SandboxSession
 from tests.helpers.sandbox_assertions import assert_sandbox_records_consistent
 
-_BG_SCHED = "src.api.app.BackgroundScheduler"
-_PIPELINE = "src.api.app.PipelineScheduler"
 _SETTINGS_D = "src.api.deps.settings"
-_SETTINGS_A = "src.api.app.settings"
-_SETTINGS_DB = "src.api.routers.dashboard.settings"
 _SETTINGS_LLM = "src.sandbox.llm.client.settings"
-
-
-def _mock_bg():
-    m = MagicMock()
-    m.running = True
-    return m
 
 
 def _mock_settings(api_key: str = "test-key"):
     m = MagicMock()
     m.api_key = api_key
-    m.scheduler_timezone = "Asia/Shanghai"
-    m.scheduler_cron_hour = 18
-    m.scheduler_cron_minute = 0
     m.api_enable_embedded_scheduler = False
-    m.price_source_cn = "baostock"
-    m.price_source_us = "yfinance"
-    m.risk_max_position_pct = 0.20
-    m.risk_max_positions = 10
-    m.risk_max_drawdown_pct = 0.15
-    m.dashboard_write_token = "dash-secret"
     m.llm_provider = "openai_compatible"
     m.llm_api_key = ""
     m.llm_base_url = "https://api.openai.com/v1"
@@ -51,11 +32,7 @@ def _mock_settings(api_key: str = "test-key"):
 def client(migrated_db):
     configure_engine(migrated_db)
     cfg = _mock_settings()
-    with patch(_BG_SCHED, return_value=_mock_bg()), \
-         patch(_PIPELINE), \
-         patch(_SETTINGS_D, cfg), \
-         patch(_SETTINGS_A, cfg), \
-         patch(_SETTINGS_DB, cfg), \
+    with patch(_SETTINGS_D, cfg), \
          patch(_SETTINGS_LLM, cfg):
         app = create_app()
         with TestClient(app) as c:

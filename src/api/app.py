@@ -4,27 +4,18 @@ Architecture
 ------------
 Single process:
   • REST API   → /api/v1/...    (JSON, X-API-Key auth)
-  • Dashboard  → /dashboard     (HTML)
   • Health     → /health        (JSON, always open)
   • OpenAPI    → /docs /redoc
-
-Embedded APScheduler is optional and disabled by default
-(`settings.api_enable_embedded_scheduler = False`). In production, prefer
-running scheduler as a dedicated process via `python -m src.cli scheduler start`
-to avoid duplicate jobs in multi-worker/multi-instance API deployments.
 """
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 from fastapi import Depends, FastAPI
 
 from src.api.deps import verify_api_key
 from src.config.settings import settings
-from src.scheduler.scheduler import PipelineScheduler
 
 
 # ── lifespan ──────────────────────────────────────────────────────────────────
@@ -36,23 +27,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     BackgroundScheduler runs jobs in a daemon thread — safe to use alongside
     an asyncio-based server such as uvicorn.
     """
-    if not settings.api_enable_embedded_scheduler:
-        yield
-        return
-
-    pipeline = PipelineScheduler()
-    bg = BackgroundScheduler(timezone=settings.scheduler_timezone)
-    trigger = CronTrigger(
-        hour=settings.scheduler_cron_hour,
-        minute=settings.scheduler_cron_minute,
-    )
-    bg.add_job(pipeline.run_once, trigger=trigger, id='daily_pipeline', replace_existing=True)
-    bg.start()
-    try:
-        yield
-    finally:
-        if bg.running:
-            bg.shutdown(wait=False)
+    yield
 
 
 # ── app factory ───────────────────────────────────────────────────────────────
@@ -61,10 +36,7 @@ def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     app = FastAPI(
         title='PYTA Research API',
-        description=(
-            'Investment data pipeline — portfolio snapshot, risk check, '
-            'decision evaluation, strategy cards.'
-        ),
+        description='Secondary market multi-agent sandbox.',
         version='0.1.0',
         lifespan=lifespan,
     )
@@ -80,18 +52,8 @@ def create_app() -> FastAPI:
         return {'pong': True}
 
     # ── business routers ──────────────────────────────────────────────────────
-    from src.api.routers import actions, cards, decision, executions, portfolio, risk, sandbox
-    app.include_router(portfolio.router, prefix='/api/v1', tags=['portfolio'])
-    app.include_router(risk.router,      prefix='/api/v1', tags=['risk'])
-    app.include_router(decision.router,  prefix='/api/v1', tags=['decision'])
-    app.include_router(cards.router,     prefix='/api/v1', tags=['cards'])
-    app.include_router(actions.router,   prefix='/api/v1', tags=['actions'])
-    app.include_router(executions.router, prefix='/api/v1', tags=['executions'])
+    from src.api.routers import sandbox
     app.include_router(sandbox.router, prefix='/api/v1', tags=['sandbox'])
-
-    # ── dashboard router ──────────────────────────────────────────────────────
-    from src.api.routers import dashboard
-    app.include_router(dashboard.router, tags=['dashboard'])
 
     return app
 
