@@ -65,3 +65,29 @@
 
   --left-rail: 300px;
 }
+
+[data-theme="dark"] {
+  --bg: hsl(222, 16%, 9%);
+  --surface: hsl(222, 14%, 12%);
+  --surface-subtle: hsl(222, 12%, 15%);
+  --surface-overlay: hsl(222, 10%, 19%);
+  --border: hsl(222, 12%, 22%);
+  --border-subtle: hsl(222, 10%, 17%);
+  --text-1: hsl(40, 12%, 92%);
+  --text-2: hsl(40, 8%, 60%);
+  --text-3: hsl(40, 6%, 40%);
+
+  --grid-line: rgba(200, 190, 170, 0.04);
+  --canvas-bg: hsl(222, 14%, 10%);
+
+  --tint-traditional: hsl(161, 18%, 14%);
+  --tint-offshore: hsl(218, 18%, 14%);
+  --tint-retail: hsl(24, 20%, 14%);
+  --tint-quant: hsl(258, 14%, 14%);
+  --tint-short-term: hsl(145, 14%, 14%);
+
+  --shadow-sm: 0 1px 4px hsl(0 0% 0% / 0.2), 0 1px 2px hsl(0 0% 0% / 0.15);
+  --shadow-md: 0 4px 16px hsl(0 0% 0% / 0.25), 0 2px 6px hsl(0 0% 0% / 0.15);
+  --shadow-lg: 0 12px 36px hsl(0 0% 0% / 0.3), 0 4px 12px hsl(0 0% 0% / 0.18);
+  --shadow-xl: 0 24px 56px hsl(0 0% 0% / 0.35), 0 8px 20px hsl(0 0% 0% / 0.2);
+}

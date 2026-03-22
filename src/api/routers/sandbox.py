@@ -31,7 +31,7 @@ class SandboxRunRequest(BaseModel):
     ticker: str
     market: str
     events: list[SandboxInputEvent] = Field(min_length=1)
-    round_timeout_ms: int = Field(default=30000, ge=1000, le=120000)
+    round_timeout_ms: int = Field(default=60000, ge=1000, le=120000)
     narrative_guide: str | None = None
 
 

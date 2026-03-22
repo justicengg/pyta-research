@@ -2,6 +2,7 @@ import type { CanvasState } from '../../lib/types/canvas'
 import { AgentNode } from '../canvas/AgentNode'
 import { CanvasBackground } from '../canvas/CanvasBackground'
 import { CanvasToolbar } from '../canvas/CanvasToolbar'
+import { EventChips } from '../canvas/EventChips'
 import { CommandConsole } from './CommandConsole'
 
 type Props = {
@@ -32,12 +33,8 @@ export function CanvasStage({
           <p>核心场景在中心，多个市场参与者 Agent 围绕其运转。最近动作最清晰，历史步骤逐渐淡化，最终只把收敛结果送去画布中的结果卡位。</p>
         </div>
         <div className="chip-row">
-          <span className="chip">舞台感更强</span>
-          <span className="chip">过程不生硬</span>
-          <span className="chip">适合多 Agent 扩展</span>
           <span className={`chip ${isRunning ? 'chip-running' : ''}`}>{isRunning ? '运行中' : '就绪'}</span>
           <span className="chip quality-chip">{qualityLabel}</span>
-          <button className="theme-btn" type="button">Auto</button>
         </div>
       </div>
 
@@ -75,6 +72,7 @@ export function CanvasStage({
 
           {error ? <div className="canvas-error">{error}</div> : null}
         </div>
+        <EventChips onSelect={(title) => onDraftChange(title)} />
         <CommandConsole
           draft={draft}
           onDraftChange={onDraftChange}
