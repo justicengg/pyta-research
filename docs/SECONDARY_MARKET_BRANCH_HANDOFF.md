@@ -192,6 +192,18 @@ Do not:
 - introduce external-agent UI in this phase
 - redesign the page away from the approved canvas direction
 
+### Shared UI reference repository
+
+For shared React UI/component inspiration across coding agents, use:
+
+- `/Users/sikaijiang/Desktop/coding-agent-references/awesome-react-components`
+
+Shared reference index:
+
+- `/Users/sikaijiang/Desktop/coding-agent-references/README.md`
+
+Use this as a reference repository only. Do not copy large chunks blindly and do not modify the shared reference repository unless explicitly asked.
+
 ## Suggested Start Point For Tomorrow
 
 If Claude continues this branch tomorrow, the recommended read/use order is:
