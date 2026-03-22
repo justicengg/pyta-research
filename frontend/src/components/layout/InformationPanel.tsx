@@ -4,7 +4,7 @@ import { SettingsPopover } from './SettingsPopover'
 import { AddSourceModal } from './AddSourceModal'
 import { useTheme } from '../../hooks/useTheme'
 import { fetchConnectors, deleteConnector, type ConnectorResponse } from '../../lib/api/sources'
-import type { CanvasState, RecentEvent, RecommendedBundle } from '../../lib/types/canvas'
+import type { CanvasState, RecommendedBundle } from '../../lib/types/canvas'
 import type { CanvasInputEvent, SandboxSessionStatus } from '../../lib/types/sandbox'
 
 type Props = {
@@ -29,16 +29,6 @@ function ConnectorStatusDot({ status }: { status: ConnectorResponse['status'] })
       style={{ background: colorMap[status] ?? 'var(--text-3)' }}
       title={status}
     />
-  )
-}
-
-function ImpactBadge({ direction, strength }: { direction: RecentEvent['impactDirection']; strength: number }) {
-  const color = direction === 'positive' ? 'var(--accent)' : direction === 'negative' ? '#c44949' : 'var(--text-3)'
-  const sign = direction === 'positive' ? '+' : direction === 'negative' ? '−' : '·'
-  return (
-    <span className="impact-badge" style={{ color }}>
-      {sign}{(strength * 100).toFixed(0)}
-    </span>
   )
 }
 
@@ -71,19 +61,6 @@ function SourceCard({ source, onDelete }: { source: ConnectorResponse; onDelete:
           {source.status === 'syncing' ? '同步中…' : source.last_synced_at ? source.last_synced_at : '—'}
         </span>
       </div>
-    </div>
-  )
-}
-
-function EventCard({ event }: { event: RecentEvent }) {
-  return (
-    <div className="event-card">
-      <div className="event-card-head">
-        <span className="event-title">{event.title}</span>
-        <ImpactBadge direction={event.impactDirection} strength={event.impactStrength} />
-      </div>
-      <p className="event-summary">{event.summary}</p>
-      <span className="event-meta">{event.dimension} · {event.syncedAt}</span>
     </div>
   )
 }
@@ -211,14 +188,6 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
           <div className="section-label">Recommended</div>
           {state.leftPanel.recommendedBundles.map((bundle) => (
             <BundleRow key={bundle.name} bundle={bundle} />
-          ))}
-        </section>
-
-        {/* RECENT EVENTS */}
-        <section className="section">
-          <div className="section-label">Recent Events</div>
-          {state.leftPanel.recentEvents.map((event) => (
-            <EventCard key={event.title} event={event} />
           ))}
         </section>
 

@@ -2,6 +2,7 @@ import type { CanvasState } from '../../lib/types/canvas'
 import { AgentNode } from '../canvas/AgentNode'
 import { CanvasBackground } from '../canvas/CanvasBackground'
 import { CanvasToolbar } from '../canvas/CanvasToolbar'
+import { EventChips } from '../canvas/EventChips'
 import { CommandConsole } from './CommandConsole'
 
 type Props = {
@@ -71,6 +72,7 @@ export function CanvasStage({
 
           {error ? <div className="canvas-error">{error}</div> : null}
         </div>
+        <EventChips onSelect={(title) => onDraftChange(title)} />
         <CommandConsole
           draft={draft}
           onDraftChange={onDraftChange}

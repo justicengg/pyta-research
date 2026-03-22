@@ -915,6 +915,73 @@
   background: var(--surface-subtle);
 }
 
+/* ── Event Chips bar ─────────────────────────────────────────────── */
+.event-chips-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-6);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--surface-subtle);
+  flex-shrink: 0;
+}
+
+.event-chips-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wider);
+  color: var(--text-3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.event-chips-list {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.event-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 4px var(--sp-3);
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 99px;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  max-width: 240px;
+}
+
+.event-chip:hover {
+  border-color: var(--border);
+  color: var(--text-1);
+  background: var(--surface);
+}
+
+.event-chip.selected {
+  border-color: var(--accent);
+  color: var(--text-1);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+
+.event-chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.event-chip-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ── connector delete button ─────────────────────────────────────── */
 .connector-delete-btn {
   margin-left: auto;

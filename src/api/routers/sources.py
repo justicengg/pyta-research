@@ -4,6 +4,8 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
+import asyncio
+
 from src.sources import adapter, store
 
 router = APIRouter()
@@ -50,6 +52,19 @@ class ValidateRequest(BaseModel):
 class ValidateResponse(BaseModel):
     ok: bool
     error: str
+
+
+class SourceEventResponse(BaseModel):
+    id: str
+    connector_id: str
+    provider_id: str
+    title: str
+    summary: str | None
+    dimension: str | None
+    impact_direction: str
+    impact_strength: float
+    published_at: str | None
+    ingested_at: str
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -103,7 +118,7 @@ async def validate_connector(body: ValidateRequest) -> ValidateResponse:
 
 @router.post("/sources/connectors", response_model=ConnectorResponse, status_code=status.HTTP_201_CREATED)
 async def create_connector(body: CreateConnectorRequest) -> ConnectorResponse:
-    """Validate connection then persist the connector."""
+    """Validate connection, persist the connector, then fetch initial events."""
     if not body.api_key.strip():
         raise HTTPException(status_code=400, detail="api_key cannot be empty")
 
@@ -117,6 +132,12 @@ async def create_connector(body: CreateConnectorRequest) -> ConnectorResponse:
         raise HTTPException(status_code=422, detail=f"连接验证失败: {error}")
 
     connector_id = store.create_connector(body.provider_id, body.api_key.strip())
+
+    # Fetch initial events in background — non-fatal if it fails
+    events = await adapter.fetch_initial_events(connector_id, body.provider_id, body.api_key.strip())
+    if events:
+        store.save_events(events)
+
     row = store.get_connector(connector_id)
     catalog = adapter.load_catalog()
     return _enrich(row, catalog)
@@ -124,7 +145,15 @@ async def create_connector(body: CreateConnectorRequest) -> ConnectorResponse:
 
 @router.delete("/sources/connectors/{connector_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_connector(connector_id: str) -> None:
-    """Remove a connector."""
+    """Remove connector and all its events."""
     deleted = store.delete_connector(connector_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Connector not found")
+    store.delete_events_by_connector(connector_id)
+
+
+@router.get("/sources/events", response_model=list[SourceEventResponse])
+def list_events(limit: int = 5) -> list[SourceEventResponse]:
+    """Return the most recent events across all connected sources."""
+    rows = store.list_events(limit=min(limit, 20))
+    return [SourceEventResponse(**r) for r in rows]

@@ -46,6 +46,116 @@ def _build_auth(
     raise ValueError(f"Unsupported auth_style: {auth_style!r}")
 
 
+async def fetch_initial_events(
+    connector_id: str,
+    provider_id: str,
+    api_key: str,
+) -> list[dict]:
+    """Fetch the first batch of events from a newly connected source.
+
+    Returns a list of dicts ready for store.save_events().
+    Returns empty list on any error (non-fatal — connector is already saved).
+    """
+    try:
+        provider = get_provider(provider_id)
+    except KeyError:
+        return []
+
+    headers, params = _build_auth(
+        provider["auth_style"], provider["auth_param"], api_key
+    )
+    base = provider["base_url"]
+    now = __import__("datetime").datetime.utcnow().isoformat()
+
+    try:
+        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
+            if provider_id == "gnews":
+                resp = await client.get(
+                    f"{base}/top-headlines",
+                    headers=headers,
+                    params={**params, "max": 10, "lang": "en"},
+                )
+                if resp.status_code != 200:
+                    return []
+                articles = resp.json().get("articles", [])
+                return [
+                    {
+                        "id": f"{connector_id}_{i}_{a.get('publishedAt', now)}",
+                        "connector_id": connector_id,
+                        "provider_id": provider_id,
+                        "title": a.get("title", ""),
+                        "summary": a.get("description", ""),
+                        "dimension": "event_driven",
+                        "impact_direction": "neutral",
+                        "impact_strength": 0.5,
+                        "published_at": a.get("publishedAt"),
+                        "ingested_at": now,
+                    }
+                    for i, a in enumerate(articles)
+                    if a.get("title")
+                ]
+
+            if provider_id == "finnhub":
+                import time
+                to_ts = int(time.time())
+                from_ts = to_ts - 7 * 24 * 3600  # last 7 days
+                resp = await client.get(
+                    f"{base}/company-news",
+                    headers=headers,
+                    params={**params, "symbol": "0700.HK", "from": str(__import__("datetime").date.fromtimestamp(from_ts)), "to": str(__import__("datetime").date.fromtimestamp(to_ts))},
+                )
+                if resp.status_code != 200:
+                    return []
+                articles = resp.json()[:10]
+                return [
+                    {
+                        "id": f"{connector_id}_{a.get('id', i)}",
+                        "connector_id": connector_id,
+                        "provider_id": provider_id,
+                        "title": a.get("headline", ""),
+                        "summary": a.get("summary", ""),
+                        "dimension": "fundamental_research",
+                        "impact_direction": "neutral",
+                        "impact_strength": 0.5,
+                        "published_at": str(__import__("datetime").datetime.fromtimestamp(a["datetime"]).isoformat()) if a.get("datetime") else None,
+                        "ingested_at": now,
+                    }
+                    for i, a in enumerate(articles)
+                    if a.get("headline")
+                ]
+
+            if provider_id == "newsapi":
+                resp = await client.get(
+                    f"{base}/top-headlines",
+                    headers=headers,
+                    params={**params, "pageSize": 10, "language": "en"},
+                )
+                if resp.status_code != 200:
+                    return []
+                articles = resp.json().get("articles", [])
+                return [
+                    {
+                        "id": f"{connector_id}_{i}_{a.get('publishedAt', now)}",
+                        "connector_id": connector_id,
+                        "provider_id": provider_id,
+                        "title": a.get("title", ""),
+                        "summary": a.get("description", ""),
+                        "dimension": "media_sentiment",
+                        "impact_direction": "neutral",
+                        "impact_strength": 0.5,
+                        "published_at": a.get("publishedAt"),
+                        "ingested_at": now,
+                    }
+                    for i, a in enumerate(articles)
+                    if a.get("title")
+                ]
+
+    except Exception:
+        pass
+
+    return []
+
+
 async def validate_connector(provider_id: str, api_key: str) -> tuple[bool, str]:
     """Test connectivity for a provider + key pair.
 

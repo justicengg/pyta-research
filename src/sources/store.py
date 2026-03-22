@@ -1,13 +1,8 @@
-"""Source connector persistence — SQLite, same DB as settings_store.
+"""Source connector + event persistence — SQLite, same DB as settings_store.
 
-Table: source_connector
-  id           TEXT PRIMARY KEY  (uuid4)
-  provider_id  TEXT NOT NULL     (matches catalog.json key)
-  api_key      TEXT NOT NULL
-  status       TEXT NOT NULL     (healthy | error | inactive)
-  error_message TEXT
-  last_synced_at TEXT
-  created_at   TEXT NOT NULL
+Tables:
+  source_connector — one row per connected provider
+  source_event     — standardized events ingested from connectors
 """
 from __future__ import annotations
 
@@ -23,7 +18,7 @@ _DB_PATH = Path("pyta.db")
 def _conn() -> sqlite3.Connection:
     conn = sqlite3.connect(_DB_PATH)
     conn.row_factory = sqlite3.Row
-    conn.execute("""
+    conn.executescript("""
         CREATE TABLE IF NOT EXISTS source_connector (
             id            TEXT PRIMARY KEY,
             provider_id   TEXT NOT NULL,
@@ -32,7 +27,21 @@ def _conn() -> sqlite3.Connection:
             error_message TEXT,
             last_synced_at TEXT,
             created_at    TEXT NOT NULL
-        )
+        );
+        CREATE TABLE IF NOT EXISTS source_event (
+            id               TEXT PRIMARY KEY,
+            connector_id     TEXT NOT NULL,
+            provider_id      TEXT NOT NULL,
+            title            TEXT NOT NULL,
+            summary          TEXT,
+            dimension        TEXT,
+            impact_direction TEXT NOT NULL DEFAULT 'neutral',
+            impact_strength  REAL NOT NULL DEFAULT 0.5,
+            published_at     TEXT,
+            ingested_at      TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS ix_source_event_ingested
+            ON source_event (ingested_at DESC);
     """)
     conn.commit()
     return conn
@@ -100,3 +109,41 @@ def get_api_key(connector_id: str) -> str | None:
             "SELECT api_key FROM source_connector WHERE id = ?", (connector_id,)
         ).fetchone()
     return row[0] if row else None
+
+
+# ── source_event ──────────────────────────────────────────────────────────────
+
+def save_events(events: list[dict[str, Any]]) -> None:
+    """Upsert a batch of events. Silently skips duplicates by id."""
+    if not events:
+        return
+    with _conn() as conn:
+        conn.executemany(
+            """INSERT OR IGNORE INTO source_event
+               (id, connector_id, provider_id, title, summary, dimension,
+                impact_direction, impact_strength, published_at, ingested_at)
+               VALUES (:id, :connector_id, :provider_id, :title, :summary,
+                       :dimension, :impact_direction, :impact_strength,
+                       :published_at, :ingested_at)""",
+            events,
+        )
+        conn.commit()
+
+
+def list_events(limit: int = 10) -> list[dict[str, Any]]:
+    with _conn() as conn:
+        rows = conn.execute(
+            """SELECT id, connector_id, provider_id, title, summary, dimension,
+                      impact_direction, impact_strength, published_at, ingested_at
+               FROM source_event
+               ORDER BY ingested_at DESC
+               LIMIT ?""",
+            (limit,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def delete_events_by_connector(connector_id: str) -> None:
+    with _conn() as conn:
+        conn.execute("DELETE FROM source_event WHERE connector_id = ?", (connector_id,))
+        conn.commit()
