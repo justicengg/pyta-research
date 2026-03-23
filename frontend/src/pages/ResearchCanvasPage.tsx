@@ -33,6 +33,8 @@ export function ResearchCanvasPage() {
         currentInputEvents={currentInputEvents}
         sessionStatus={backendState?.sessionStatus ?? (isRunning ? 'running' : 'initializing')}
         error={error}
+        defaultSymbol={sceneParams.ticker}
+        defaultMarket={sceneParams.market}
       />
       <CanvasStage
         state={canvasState}
