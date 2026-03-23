@@ -1,7 +1,7 @@
 """Source connector API — catalog browsing + CRUD management."""
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import BaseModel
 
 import asyncio
@@ -164,13 +164,14 @@ async def create_connector(body: CreateConnectorRequest) -> ConnectorResponse:
     return _enrich(row, catalog)
 
 
-@router.delete("/sources/connectors/{connector_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_connector(connector_id: str) -> None:
+@router.delete("/sources/connectors/{connector_id}")
+def delete_connector(connector_id: str) -> Response:
     """Remove connector and all its events."""
     deleted = store.delete_connector(connector_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Connector not found")
     store.delete_events_by_connector(connector_id)
+    return Response(status_code=204)
 
 
 @router.get("/sources/events", response_model=list[SourceEventResponse])
