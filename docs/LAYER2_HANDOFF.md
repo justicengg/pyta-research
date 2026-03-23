@@ -1,210 +1,239 @@
 # Layer 2 沙盘画布 — 开发交接文档
 
-> **Last updated**: 2026-03-22
-> **Branch**: `PYTA/secondary-market-mvp`
-> **Status**: Layer 2 核心完成 · Direction A（多轮推演）已上线 · SSE Streaming 待实现
+> **Last updated**: 2026-03-22（今日大改版）
+> **Branch**: `PYTA/secondary-market-mvp` → 已 merge → `main`
+> **PR**: [#69](https://github.com/justicengg/pyta-research/pull/69)
+> **Status**: 拓扑画布 + UX 精简完成 · LLM timeout 已修复 · 信息层基础建设待启动
 
 ---
 
-## 1. Layer 2 已完成内容总览
+## 1. 今日完成内容（2026-03-22）
 
-### ✅ 画布基础架构
-
-| 功能 | 文件 | 说明 |
-|------|------|------|
-| 无限画布（平移 + 缩放） | `frontend/src/hooks/useCanvasViewport.ts` | CSS transform translate+scale；pointer 拖拽平移；imperative wheel 监听（passive: false）；zoom-to-cursor 算法；pinch 支持（ctrlKey）；min 0.3× max 2.5× |
-| Agent 节点轨道布局 | `frontend/src/lib/mock/canvasState.ts` | 椭圆轨道（Rx=280, Ry=200, center=550,300），五边形布局，5 个 Agent 均匀分布在 12/2/4/8/10 点位置 |
-| Agent 节点可拖拽 | `frontend/src/components/canvas/AgentNode.tsx` | pointer events + setPointerCapture；zoom 修正（rawDx / zoom）；stopPropagation 防止触发画布平移 |
-| 边连线（flowchart） | `frontend/src/components/canvas/EdgeLayer.tsx` | SVG cubic Bézier；5 条 spoke（Agent → center）+ 3 条 peer（Agent 间影响）；hover 显示 label；拖拽 Agent 时连线实时更新 |
-| 拖拽工具栏 | `frontend/src/components/canvas/CanvasToolbar.tsx` | 可拖拽（offset state）；可隐藏（hidden state）；场景设置 + 重置视图 + 缩放% + 运行推演 |
-| Zone 三区布局 | `frontend/src/components/layout/CanvasStage.tsx` | Zone A（标题栏）+ Zone B（画布）+ Zone C（CommandConsole）；Toolbar 和 EventChips 在 canvas-layer 外，不随 pan/zoom 移动 |
-
-### ✅ Direction A — 多轮推演循环
+### ✅ 动态拓扑布局（最大改动）
 
 | 功能 | 文件 | 说明 |
 |------|------|------|
-| 轮次追踪 | `frontend/src/hooks/useSandboxRun.ts` | `currentRound` + `roundHistory: RoundRecord[]`；每轮结果追加到历史 |
-| LLM 上下文传递 | `useSandboxRun.ts` | 将历史轮次 agent summaries 构建成 context 字符串，拼入 `narrative_guide` 传给后端；LLM 可以看到前轮立场进行修正 |
-| 轮次时间轴 | `frontend/src/components/layout/CommandConsole.tsx` | 已完成轮用实心绿点显示，当前轮用虚线圈；收敛质量徽章（已收敛 / 部分收敛 / 待优化）；上一轮核心观点提示 |
-| Agent 轮次徽章 | `frontend/src/components/canvas/AgentNode.tsx` | 每个 Agent 卡片左上角显示 R1/R2 徽章，标明数据来自第几轮 |
-| 运行按钮状态 | `CommandConsole.tsx` | 第一轮显示「运行推演」，后续显示「第 N 轮推演」 |
+| 同心环拓扑算法 | `frontend/src/hooks/useTopologyLayout.ts` | Ring-1=310px / Ring-2=540px / Ring-3=750px；TOPOLOGY_CENTER=(600,450)；5 次 pushApart 迭代防重叠；CENTER_OBSTACLE 固定障碍防止 agent 卡覆盖中心卡 |
+| 第二轮子节点生成 | `frontend/src/hooks/useSandboxRun.ts` | `mergeCanvasState` diff 前后 summary；summary 变化时生成 ring:2 子节点 + `derivation` 虚线边 |
+| 边类型扩展 | `frontend/src/components/canvas/EdgeLayer.tsx` | `spoke / peer / derivation / synthesis`；derivation = 细虚线，父节点色调，0.35 透明度 |
+| 拓扑 + 拖拽叠加 | `frontend/src/components/layout/CanvasStage.tsx` | `computedPositions`（来自 useTopologyLayout）+ `dragOverrides`（用户手动拖拽）最终合并 |
 
-### ✅ 类型系统
-
+**关键参数**（不要随意改动）：
 ```typescript
-// canvas.ts 新增
-type RoundRecord = {
-  round: number
-  narrative: string
-  agentSummaries: Record<string, string>
-  quality: 'complete' | 'partial' | 'degraded'
-  timestamp: string
-}
+TOPOLOGY_CENTER = { x: 600, y: 450 }   // 必须与 CSS .center-core { top: 50% } 对齐
+RING_RADIUS = { 1: 310, 2: 540, 3: 750 }
+CARD_H = 200   // 实际折叠高度，影响 Ring-2 最小半径计算（≥ R1 + CARD_H + 30 = 540）
+CENTER_OBSTACLE = { left:480, top:370, right:720, bottom:530 }  // 中心卡占位区
+```
 
-// AgentCardData 新增字段
-round?: number  // 来自第几轮推演
+**碰撞矩阵结论**（collision tester 验证）：
+- Ring-1 × Ring-1：10 对，全部 CLEAR ✓
+- Ring-1 × CENTER：5 对，全部 CLEAR ✓
+- Ring-2 × Ring-2：10 对，全部 CLEAR ✓
+- Ring-2 × 各自父节点：5 对，全部 CLEAR（ΔR=230px > CARD_H=200px）✓
+- Ring-2 节点部分超出 canvas 边界（顶部 190px，右侧 214px）→ 设计预期，canvas 可平移
+
+---
+
+### ✅ UX 精简
+
+| 改动 | 说明 |
+|------|------|
+| CanvasToolbar 完全移除 | 不再渲染；运行按钮整合进 CommandConsole |
+| 角落迷你控件 | `canvas-corner-controls`：zoom% 读数 + ⌖ 重置按钮，固定在 `.stage` 右下角 |
+| EventsPanel（新组件） | `frontend/src/components/layout/EventsPanel.tsx`；Layer 3 右侧滑动抽屉，`position: fixed`，不随画布移动；通过控制台"事件" chip 切换开/关 |
+| CommandConsole 重构 | "事件" chip → 按钮，触发 `onEventsToggle`；运行按钮 `▶ 推演`（去掉冗余轮次数字）；EventChips 从 canvas 移出 |
+
+---
+
+### ✅ 后端修复
+
+| 修复 | 文件 | 说明 |
+|------|------|------|
+| LLM timeout 20s → 60s | `src/sandbox/llm/client.py` | MiniMax-M2.7 实测耗时 28-35s，原 20s 导致全部 degraded |
+| 数据源扩展 | `src/sources/adapter.py` / `catalog.json` / `store.py` | 增加更多 provider 支持 |
+| user_settings API | `src/api/routers/user_settings.py` | 新增字段 |
+
+**验证结果（NVDA 推演测试）**：
+```
+HTTP 200  (28.0s)
+data_quality : complete
+stop_reason  : all_perspectives_received
+5 agents: traditional_institution / quant_institution / retail / offshore_capital / short_term_capital
+全部 live ✓
 ```
 
 ---
 
-## 2. 当前架构示意
+## 2. 当前架构（最新状态）
 
 ```
 ResearchCanvasPage
-├── useSandboxRun()           # 状态管理：轮次 + canvas state + 推演触发
-│   ├── currentRound: number
-│   ├── roundHistory: RoundRecord[]
-│   └── submit() → buildPreviousContext() → POST /api/v1/sandbox/run
+├── useSandboxRun()
+│   ├── currentRound / roundHistory: RoundRecord[]
+│   ├── prevSummaries diff → 生成 ring-2 子节点 + derivation 边
+│   └── submit() → POST /api/v1/sandbox/run（60s timeout）
 │
 ├── InformationPanel (Layer 1)
-│   ├── Sources / EventChips
+│   ├── Sources 列表 / AddSourceModal
 │   └── SettingsPopover (Portal)
 │
 └── CanvasStage (Layer 2)
-    ├── useCanvasViewport()   # pan + zoom
-    ├── agentPositions state  # 可拖拽位置（lifted from AgentNode）
+    ├── useCanvasViewport()         # pan + zoom
+    ├── useTopologyLayout(agents)   # 同心环坐标计算（pure useMemo）
+    ├── dragOverrides state         # 用户手动拖拽覆盖
+    ├── eventsPanelOpen state       # Layer 3 面板开关
     │
-    ├── Zone A: stage-head (标题 + 状态chip)
-    ├── Zone B: .stage (无限画布)
-    │   ├── .canvas-layer (transform: translate + scale)
-    │   │   ├── CanvasBackground (SVG 网格)
-    │   │   ├── EdgeLayer (SVG 连线，跟随 agentPositions 更新)
-    │   │   ├── center-core (中心标的卡片)
-    │   │   └── AgentNode × 5 (可拖拽 + R1/R2 徽章)
-    │   ├── CanvasToolbar (fixed，在 canvas-layer 外)
-    │   └── EventChips (fixed，在 canvas-layer 外)
+    ├── Zone A: stage-head（标题 + 状态 chip）
+    ├── Zone B: .stage（无限画布）
+    │   ├── .canvas-layer（transform: translate + scale）
+    │   │   ├── CanvasBackground（SVG 网格）
+    │   │   ├── EdgeLayer（spoke / peer / derivation 边）
+    │   │   ├── CenterCoreCard（可编辑 ticker/market/narrative）
+    │   │   └── AgentNode × N（ring-1 + ring-2，可拖拽）
+    │   └── canvas-corner-controls（zoom% + ⌖ reset，不随画布移动）
     │
-    └── Zone C: CommandConsole
-        ├── round-timeline (轮次点)
-        ├── prev-round-hint (上轮核心观点)
-        └── textarea + run-btn
+    ├── Zone C: CommandConsole
+    │   ├── cmd-timeline（轮次点 + 收敛质量徽章）
+    │   ├── cmd-context（事件 chip[→EventsPanel] + 历史轮次 chip + 5 Agents chip）
+    │   └── cmd-input（textarea + ▶ 推演按钮）
+    │
+    └── EventsPanel（Layer 3，position:fixed 右侧抽屉）
+        ├── 事件列表（fetch /api/v1/sources/events）
+        └── 点击事件 → 填入指令框 + 关闭面板
 ```
 
 ---
 
 ## 3. 关键技术决策记录
 
-### 3.1 Toolbar 必须在 canvas-layer 外
+### 3.1 TOPOLOGY_CENTER 必须与 CSS center-core 对齐
 
-**问题**：Toolbar 放在 `.canvas-layer` 内会随 pan/zoom 移动。
-**方案**：Toolbar 作为 `.stage` 的直接子元素（`canvas-layer` 的兄弟节点），position: absolute 相对 stage 定位。
-**注意**：Toolbar 内所有 button 需要 `data-no-pan` 属性，防止 `useCanvasViewport` 的 pointerDown handler 误判为画布平移。
+**已知 Bug（已修复）**：center-core 曾是 `top: 270px`，但 TOPOLOGY_CENTER.y=450，导致 spoke 边连接到错误位置。
 
-### 3.2 Wheel 事件必须用 imperative listener
+**正确做法**：
+```css
+.center-core { top: 50%; }   /* 50% of canvas-layer height 900px = 450px ✓ */
+```
+```typescript
+export const TOPOLOGY_CENTER = { x: 600, y: 450 }  // 600 = 1200/2, 450 = 900/2
+```
 
-React 合成事件默认注册为 passive，无法在其中调用 `e.preventDefault()`，会导致页面跟随 wheel 事件滚动。必须：
+### 3.2 Ring-2 最小半径推导
 
+```
+Ring-2_min = Ring-1 + CARD_H + margin
+           = 310   + 200    + 30
+           = 540px
+```
+当前 Ring-2=540px，恰好满足父子不重叠条件（ΔR=230 > CARD_H=200）。不要减小。
+
+### 3.3 Wheel 事件必须用 imperative listener
+
+React 合成事件默认 passive，无法 `preventDefault()`。必须：
 ```typescript
 useEffect(() => {
   el.addEventListener('wheel', onWheel, { passive: false })
   return () => el.removeEventListener('wheel', onWheel)
-}, [stageRef])
+}, [])
 ```
 
-### 3.3 Zoom-to-cursor 算法
+### 3.4 Toolbar 必须在 canvas-layer 外
 
-```typescript
-const scale = newZoom / prev.zoom
-const newPanX = cx - (cx - prev.panX) * scale
-const newPanY = cy - (cy - prev.panY) * scale
-```
+任何固定 HUD 元素（工具栏、角落控件、EventsPanel）都不能放在 `.canvas-layer` 内，否则会随 pan/zoom 移动。EventsPanel 使用 `position: fixed`，脱离所有 canvas 层级。
 
-其中 `cx, cy` 是鼠标相对于 stage 元素的坐标（减去 `getBoundingClientRect().left/top`）。
-
-### 3.4 Agent 拖拽时连线实时跟随
-
-Agent 位置状态（`agentPositions`）在 `CanvasStage` 层 lift，同时传给 `AgentNode`（用于渲染位置）和 `EdgeLayer`（用于计算连线端点）。拖拽时调用 `handleAgentDragMove(id, dx/zoom, dy/zoom)` 更新状态，EdgeLayer 自动重新计算。
-
-### 3.5 多轮 LLM 上下文格式
+### 3.5 MiniMax API 必须含 `/v1`
 
 ```
-[历史推演上下文]
-第 1 轮（让这 5 个市场参与者继续推演…）
-  - traditional_institution: 机构视角偏谨慎…
-  - offshore_capital: 海外资金更在意全球流动性…
-  ...
-
-[本轮指令]
-基于当前情况，假设港股情绪进一步恶化，各 Agent 如何调整立场？
+base_url: https://api.minimaxi.com/v1   ← 正确（无末尾斜杠）
+base_url: https://api.minimaxi.com      ← 错误，会 404
 ```
+
+### 3.6 api_key 不回传前端
+
+settings API 只返回 `{configured: bool}`，前端不展示密钥明文。
 
 ---
 
-## 4. 已知问题 & 限制
+## 4. 已知问题 & 待处理
 
 | 问题 | 严重程度 | 建议处理 |
 |------|----------|---------|
-| 轨道布局基于 mock 固定坐标 | 中 | 接真实 API 后，从 DB 读取或首次加载时按算法分配位置 |
-| 拖拽后刷新页面，位置重置 | 低 | 用 localStorage 缓存 `agentPositions`，key 按 session_id |
-| EventChips 数据仍为 mock | 中 | 接 `/api/v1/sources/events` 替换，Layer 1 API 已就绪 |
-| CommandConsole 绝对定位在 stage 内 | 低 | 移到 zone-C 独立区域后，stage 高度自动适配 |
-| agent_round_badge 仅在 mock 初始数据中 undefined | 低 | 初始状态不显示徽章，首次推演后才出现，符合预期 |
+| Ring-2 节点部分超出 canvas 边界 | 低 | 设计预期（canvas 可平移）；如需完整显示可扩展 canvas-layer 到 1600×1200 |
+| orbit.two CSS 与 Ring-2 半径不一致 | 低 | orbit.two 应为 1080px（540×2），目前 760px，仅影响装饰圆环视觉 |
+| 拖拽后刷新位置重置 | 低 | localStorage 缓存 dragOverrides，key 按 session_id |
 | SSE Streaming 未实现 | 高 | 见 Section 5 |
+| confidence 在 per_agent_status 为 0 | 低 | per_agent_status 无 confidence 字段，需从 perspective_detail 取 |
 
 ---
 
 ## 5. 下一步开发优先级
 
-### P0 — SSE Streaming（最高价值，改变用户体验）
+### 🔥 P0 — 信息层基础建设（刚刚讨论）
 
-**后端**：新增 `POST /api/v1/sandbox/stream`，每个 Agent 完成即 yield SSE 事件，不等全部完成。
+**背景**：用户第一次打开产品没有数据 → Agent 输出空洞 → 立即放弃。
 
+**方案：三层架构 + 三个内置 Agent**
+
+```
+Layer 0: 数据入口
+  ├── 内置免费数据源（yfinance + FRED + SEC EDGAR）← 解决冷启动，$0 成本
+  ├── 用户自定义 API 接入
+  └── 客户私有数据（Excel / CSV / Markdown）
+
+Layer 1: Agent 接入层
+  ├── Agent A: Connector Copilot — 读 API 文档 → connector_spec.yaml
+  ├── Agent B: Canonical Mapping Agent — 外部字段 → PYTA canonical schema
+  └── Agent C: Data Quality Validator — quality_score，质量不足降级推演
+
+Layer 2: Canonical Data Store
+  CanonicalSecurityData { symbol, market, price, fundamentals, sentiment, events, raw_payload }
+  推演 Agent 只消费这层，不直接碰原始 API
+```
+
+**立即可做（本周）**：
+1. 接入 yfinance（$0，NVDA 数据立即可用）→ canonical schema 打通
+2. 推演 Agent 消费 canonical data 替代硬编码 mock
+
+**下一步**：
+3. Connector Copilot UI（用户粘贴 API 文档 URL）
+4. Excel/Markdown 上传 Agent（客户私有数据）
+
+**待决策**：yfinance 是爬 Yahoo Finance，商业化有合规风险。若在意，改用 Alpha Vantage 免费 tier（25次/天）。
+
+---
+
+### P1 — SSE Streaming（改变体验）
+
+推演中 Agent 卡逐个出现，不等全部完成。
+
+**后端**：新增 `POST /api/v1/sandbox/stream`
 ```python
-# src/sandbox/agents/runner.py — 新增方法
 async def run_streaming(self, request):
-    tasks = {asyncio.create_task(agent.run(request)): agent_id for agent_id, agent in self.agents.items()}
     for coro in asyncio.as_completed(tasks):
         result = await coro
-        yield result  # 前端实时收到每个 Agent 结果
+        yield f"data: {result.json()}\n\n"
 ```
 
-**前端**：`useSandboxRun` 改为 `EventSource` 版本，Agent 卡片逐个「弹出」（淡入动画）。
+**前端**：`useSandboxRun` 改 EventSource；Agent 卡按完成顺序淡入；显示「已完成 3/5」进度。
 
-```typescript
-// 替换 fetch POST 为 EventSource
-const source = new EventSource('/api/v1/sandbox/stream?...')
-source.onmessage = (e) => {
-  const agentResult = JSON.parse(e.data)
-  setCanvasState(prev => updateAgent(prev, agentResult, currentRound))
-}
-```
+---
 
-**UI 效果**：
-- 推演中，各 Agent 卡片按完成顺序逐一出现（带 200ms 淡入）
-- CommandConsole 显示「已完成 3/5」进度
-- 「停止」按钮关闭 stream，取当前已返回的结果
-- Agent 卡片增加「思考中...」骨架屏状态（shimmer）
+### P2 — 场景参数持久化
 
-### P1 — 收敛摘要卡片
+CenterCoreCard 的 ticker/market/narrative 改动目前仅存 React state，刷新即丢失。需要：
+- `POST /api/v1/session/scene` 保存场景参数
+- `GET /api/v1/session/scene` 恢复
 
-多轮推演结束后，在 center-core 下方生成「收敛结果」小卡：各 Agent 观点的最大公约数摘要，由后端综合生成。
+---
 
-### P2 — 场景参数 Modal（场景设置按钮）
-
-`CanvasToolbar` 中「场景设置」按钮目前无绑定。需要 Modal：
-
-```
-标的（Ticker）: [0700.HK        ]
-市场：         [港股            ]
-时间跨度：     [3个月    6个月  ]
-叙事方向：     [ textarea       ]
-```
-
-保存后存入 session state，传入 `runSandbox` 请求。
-
-### P3 — Agent 节点状态动画
+### P3 — orbit.two CSS 修正
 
 ```css
-/* shimmer 骨架屏 */
-@keyframes shimmer {
-  from { background-position: -200% 0; }
-  to   { background-position:  200% 0; }
-}
-.agent-loading {
-  background: linear-gradient(90deg, var(--surface-subtle) 25%, var(--border-subtle) 50%, var(--surface-subtle) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
-}
+/* 当前（错误）: */
+.orbit.two { width: 760px; height: 760px; }
+/* 应为（Ring-2 直径 = 540×2）: */
+.orbit.two { width: 1080px; height: 1080px; }
 ```
 
 ---
@@ -213,52 +242,45 @@ source.onmessage = (e) => {
 
 ```
 # Backend
-src/api/app.py                           FastAPI 入口（仅注册 3 个 router）
-src/api/routers/sandbox.py               POST /sandbox/run（60s timeout）
+src/api/app.py                           FastAPI 入口
+src/api/routers/sandbox.py               POST /sandbox/run
+src/api/routers/user_settings.py         用户设置 API
 src/sandbox/agents/runner.py             asyncio.gather 并发 5 Agent
-src/sandbox/agents/templates/            每个 Agent 的 prompt 模板
-src/sandbox/llm/client.py               LLM 调用（DB 配置 > .env > 默认值，think 标签剥离）
-src/sources/catalog.json                 Provider 配置（新增 provider 只改此文件）
+src/sandbox/agents/templates/            Agent prompt 模板
+src/sandbox/llm/client.py               LLM 调用（timeout=60s，think标签剥离）
+src/sources/catalog.json                 Provider 配置
+src/sources/adapter.py                   数据源适配器
+src/config/settings.py                   全局配置
 
-# Frontend — Layer 1
+# Frontend — Layer 1（信息面板）
 frontend/src/components/layout/InformationPanel.tsx
 frontend/src/components/layout/AddSourceModal.tsx
 frontend/src/components/layout/SettingsPopover.tsx
-frontend/src/components/canvas/EventChips.tsx
+frontend/src/components/canvas/EventChips.tsx     ← 数据获取保留，UI 已移入 EventsPanel
 
-# Frontend — Layer 2
-frontend/src/components/layout/CanvasStage.tsx          主画布入口（三区布局）
-frontend/src/components/canvas/AgentNode.tsx            Agent 节点（可拖拽 + R徽章）
-frontend/src/components/canvas/EdgeLayer.tsx            SVG 连线（Bezier + hover label）
-frontend/src/components/canvas/CanvasToolbar.tsx        可拖拽工具栏
-frontend/src/components/canvas/CanvasBackground.tsx     点阵 / 网格背景
-frontend/src/components/layout/CommandConsole.tsx       多轮控制台（含轮次时间轴）
-frontend/src/hooks/useCanvasViewport.ts                 pan + zoom hook
-frontend/src/hooks/useSandboxRun.ts                     推演状态 + 多轮历史
-frontend/src/lib/types/canvas.ts                        所有 canvas 类型（含 RoundRecord）
-frontend/src/lib/mock/canvasState.ts                    Mock 状态 + 轨道布局坐标
-frontend/src/styles/research-canvas.css                 全部 UI 样式
+# Frontend — Layer 2（画布）
+frontend/src/components/layout/CanvasStage.tsx          主画布（三区 + EventsPanel 状态）
+frontend/src/components/layout/CommandConsole.tsx        控制台（时间轴 + 事件chip + 推演按钮）
+frontend/src/components/layout/EventsPanel.tsx           Layer 3 右侧事件面板（NEW）
+frontend/src/components/canvas/AgentNode.tsx             Agent 节点（ring class + 拖拽）
+frontend/src/components/canvas/EdgeLayer.tsx             SVG 边（spoke/peer/derivation/synthesis）
+frontend/src/components/canvas/CenterCoreCard.tsx        中心可编辑卡片
+frontend/src/components/canvas/CanvasBackground.tsx      点阵背景
+frontend/src/hooks/useCanvasViewport.ts                  pan + zoom
+frontend/src/hooks/useTopologyLayout.ts                  同心环拓扑算法（NEW）
+frontend/src/hooks/useSandboxRun.ts                      推演状态 + 多轮 + ring-2 子节点生成
+frontend/src/lib/types/canvas.ts                         全部类型
+frontend/src/lib/mock/canvasState.ts                     Mock 状态（初始 ring-1 坐标）
+frontend/src/styles/research-canvas.css                  全部 UI 样式
 ```
 
 ---
 
-## 7. 设计原则（勿破坏）
-
-1. **不带回旧世界** — buy/sell/hold、target price、portfolio simulation 一律不出现
-2. **核心场景在中心** — center-core 是锚点，5 个 Agent 围绕运转
-3. **Toolbar 在 canvas-layer 外** — 否则会随 pan/zoom 移动
-4. **wheel listener 必须 passive: false** — 不然无法阻止页面滚动
-5. **MiniMax base_url 必须含 `/v1`** — `https://api.minimaxi.com/v1`（无末尾斜杠）
-6. **api_key 不回传前端** — 只返回 `{configured: bool}`
-
----
-
-## 8. 快速启动
+## 7. 快速启动
 
 ```bash
-# 克隆并切换到 Layer 2 主分支
 git clone https://github.com/justicengg/pyta-research
-git checkout PYTA/secondary-market-mvp
+git checkout main   # 今日已 merge
 
 # Backend
 poetry install
@@ -267,12 +289,41 @@ poetry run uvicorn src.api.app:app --reload --port 8000
 # Frontend
 cd frontend && npm install && npm run dev
 
-# 设置 LLM（一次性）
+# 配置 LLM（一次性）
 curl -X POST http://localhost:8000/api/v1/settings/llm \
   -H 'Content-Type: application/json' \
   -d '{"base_url":"https://api.minimaxi.com/v1","model":"MiniMax-M2.7","api_key":"YOUR_KEY"}'
+
+# 测试推演（NVDA，预期 ~28s 返回 complete）
+python3 -c "
+import asyncio, httpx, datetime
+async def t():
+    r = await httpx.AsyncClient(timeout=120).post(
+        'http://localhost:8000/api/v1/sandbox/run',
+        json={'ticker':'NVDA','market':'US',
+              'events':[{'event_id':'t1','event_type':'manual_input',
+                         'content':'英伟达算力订单增长，台积电产能受限','source':'cli',
+                         'timestamp':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                         'symbol':'NVDA','metadata':{}}],
+              'round_timeout_ms':90000,'narrative_guide':'NVDA 2026Q1 推演'})
+    print(r.json()['round_complete']['data_quality'])
+asyncio.run(t())
+"
 ```
 
 ---
 
-*文档由 Claude Sonnet 4.6 生成于 2026-03-22，基于本次开发 session 的完整代码状态。*
+## 8. 设计原则（勿破坏）
+
+1. **不带回旧世界** — buy/sell/hold、target price、portfolio simulation 一律不出现
+2. **核心场景在中心** — center-core 是锚点，Agent 围绕同心环运转
+3. **TOPOLOGY_CENTER 与 CSS 必须对齐** — `top: 50%` = y:450，不要改
+4. **Ring-2 ≥ 540px** — 否则父子节点重叠（推导：R1+CARD_H+30=540）
+5. **wheel listener 必须 passive: false** — React 合成事件无法 preventDefault
+6. **任何 HUD 不能放 canvas-layer 内** — 否则随 pan/zoom 移动
+7. **MiniMax base_url 必须含 `/v1`** — `https://api.minimaxi.com/v1`
+8. **api_key 不回传前端** — 只返回 `{configured: bool}`
+
+---
+
+*文档由 Claude Sonnet 4.6 更新于 2026-03-22，反映今日 PR #69 merge 后的完整代码状态。*

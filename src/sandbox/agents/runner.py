@@ -47,6 +47,7 @@ class SecondaryAgentRunner:
         events: list[dict[str, Any]],
         narrative_guide: str | None,
         timeout_ms: int,
+        market_data: dict[str, Any] | None = None,
     ) -> list[RunnerResult]:
         tasks = [
             self._run_single(
@@ -57,6 +58,7 @@ class SecondaryAgentRunner:
                 events=events,
                 narrative_guide=narrative_guide,
                 timeout_ms=timeout_ms,
+                market_data=market_data,
             )
             for agent_type in ParticipantType
         ]
@@ -72,6 +74,7 @@ class SecondaryAgentRunner:
         events: list[dict[str, Any]],
         narrative_guide: str | None,
         timeout_ms: int,
+        market_data: dict[str, Any] | None = None,
     ) -> RunnerResult:
         return await self._run_single(
             agent_type=agent_type,
@@ -81,6 +84,7 @@ class SecondaryAgentRunner:
             events=events,
             narrative_guide=narrative_guide,
             timeout_ms=timeout_ms,
+            market_data=market_data,
         )
 
     async def _run_single(
@@ -93,10 +97,11 @@ class SecondaryAgentRunner:
         events: list[dict[str, Any]],
         narrative_guide: str | None,
         timeout_ms: int,
+        market_data: dict[str, Any] | None = None,
     ) -> RunnerResult:
         try:
             return await asyncio.wait_for(
-                self._generate(agent_type, ticker, market, round_number, events, narrative_guide),
+                self._generate(agent_type, ticker, market, round_number, events, narrative_guide, market_data),
                 timeout=timeout_ms / 1000,
             )
         except asyncio.TimeoutError:
@@ -112,11 +117,12 @@ class SecondaryAgentRunner:
         round_number: int,
         events: list[dict[str, Any]],
         narrative_guide: str | None,
+        market_data: dict[str, Any] | None = None,
     ) -> RunnerResult:
         if self.llm_client.enabled:
             response = await self.llm_client.generate_json(
                 SECONDARY_SANDBOX_SYSTEM_PROMPT,
-                build_secondary_user_prompt(agent_type, ticker, market, round_number, events, narrative_guide),
+                build_secondary_user_prompt(agent_type, ticker, market, round_number, events, narrative_guide, market_data),
             )
             payload = json.loads(response.content)
             perspective, narrative = self._parse_llm_payload(agent_type, payload)

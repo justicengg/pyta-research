@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID, uuid4
@@ -10,6 +12,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.sandbox.agents.runner import RunnerResult, SecondaryAgentRunner
+
+logger = logging.getLogger(__name__)
 from src.sandbox.schemas.agents import AgentNarrative, AgentPerspective, MarketBias, ParticipantType, PerspectiveStatus
 from src.sandbox.schemas.memory import AgentSnapshot, Checkpoint, ReportRecord, SandboxEventRecord, SandboxSession
 from src.sandbox.schemas.reports import MarketReadingReport, RoundComplete
@@ -48,6 +52,19 @@ class SecondaryOrchestrator:
             narrative_guide=narrative_guide,
         )
         event_rows = self._persist_input_events(session, sandbox.id, round_number, events)
+
+        # ── Fetch real market data (yfinance, with DB cache) and inject into agent prompts ────
+        market_data: dict[str, Any] | None = None
+        try:
+            from src.data.enrichers.yfinance_enricher import fetch_canonical_cached
+            canonical = await asyncio.get_event_loop().run_in_executor(
+                None, fetch_canonical_cached, ticker, market, session
+            )
+            market_data = canonical.to_agent_context()
+            logger.info("Market data fetched for %s: price=%s", ticker, market_data.get("price", {}).get("current"))
+        except Exception as exc:
+            logger.warning("Failed to fetch market data for %s: %s — agents will run without it", ticker, exc)
+
         runner_results = await self.runner.run_all(
             ticker=ticker,
             market=market,
@@ -55,6 +72,7 @@ class SecondaryOrchestrator:
             events=event_rows,
             narrative_guide=narrative_guide,
             timeout_ms=round_timeout_ms,
+            market_data=market_data,
         )
         resolved_results = [self._resolve_result(session, sandbox.id, round_number, result) for result in runner_results]
         stop_reason = self._determine_stop_reason(resolved_results)
