@@ -81,7 +81,7 @@ function BundleRow({ bundle }: { bundle: RecommendedBundle }) {
   )
 }
 
-export function InformationPanel({ collapsed, onToggle, state, currentInputEvents, sessionStatus, error, defaultSymbol, defaultMarket }: Props) {
+export function InformationPanel({ collapsed, onToggle, state, currentInputEvents, sessionStatus, error, defaultSymbol = '', defaultMarket = 'US' }: Props) {
   const { theme, setTheme } = useTheme()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [addSourceOpen, setAddSourceOpen] = useState(false)
@@ -166,13 +166,23 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
         <section className="section">
           <div className="section-label-row">
             <span className="section-label">Sources</span>
-            <button
-              className="section-action-btn"
-              aria-label="接入新来源"
-              onClick={() => setAddSourceOpen(true)}
-            >
-              + 接入
-            </button>
+            <div style={{ display: 'flex', gap: 'var(--sp-2)' }}>
+              <button
+                className="section-action-btn"
+                aria-label="上传文件"
+                onClick={() => setUploadOpen(true)}
+                title="上传 CSV / Excel / Markdown"
+              >
+                ↑ 上传
+              </button>
+              <button
+                className="section-action-btn"
+                aria-label="接入新来源"
+                onClick={() => setAddSourceOpen(true)}
+              >
+                + 接入
+              </button>
+            </div>
           </div>
           {liveConnectors.length === 0 && (
             <p className="section-empty">暂无接入来源，点击「+ 接入」添加数据源。</p>
@@ -180,12 +190,43 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
           {liveConnectors.map((source) => (
             <SourceCard key={source.id} source={source} onDelete={handleConnectorDeleted} />
           ))}
+
+          {/* Connector Copilot entry */}
+          <div className="copilot-entry">
+            <div className="copilot-entry-copy">
+              <div className="copilot-entry-title">🤖 Connector Copilot</div>
+              <div className="copilot-entry-sub">粘贴 API 文档，自动生成接入配置</div>
+            </div>
+            <button className="copilot-entry-btn" onClick={() => setCopilotOpen(true)}>
+              开始接入 →
+            </button>
+          </div>
         </section>
 
         {addSourceOpen && (
           <AddSourceModal
             onClose={() => setAddSourceOpen(false)}
             onCreated={handleConnectorCreated}
+          />
+        )}
+
+        {uploadOpen && (
+          <UploadModal
+            defaultSymbol={defaultSymbol}
+            defaultMarket={defaultMarket}
+            onClose={() => setUploadOpen(false)}
+            onSuccess={(_result: UploadResult) => setUploadOpen(false)}
+          />
+        )}
+
+        {copilotOpen && (
+          <ConnectorCopilotModal
+            onClose={() => setCopilotOpen(false)}
+            onSpecGenerated={(_spec: ConnectorSpec) => {
+              setCopilotOpen(false)
+              // Refresh connector list after saving
+              fetchConnectors().then(setLiveConnectors).catch(console.error)
+            }}
           />
         )}
 
