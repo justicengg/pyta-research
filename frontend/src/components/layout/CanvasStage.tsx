@@ -1,14 +1,15 @@
 import { useCallback, useRef, useState } from 'react'
 import type { CanvasState, RoundRecord, SceneParams } from '../../lib/types/canvas'
 import type { SandboxInputEvent } from '../../lib/types/sandbox'
+import type { SourceEvent } from '../../lib/types/sourceEvents'
 import { useCanvasViewport } from '../../hooks/useCanvasViewport'
 import { useTopologyLayout, TOPOLOGY_CENTER } from '../../hooks/useTopologyLayout'
 import { AgentNode } from '../canvas/AgentNode'
 import { CanvasBackground } from '../canvas/CanvasBackground'
 import { CenterCoreCard } from '../canvas/CenterCoreCard'
+import { SourceEventPanel } from '../SourceEventPanel'
 import { EdgeLayer } from '../canvas/EdgeLayer'
 import { CommandConsole } from './CommandConsole'
-import { EventsPanel } from './EventsPanel'
 
 type AgentPos = { x: number; y: number }
 
@@ -16,7 +17,6 @@ type Props = {
   state: CanvasState
   draft: string
   onDraftChange: (value: string) => void
-  onSubmit: () => void
   isRunning: boolean
   error: string | null
   qualityLabel: string
@@ -25,6 +25,8 @@ type Props = {
   currentInputEvents: SandboxInputEvent[]
   sceneParams: SceneParams
   onSceneParamsChange: (p: SceneParams) => void
+  onSubmit: () => void
+  onSubmitWithSourceEvents: (sourceEvents: SourceEvent[]) => void
 }
 
 // Center core anchor — matches TOPOLOGY_CENTER from useTopologyLayout
@@ -34,7 +36,6 @@ export function CanvasStage({
   state,
   draft,
   onDraftChange,
-  onSubmit,
   isRunning,
   error,
   qualityLabel,
@@ -43,6 +44,8 @@ export function CanvasStage({
   currentInputEvents,
   sceneParams,
   onSceneParamsChange,
+  onSubmit,
+  onSubmitWithSourceEvents,
 }: Props) {
   const stageRef = useRef<HTMLDivElement>(null)
   const { panX, panY, zoom, zoomPercent, isPanning, stagePointerHandlers, resetViewport } =
@@ -54,8 +57,7 @@ export function CanvasStage({
   // Drag overrides — user drag moves nodes away from computed positions
   const [dragOverrides, setDragOverrides] = useState<Record<string, AgentPos>>({})
 
-  // Events panel open state (Layer 3 right-side panel)
-  const [eventsPanelOpen, setEventsPanelOpen] = useState(false)
+  const [sourceEventPanelOpen, setSourceEventPanelOpen] = useState(false)
 
   // Final positions: computed topology base + any drag overrides
   const agentPositions: Record<string, AgentPos> = {}
@@ -155,18 +157,19 @@ export function CanvasStage({
         currentRound={currentRound}
         roundHistory={roundHistory}
         currentInputEvents={currentInputEvents}
-        onEventsToggle={() => setEventsPanelOpen((v) => !v)}
+        onEventsToggle={() => setSourceEventPanelOpen((value) => !value)}
       />
 
-      {/* Layer 3 — Events side panel (viewport-anchored, slides in from right) */}
-      <EventsPanel
-        isOpen={eventsPanelOpen}
-        onClose={() => setEventsPanelOpen(false)}
-        onSelectEvent={(title) => {
-          onDraftChange(title)
-          setEventsPanelOpen(false)
-        }}
-      />
+      {sourceEventPanelOpen ? (
+        <SourceEventPanel
+          ticker={sceneParams.ticker}
+          onClose={() => setSourceEventPanelOpen(false)}
+          onConfirm={(selectedEvents) => {
+            onSubmitWithSourceEvents(selectedEvents)
+            setSourceEventPanelOpen(false)
+          }}
+        />
+      ) : null}
     </section>
   )
 }

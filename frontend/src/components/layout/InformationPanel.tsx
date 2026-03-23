@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { IconButton } from '../common/IconButton'
 import { SettingsPopover } from './SettingsPopover'
 import { AddSourceModal } from './AddSourceModal'
-import { UploadModal, type UploadResult } from './UploadModal'
-import { ConnectorCopilotModal, type ConnectorSpec } from './ConnectorCopilotModal'
 import { useTheme } from '../../hooks/useTheme'
 import { fetchConnectors, deleteConnector, type ConnectorResponse } from '../../lib/api/sources'
 import type { CanvasState, RecommendedBundle } from '../../lib/types/canvas'
@@ -16,8 +14,6 @@ type Props = {
   currentInputEvents: CanvasInputEvent[]
   sessionStatus: SandboxSessionStatus
   error: string | null
-  defaultSymbol?: string
-  defaultMarket?: string
 }
 
 function ConnectorStatusDot({ status }: { status: ConnectorResponse['status'] }) {
@@ -81,12 +77,10 @@ function BundleRow({ bundle }: { bundle: RecommendedBundle }) {
   )
 }
 
-export function InformationPanel({ collapsed, onToggle, state, currentInputEvents, sessionStatus, error, defaultSymbol, defaultMarket }: Props) {
+export function InformationPanel({ collapsed, onToggle, state, currentInputEvents, sessionStatus, error }: Props) {
   const { theme, setTheme } = useTheme()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [addSourceOpen, setAddSourceOpen] = useState(false)
-  const [uploadOpen, setUploadOpen] = useState(false)
-  const [copilotOpen, setCopilotOpen] = useState(false)
   const [liveConnectors, setLiveConnectors] = useState<ConnectorResponse[]>([])
   const gearRef = useRef<HTMLButtonElement>(null)
 

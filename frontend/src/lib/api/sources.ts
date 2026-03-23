@@ -1,4 +1,7 @@
+import type { SourceEventsResponse } from '../types/sourceEvents'
+
 const BASE = '/api/v1'
+const API_KEY = import.meta.env.VITE_API_KEY ?? ''
 
 export type ProviderInfo = {
   id: string
@@ -31,14 +34,28 @@ export type ValidateResponse = {
   error: string
 }
 
+export type FetchSourceEventsParams = {
+  symbol?: string | null
+  since?: string
+  limit?: number
+}
+
+function buildAuthHeaders(): HeadersInit {
+  return API_KEY ? { 'X-API-Key': API_KEY } : {}
+}
+
 export async function fetchCatalog(): Promise<ProviderInfo[]> {
-  const res = await fetch(`${BASE}/sources/catalog`)
+  const res = await fetch(`${BASE}/sources/catalog`, {
+    headers: buildAuthHeaders(),
+  })
   if (!res.ok) throw new Error('Failed to load catalog')
   return res.json()
 }
 
 export async function fetchConnectors(): Promise<ConnectorResponse[]> {
-  const res = await fetch(`${BASE}/sources/connectors`)
+  const res = await fetch(`${BASE}/sources/connectors`, {
+    headers: buildAuthHeaders(),
+  })
   if (!res.ok) throw new Error('Failed to load connectors')
   return res.json()
 }
@@ -50,7 +67,7 @@ export async function validateConnector(
 ): Promise<ValidateResponse> {
   const res = await fetch(`${BASE}/sources/validate`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...buildAuthHeaders() },
     body: JSON.stringify({ provider_id, api_key, custom_config }),
   })
   if (!res.ok) throw new Error('Validate request failed')
@@ -77,7 +94,7 @@ export async function createConnector(
 ): Promise<ConnectorResponse> {
   const res = await fetch(`${BASE}/sources/connectors`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...buildAuthHeaders() },
     body: JSON.stringify({ provider_id, api_key, custom_config }),
   })
   if (!res.ok) {
@@ -90,6 +107,31 @@ export async function createConnector(
 export async function deleteConnector(connector_id: string): Promise<void> {
   const res = await fetch(`${BASE}/sources/connectors/${connector_id}`, {
     method: 'DELETE',
+    headers: buildAuthHeaders(),
   })
   if (!res.ok && res.status !== 404) throw new Error('Failed to delete connector')
+}
+
+export async function fetchSourceEvents(
+  params: FetchSourceEventsParams = {},
+  signal?: AbortSignal,
+): Promise<SourceEventsResponse> {
+  const search = new URLSearchParams()
+  if (params.symbol) {
+    search.set('symbol', params.symbol)
+  }
+  if (params.since) {
+    search.set('since', params.since)
+  }
+  search.set('limit', String(params.limit ?? 20))
+
+  const res = await fetch(`${BASE}/sources/events?${search.toString()}`, {
+    headers: buildAuthHeaders(),
+    signal,
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail ?? 'Failed to load source events')
+  }
+  return res.json()
 }

@@ -3,6 +3,7 @@ import { mapRunResponseToCanvasState } from '../lib/adapters'
 import { runSandbox } from '../lib/api'
 import { mockCanvasState } from '../lib/mock/canvasState'
 import type { AgentCardData, AgentEdge, CanvasState, RecentEvent, RoundRecord, SceneParams } from '../lib/types/canvas'
+import type { SourceEvent } from '../lib/types/sourceEvents'
 import type { CanvasRunState, SandboxInputEvent } from '../lib/types/sandbox'
 
 export type SandboxRunController = {
@@ -19,6 +20,7 @@ export type SandboxRunController = {
   sceneParams: SceneParams
   setSceneParams: (p: SceneParams) => void
   submit: () => Promise<void>
+  submitWithSourceEvents: (sourceEvents: SourceEvent[]) => Promise<void>
 }
 
 type Options = {
@@ -46,12 +48,16 @@ export function useSandboxRun(options: Options = {}): SandboxRunController {
   }, [backendState])
 
   async function submit() {
+    return submitWithSourceEvents([])
+  }
+
+  async function submitWithSourceEvents(sourceEvents: SourceEvent[]) {
     const content = draft.trim()
     if (!content || isRunning) {
       return
     }
 
-    const inputEvents = buildInputEvents(content)
+    const inputEvents = mergeInputEvents(content, sourceEvents, sceneParams.ticker)
     setCurrentInputEvents(inputEvents)
     setError(null)
     setIsRunning(true)
@@ -59,14 +65,7 @@ export function useSandboxRun(options: Options = {}): SandboxRunController {
       ...current,
       leftPanel: {
         ...current.leftPanel,
-        recentEvents: inputEvents.map<RecentEvent>((event) => ({
-          title: event.eventType,
-          dimension: 'manual',
-          impactDirection: 'neutral',
-          impactStrength: 0,
-          summary: event.content,
-          syncedAt: '方才',
-        })),
+        recentEvents: inputEvents.map(toRecentEvent),
       },
     }))
 
@@ -127,6 +126,7 @@ export function useSandboxRun(options: Options = {}): SandboxRunController {
     sceneParams,
     setSceneParams,
     submit,
+    submitWithSourceEvents,
   }
 }
 
@@ -144,6 +144,43 @@ function buildInputEvents(content: string): SandboxInputEvent[] {
       },
     },
   ]
+}
+
+export function buildInputEventsFromSources(
+  events: SourceEvent[],
+  symbol: string | null,
+): SandboxInputEvent[] {
+  return events.map((event) => ({
+    eventId: event.id,
+    eventType: event.dimension ?? 'news',
+    content: event.summary ? `${event.title}\n\n${event.summary}` : event.title,
+    source: event.provider_id,
+    timestamp: event.published_at ?? event.ingested_at,
+    symbol,
+    metadata: {
+      provider_id: event.provider_id,
+      connector_id: event.connector_id,
+      dimension: event.dimension,
+      impact_direction: event.impact_direction,
+      impact_strength: event.impact_strength,
+      ingested_at: event.ingested_at,
+    },
+  }))
+}
+
+export function mergeInputEvents(
+  manualContent: string,
+  sourceEvents: SourceEvent[],
+  symbol: string | null,
+): SandboxInputEvent[] {
+  const sourceInputEvents = buildInputEventsFromSources(sourceEvents, symbol)
+  const manualInputEvents = manualContent.trim()
+    ? buildInputEvents(manualContent).map((event) => ({
+        ...event,
+        symbol,
+      }))
+    : []
+  return [...sourceInputEvents, ...manualInputEvents]
 }
 
 // Summarize past rounds into a compact context block for the LLM
@@ -219,16 +256,20 @@ function mergeCanvasState(
     commandDraft: mockCanvasState.commandDraft,
     leftPanel: {
       ...mockCanvasState.leftPanel,
-      recentEvents: inputEvents.map<RecentEvent>((event) => ({
-        title: event.eventType,
-        dimension: 'manual',
-        impactDirection: 'neutral',
-        impactStrength: 0,
-        summary: event.content,
-        syncedAt: '刚刚',
-      })),
+      recentEvents: inputEvents.map(toRecentEvent),
     },
     agents: [...baseAgents, ...childNodes],
     edges: [...mockCanvasState.edges, ...derivationEdges],
+  }
+}
+
+function toRecentEvent(event: SandboxInputEvent): RecentEvent {
+  return {
+    title: event.content.split('\n')[0] ?? event.eventType,
+    dimension: String(event.metadata?.dimension ?? event.eventType ?? 'manual'),
+    impactDirection: (event.metadata?.impact_direction as RecentEvent['impactDirection'] | undefined) ?? 'neutral',
+    impactStrength: Number(event.metadata?.impact_strength ?? 0),
+    summary: event.content,
+    syncedAt: '刚刚',
   }
 }

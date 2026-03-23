@@ -253,6 +253,42 @@ class TradeLog(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
 
+class SourceConnector(Base):
+    __tablename__ = 'source_connector'
+    __table_args__ = (
+        Index('ix_source_connector_created_at', 'created_at'),
+    )
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    provider_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    api_key: Mapped[str] = mapped_column(Text, nullable=False)
+    custom_config: Mapped[dict | None] = mapped_column(JSON)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default='healthy', server_default='healthy')
+    error_message: Mapped[str | None] = mapped_column(Text)
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
+class SourceEvent(Base):
+    __tablename__ = 'source_event'
+    __table_args__ = (
+        Index('ix_source_event_ingested', 'ingested_at'),
+        Index('ix_source_event_published', 'published_at'),
+    )
+
+    id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    connector_id: Mapped[str] = mapped_column(ForeignKey('source_connector.id', ondelete='CASCADE'), nullable=False)
+    provider_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    title: Mapped[str] = mapped_column(Text, nullable=False)
+    summary: Mapped[str | None] = mapped_column(Text)
+    dimension: Mapped[str | None] = mapped_column(String(64))
+    impact_direction: Mapped[str] = mapped_column(String(16), nullable=False, default='neutral', server_default='neutral')
+    impact_strength: Mapped[float] = mapped_column(Numeric(6, 3), nullable=False, default=0.5, server_default='0.5')
+    symbols: Mapped[list[str] | None] = mapped_column(JSON)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ingested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+
 # Import sandbox memory models so they share the main SQLAlchemy metadata registry.
 from src.sandbox.schemas.memory import (  # noqa: E402,F401
     AgentSnapshot,

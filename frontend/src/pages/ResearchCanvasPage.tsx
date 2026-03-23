@@ -11,7 +11,6 @@ export function ResearchCanvasPage() {
     backendState,
     draft,
     setDraft,
-    submit,
     isRunning,
     error,
     qualityLabel,
@@ -20,6 +19,8 @@ export function ResearchCanvasPage() {
     roundHistory,
     sceneParams,
     setSceneParams,
+    submit,
+    submitWithSourceEvents,
   } = useSandboxRun({
     initialDraft: mockCanvasState.commandDraft,
   })
@@ -33,14 +34,11 @@ export function ResearchCanvasPage() {
         currentInputEvents={currentInputEvents}
         sessionStatus={backendState?.sessionStatus ?? (isRunning ? 'running' : 'initializing')}
         error={error}
-        defaultSymbol={sceneParams.ticker}
-        defaultMarket={sceneParams.market}
       />
       <CanvasStage
         state={canvasState}
         draft={draft}
         onDraftChange={setDraft}
-        onSubmit={submit}
         isRunning={isRunning}
         error={error}
         qualityLabel={qualityLabel}
@@ -49,6 +47,8 @@ export function ResearchCanvasPage() {
         currentInputEvents={currentInputEvents}
         sceneParams={sceneParams}
         onSceneParamsChange={setSceneParams}
+        onSubmit={() => void submit()}
+        onSubmitWithSourceEvents={(events) => void submitWithSourceEvents(events)}
       />
     </div>
   )
