@@ -24,7 +24,7 @@ function ConnectorStatusDot({ status }: { status: ConnectorResponse['status'] })
   const colorMap: Record<string, string> = {
     healthy: 'var(--accent)',
     syncing: 'var(--orange)',
-    error: '#c44949',
+    error: 'var(--down)',
     inactive: 'var(--text-3)',
   }
   return (

@@ -1170,8 +1170,8 @@
   padding-left: 16px;
 }
 
-.status-live .status-chip-dot { background: var(--accent); }
-.status-degraded .status-chip-dot { background: #c44949; }
+.status-live .status-chip-dot { background: var(--live); }
+.status-degraded .status-chip-dot { background: var(--warning); }
 
 .hint-news { left: 332px; top: 244px; }
 .hint-institution { left: 532px; top: 196px; }
@@ -1350,7 +1350,7 @@
 }
 
 .connector-delete-btn:hover {
-  color: #c44949;
+  color: var(--down);
 }
 
 .section-empty {
@@ -1606,8 +1606,8 @@ select.field-input {
 }
 
 .validate-result.err {
-  background: color-mix(in srgb, #c44949 10%, transparent);
-  color: #c44949;
+  background: color-mix(in srgb, var(--down) 10%, transparent);
+  color: var(--down);
 }
 
 /* Footer buttons */
@@ -1788,8 +1788,8 @@ select.field-input {
   margin-left: auto;
 }
 .cmd-quality--complete { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
-.cmd-quality--partial  { background: color-mix(in srgb, var(--orange) 12%, transparent); color: var(--orange); }
-.cmd-quality--degraded { background: color-mix(in srgb, #c44949 10%, transparent); color: #c44949; }
+.cmd-quality--partial  { background: color-mix(in srgb, var(--warning) 12%, transparent); color: var(--warning); }
+.cmd-quality--degraded { background: color-mix(in srgb, var(--warning) 10%, transparent); color: var(--warning); }
 
 /* Two-column body */
 .cmd-body {
@@ -1947,9 +1947,9 @@ select.field-input {
 }
 
 .sentiment-badge--bullish {
-  background: color-mix(in srgb, var(--lime) 20%, transparent);
-  color: color-mix(in srgb, var(--lime) 85%, #000);
-  border: 1px solid color-mix(in srgb, var(--lime) 40%, transparent);
+  background: color-mix(in srgb, var(--up) 15%, transparent);
+  color: var(--up);
+  border: 1px solid color-mix(in srgb, var(--up) 35%, transparent);
 }
 
 .sentiment-badge--neutral {
@@ -1959,9 +1959,9 @@ select.field-input {
 }
 
 .sentiment-badge--bearish {
-  background: color-mix(in srgb, var(--orange) 15%, transparent);
-  color: var(--orange);
-  border: 1px solid color-mix(in srgb, var(--orange) 35%, transparent);
+  background: color-mix(in srgb, var(--down) 15%, transparent);
+  color: var(--down);
+  border: 1px solid color-mix(in srgb, var(--down) 35%, transparent);
 }
 
 /* Confidence % number */
@@ -2136,8 +2136,8 @@ select.field-input {
 }
 
 .round-quality--degraded {
-  background: color-mix(in srgb, #c44949 10%, transparent);
-  color: #c44949;
+  background: color-mix(in srgb, var(--down) 10%, transparent);
+  color: var(--down);
 }
 
 /* ── Prev round context hint ─────────────────────────────────────── */
@@ -2309,4 +2309,56 @@ select.field-input {
 .ep-footer-hint {
   font-size: 10px;
   color: var(--text-3);
+}
+
+/* ── CenterCoreCard market data colours ─────────────────────────── */
+.core-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: var(--sp-1) 0;
+}
+.core-price {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+}
+.core-change {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.core-change--up   { color: var(--up); }
+.core-change--down { color: var(--down); }
+
+.core-stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-2);
+}
+.core-stat {
+  font-size: 10px;
+  color: var(--text-3);
+}
+.core-stat strong {
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+.core-data-shimmer {
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--surface-subtle) 25%, var(--border-subtle) 50%, var(--surface-subtle) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+  margin: var(--sp-1) 0;
+  width: 70%;
+}
+
+.core-data-error {
+  font-size: 10px;
+  color: var(--text-3);
+  font-style: italic;
 }

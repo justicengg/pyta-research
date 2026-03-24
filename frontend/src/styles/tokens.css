@@ -44,16 +44,20 @@
   --text-2: hsl(25, 8%, 36%);
   --text-3: hsl(25, 6%, 56%);
 
-  --accent: hsl(161, 72%, 28%);
-  --orange: hsl(24, 65%, 50%);
-  --lime: hsl(72, 76%, 58%);
-  --lime-glow: hsla(72, 76%, 58%, 0.15);
+  /* ── Brand & semantic colours (culture-neutral, no red/green) ── */
+  --accent:  hsl(213, 94%, 60%);   /* 品蓝  #3B82F6 — primary accent        */
+  --up:      hsl(210, 94%, 68%);   /* 冰蓝  #60A5FA — positive / price up   */
+  --down:    hsl(239, 84%, 67%);   /* 幽紫  #818CF8 — negative / price down */
+  --live:    hsl(199, 89%, 48%);   /* 亮青  #38BDF8 — live / running status */
+  --warning: hsl(43,  96%, 56%);   /* 琥珀  #FBBF24 — warning / degraded    */
+  --orange:  hsl(43,  96%, 56%);   /* alias → --warning (backwards compat)  */
 
-  --tint-traditional: hsl(161, 38%, 96%);
-  --tint-offshore: hsl(218, 38%, 96%);
-  --tint-retail: hsl(24, 45%, 96%);
-  --tint-quant: hsl(258, 32%, 96%);
-  --tint-short-term: hsl(145, 32%, 96%);
+  /* Agent role tints — light theme */
+  --tint-traditional: hsl(213, 38%, 96%);
+  --tint-offshore:    hsl(218, 38%, 96%);
+  --tint-retail:      hsl(239, 32%, 96%);
+  --tint-quant:       hsl(258, 32%, 96%);
+  --tint-short-term:  hsl(199, 32%, 96%);
 
   --grid-line: rgba(80, 68, 52, 0.055);
   --canvas-bg: hsl(40, 14%, 98%);
@@ -80,11 +84,12 @@
   --grid-line: rgba(200, 190, 170, 0.04);
   --canvas-bg: hsl(222, 14%, 10%);
 
-  --tint-traditional: hsl(161, 18%, 14%);
-  --tint-offshore: hsl(218, 18%, 14%);
-  --tint-retail: hsl(24, 20%, 14%);
-  --tint-quant: hsl(258, 14%, 14%);
-  --tint-short-term: hsl(145, 14%, 14%);
+  /* Agent role tints — dark theme */
+  --tint-traditional: hsl(213, 18%, 14%);
+  --tint-offshore:    hsl(218, 18%, 14%);
+  --tint-retail:      hsl(239, 14%, 14%);
+  --tint-quant:       hsl(258, 14%, 14%);
+  --tint-short-term:  hsl(199, 14%, 14%);
 
   --shadow-sm: 0 1px 4px hsl(0 0% 0% / 0.2), 0 1px 2px hsl(0 0% 0% / 0.15);
   --shadow-md: 0 4px 16px hsl(0 0% 0% / 0.25), 0 2px 6px hsl(0 0% 0% / 0.15);
