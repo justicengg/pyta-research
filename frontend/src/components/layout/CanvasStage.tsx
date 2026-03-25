@@ -80,14 +80,7 @@ export function CanvasStage({
       {/* Zone A — Context bar */}
       <div className="stage-head">
         <div className="stage-head-left">
-          <div className="eyebrow">融合方向</div>
           <h2>多 Agent 沙盘推演</h2>
-        </div>
-        <div className="chip-row">
-          <span className={`chip ${isRunning ? 'chip-running' : ''}`}>
-            {isRunning ? '运行中' : '就绪'}
-          </span>
-          <span className="chip quality-chip">{qualityLabel}</span>
         </div>
       </div>
 

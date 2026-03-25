@@ -40,14 +40,16 @@ export function MeridianGridView({ agents, isRunning, sceneParams }: MeridianGri
     <div className={`meridian-grid${isRunning ? ' meridian-grid--running' : ''}`}>
       {/* Core card column */}
       <div className="meridian-core-col">
-        <div className="meridian-core-ticker">{sceneParams.ticker}</div>
-        <div className="meridian-core-meta">
-          <span className="meridian-core-badge">{sceneParams.market}</span>
-          <span className="meridian-core-badge">{sceneParams.timeHorizon}</span>
-          <span className="meridian-core-badge">{ring1Agents.length} 个 Agent</span>
-        </div>
-        <div className="meridian-core-quality">
-          对比视图
+        <div className="meridian-col-header meridian-core-header">
+          <div className="meridian-core-ticker">{sceneParams.ticker}</div>
+          <div className="meridian-col-meta">
+            <span className="meridian-core-badge">{sceneParams.market}</span>
+            <span className="meridian-core-badge">{sceneParams.timeHorizon}</span>
+          </div>
+          <div className="meridian-conf-bar">
+            <div className="meridian-conf-fill meridian-conf-fill--neutral" style={{ width: '100%' }} />
+          </div>
+          <div className="meridian-conf-value">{ring1Agents.length} 个 Agent</div>
         </div>
       </div>
 
