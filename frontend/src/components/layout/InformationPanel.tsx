@@ -134,8 +134,8 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
     <aside className="sidebar">
       <div className="sidebar-head">
         <div>
-          <div className="eyebrow">Layer 1</div>
-          <h2>信息层</h2>
+          <div className="eyebrow">信源管理</div>
+          <h2>情报台</h2>
         </div>
         <div className="head-actions">
           <div style={{ position: 'relative' }}>
@@ -221,7 +221,13 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
           {/* Connector Copilot entry */}
           <div className="copilot-entry">
             <div className="copilot-entry-copy">
-              <div className="copilot-entry-title">🤖 Connector Copilot</div>
+              <div className="copilot-entry-title">
+                <svg className="copilot-entry-icon" width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+                  <circle cx="6.5" cy="6.5" r="2" fill="currentColor" opacity="0.9"/>
+                  <path d="M6.5 1v1.5M6.5 10.5V12M1 6.5h1.5M10.5 6.5H12M2.55 2.55l1.06 1.06M9.39 9.39l1.06 1.06M2.55 10.45l1.06-1.06M9.39 3.61l1.06-1.06" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                </svg>
+                智能接入助手
+              </div>
               <div className="copilot-entry-sub">粘贴 API 文档，自动生成接入配置</div>
             </div>
             <button className="copilot-entry-btn" type="button" onClick={() => setCopilotOpen(true)}>
