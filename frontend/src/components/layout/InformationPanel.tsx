@@ -134,8 +134,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
     <aside className="sidebar">
       <div className="sidebar-head">
         <div>
-          <div className="eyebrow">Layer 1</div>
-          <h2>信息层</h2>
+          <h2>感知中枢</h2>
         </div>
         <div className="head-actions">
           <div style={{ position: 'relative' }}>
@@ -160,7 +159,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
 
       <div className="sidebar-summary">
         <div className="sidebar-summary-copy">
-          <span className="sidebar-summary-label">Research layer</span>
+          <span className="sidebar-summary-label">研究对象</span>
           <strong className="sidebar-summary-title">
             {defaultSymbol ? `${defaultSymbol} · ${defaultMarket}` : '研究工作台'}
           </strong>
@@ -173,7 +172,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
             <span className={`sidebar-summary-pill-dot ${sessionStatus === 'running' ? 'running' : ''}`} />
             {sessionStatus === 'running' ? '运行中' : sessionStatus}
           </span>
-          <span className="sidebar-summary-pill">{liveConnectors.length} sources</span>
+          <span className="sidebar-summary-pill">{liveConnectors.length} 个来源</span>
         </div>
       </div>
 
@@ -190,7 +189,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
         {/* SOURCES */}
         <section className="section">
           <div className="section-label-row">
-            <span className="section-label">Sources</span>
+            <span className="section-label">数据来源</span>
             <div style={{ display: 'flex', gap: 'var(--sp-2)' }}>
               <button
                 className="section-action-btn"
@@ -221,7 +220,13 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
           {/* Connector Copilot entry */}
           <div className="copilot-entry">
             <div className="copilot-entry-copy">
-              <div className="copilot-entry-title">🤖 Connector Copilot</div>
+              <div className="copilot-entry-title">
+                <svg className="copilot-entry-icon" width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+                  <circle cx="6.5" cy="6.5" r="2" fill="currentColor" opacity="0.9"/>
+                  <path d="M6.5 1v1.5M6.5 10.5V12M1 6.5h1.5M10.5 6.5H12M2.55 2.55l1.06 1.06M9.39 9.39l1.06 1.06M2.55 10.45l1.06-1.06M9.39 3.61l1.06-1.06" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                </svg>
+                智能接入助手
+              </div>
               <div className="copilot-entry-sub">粘贴 API 文档，自动生成接入配置</div>
             </div>
             <button className="copilot-entry-btn" type="button" onClick={() => setCopilotOpen(true)}>
@@ -259,7 +264,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
 
         {/* RECOMMENDED */}
         <section className="section">
-          <div className="section-label">Recommended</div>
+          <div className="section-label">推荐数据源</div>
           {state.leftPanel.recommendedBundles.map((bundle) => (
             <BundleRow key={bundle.name} bundle={bundle} />
           ))}
@@ -267,7 +272,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
 
         {/* SESSION */}
         <section className="section">
-          <div className="section-label">Session</div>
+          <div className="section-label">会话状态</div>
           <div className="session-row">
             <span className={`session-status-dot ${sessionStatus === 'running' ? 'running' : ''}`} />
             <span className="session-status-text">
@@ -281,11 +286,11 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
 
         {/* EXTERNAL AGENT */}
         <section className="section">
-          <div className="section-label">External Agent</div>
+          <div className="section-label">外部智能体</div>
           <div className="inline-entry">
             <div className="inline-entry-main">
-              <span className="inline-entry-title">外部 Agent 接入口</span>
-              <span className="inline-entry-sub">后续支持用户自定义 Agent 与内置 Agent 协作接入</span>
+              <span className="inline-entry-title">外部智能体接入口</span>
+              <span className="inline-entry-sub">后续支持用户自定义智能体与内置智能体协作接入</span>
             </div>
             <span className="status-pill warning">预留</span>
           </div>

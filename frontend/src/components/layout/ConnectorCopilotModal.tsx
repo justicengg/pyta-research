@@ -60,12 +60,8 @@ export function ConnectorCopilotModal({ onClose, onSpecGenerated }: Props) {
     >
       <div className="copilot-modal" onClick={(e) => e.stopPropagation()}>
         <div className="copilot-modal-title">
-          <span>接入新数据源 — Connector Copilot</span>
-          <button
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-3)', fontSize: 18 }}
-            onClick={onClose}
-            aria-label="关闭"
-          >×</button>
+          <span>接入新数据源</span>
+          <button className="copilot-modal-close" onClick={onClose} aria-label="关闭">×</button>
         </div>
 
         <textarea
@@ -76,34 +72,14 @@ export function ConnectorCopilotModal({ onClose, onSpecGenerated }: Props) {
         />
 
         <input
-          style={{
-            background: 'var(--surface-subtle)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--r-md)',
-            padding: '6px 10px',
-            fontSize: 'var(--fs-xs)',
-            color: 'var(--text-1)',
-            width: '100%',
-            boxSizing: 'border-box',
-          }}
-          placeholder="Provider 提示（可选，如 alpha_vantage）"
+          className="copilot-hint-input"
+          placeholder="服务商提示（可选，如 alpha_vantage）"
           value={providerHint}
           onChange={(e) => setProviderHint(e.target.value)}
         />
 
         <button
-          style={{
-            background: 'var(--accent)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 'var(--r-md)',
-            padding: '8px 16px',
-            fontSize: 'var(--fs-xs)',
-            fontWeight: 600,
-            cursor: generating || !docText.trim() ? 'not-allowed' : 'pointer',
-            opacity: generating || !docText.trim() ? 0.5 : 1,
-            alignSelf: 'flex-start',
-          }}
+          className="copilot-generate-btn"
           onClick={handleGenerate}
           disabled={generating || !docText.trim()}
         >
@@ -111,18 +87,18 @@ export function ConnectorCopilotModal({ onClose, onSpecGenerated }: Props) {
         </button>
 
         {genError && (
-          <p style={{ fontSize: 'var(--fs-xs)', color: '#c44949', margin: 0 }}>生成失败：{genError}</p>
+          <p className="copilot-error">生成失败：{genError}</p>
         )}
 
         {spec && (
           <>
             <div className="copilot-spec-result">
               <div className="copilot-spec-field">
-                <label>Provider</label>
+                <label>服务商</label>
                 <span>{spec.display_name} ({spec.provider_id})</span>
               </div>
               <div className="copilot-spec-field">
-                <label>Base URL</label>
+                <label>接口地址</label>
                 <span>{spec.base_url}</span>
               </div>
               <div className="copilot-spec-field">
@@ -130,19 +106,19 @@ export function ConnectorCopilotModal({ onClose, onSpecGenerated }: Props) {
                 <span>{spec.auth_type}{spec.auth_param ? ` (${spec.auth_param})` : ''}</span>
               </div>
               {spec.endpoints.length > 0 && (
-                <div style={{ marginTop: 'var(--sp-2)' }}>
-                  <div style={{ color: 'var(--text-3)', fontSize: 10, marginBottom: 4 }}>端点列表</div>
+                <div className="copilot-spec-section">
+                  <div className="copilot-spec-section-label">端点列表</div>
                   {spec.endpoints.map((ep, i) => (
                     <div key={i} className="copilot-spec-field">
-                      <label style={{ minWidth: 60 }}>{ep.method}</label>
-                      <span>{ep.name} — <code style={{ fontSize: 10 }}>{ep.path}</code></span>
+                      <label className="copilot-spec-method">{ep.method}</label>
+                      <span>{ep.name} — <code className="copilot-spec-code">{ep.path}</code></span>
                     </div>
                   ))}
                 </div>
               )}
               {Object.keys(spec.field_mapping).length > 0 && (
-                <div style={{ marginTop: 'var(--sp-2)' }}>
-                  <div style={{ color: 'var(--text-3)', fontSize: 10, marginBottom: 4 }}>字段映射</div>
+                <div className="copilot-spec-section">
+                  <div className="copilot-spec-section-label">字段映射</div>
                   {Object.entries(spec.field_mapping).map(([k, v]) => (
                     <div key={k} className="copilot-spec-field">
                       <label>{k}</label><span>{v}</span>
@@ -151,26 +127,11 @@ export function ConnectorCopilotModal({ onClose, onSpecGenerated }: Props) {
                 </div>
               )}
               {spec.notes && (
-                <div style={{ marginTop: 'var(--sp-2)', fontSize: 10, color: 'var(--text-3)' }}>
-                  {spec.notes}
-                </div>
+                <div className="copilot-spec-notes">{spec.notes}</div>
               )}
             </div>
 
-            <button
-              style={{
-                background: 'var(--accent)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 'var(--r-md)',
-                padding: '8px 16px',
-                fontSize: 'var(--fs-xs)',
-                fontWeight: 600,
-                cursor: 'pointer',
-                alignSelf: 'flex-start',
-              }}
-              onClick={handleSave}
-            >
+            <button className="copilot-generate-btn" onClick={handleSave}>
               保存并接入 →
             </button>
           </>
