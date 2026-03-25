@@ -160,7 +160,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
 
       <div className="sidebar-summary">
         <div className="sidebar-summary-copy">
-          <span className="sidebar-summary-label">研究层</span>
+          <span className="sidebar-summary-label">研究对象</span>
           <strong className="sidebar-summary-title">
             {defaultSymbol ? `${defaultSymbol} · ${defaultMarket}` : '研究工作台'}
           </strong>
@@ -265,7 +265,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
 
         {/* RECOMMENDED */}
         <section className="section">
-          <div className="section-label">推荐配置</div>
+          <div className="section-label">推荐数据源</div>
           {state.leftPanel.recommendedBundles.map((bundle) => (
             <BundleRow key={bundle.name} bundle={bundle} />
           ))}
@@ -287,11 +287,11 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
 
         {/* EXTERNAL AGENT */}
         <section className="section">
-          <div className="section-label">外部 Agent</div>
+          <div className="section-label">外部智能体</div>
           <div className="inline-entry">
             <div className="inline-entry-main">
-              <span className="inline-entry-title">外部 Agent 接入口</span>
-              <span className="inline-entry-sub">后续支持用户自定义 Agent 与内置 Agent 协作接入</span>
+              <span className="inline-entry-title">外部智能体接入口</span>
+              <span className="inline-entry-sub">后续支持用户自定义智能体与内置智能体协作接入</span>
             </div>
             <span className="status-pill warning">预留</span>
           </div>
