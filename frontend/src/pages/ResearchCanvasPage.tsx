@@ -20,13 +20,12 @@ export function ResearchCanvasPage() {
     sceneParams,
     setSceneParams,
     submit,
-    submitWithSourceEvents,
   } = useSandboxRun({
     initialDraft: mockCanvasState.commandDraft,
   })
 
   return (
-    <div className={`shell ${leftCollapsed ? 'left-collapsed' : ''}`}>
+    <div className={`shell research-canvas-shell ${leftCollapsed ? 'left-collapsed' : ''}`}>
       <InformationPanel
         collapsed={leftCollapsed}
         onToggle={() => setLeftCollapsed((value) => !value)}
@@ -34,6 +33,8 @@ export function ResearchCanvasPage() {
         currentInputEvents={currentInputEvents}
         sessionStatus={backendState?.sessionStatus ?? (isRunning ? 'running' : 'initializing')}
         error={error}
+        defaultSymbol={sceneParams.ticker}
+        defaultMarket={sceneParams.market}
       />
       <CanvasStage
         state={canvasState}
@@ -48,7 +49,6 @@ export function ResearchCanvasPage() {
         sceneParams={sceneParams}
         onSceneParamsChange={setSceneParams}
         onSubmit={() => void submit()}
-        onSubmitWithSourceEvents={(events) => void submitWithSourceEvents(events)}
       />
     </div>
   )

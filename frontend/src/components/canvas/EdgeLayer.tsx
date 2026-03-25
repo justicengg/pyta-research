@@ -85,9 +85,10 @@ type EdgeLineProps = {
   toPos: AgentPos
   fromIsCenter: boolean
   toIsCenter: boolean
+  edgeIndex: number
 }
 
-function EdgeLine({ edge, fromPos, toPos, fromIsCenter, toIsCenter }: EdgeLineProps) {
+function EdgeLine({ edge, fromPos, toPos, fromIsCenter, toIsCenter, edgeIndex }: EdgeLineProps) {
   const [hovered, setHovered] = useState(false)
 
   const fc = fromIsCenter ? getCenterAnchor(fromPos) : getCardCenter(fromPos)
@@ -157,6 +158,7 @@ function EdgeLine({ edge, fromPos, toPos, fromIsCenter, toIsCenter }: EdgeLinePr
         fill="none"
         stroke="transparent"
         strokeWidth={12}
+        className="canvas-edge-line canvas-edge-line__hit"
         style={{ pointerEvents: 'stroke', cursor: 'default' }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -171,7 +173,13 @@ function EdgeLine({ edge, fromPos, toPos, fromIsCenter, toIsCenter }: EdgeLinePr
         strokeDasharray={dashArray}
         opacity={opacity}
         markerEnd={`url(#${arrowId})`}
-        style={{ pointerEvents: 'none', transition: 'stroke-width 0.15s, opacity 0.15s' }}
+        className={`canvas-edge-line canvas-edge-line--${edge.type}`}
+        data-edge-type={edge.type}
+        style={{
+          pointerEvents: 'none',
+          transition: 'stroke-width 0.15s, opacity 0.15s',
+          animationDelay: `${edgeIndex * 160}ms`,
+        }}
       />
 
       {/* Hover label */}
@@ -205,7 +213,7 @@ export function EdgeLayer({ edges, agentPositions, centerPos }: Props) {
         pointerEvents: 'none',
       }}
     >
-      {edges.map((edge) => {
+      {edges.map((edge, index) => {
         const fromIsCenter = edge.from === 'center'
         const toIsCenter   = edge.to   === 'center'
         const fromPos = fromIsCenter ? centerPos : agentPositions[edge.from]
@@ -219,6 +227,7 @@ export function EdgeLayer({ edges, agentPositions, centerPos }: Props) {
             toPos={toPos}
             fromIsCenter={fromIsCenter}
             toIsCenter={toIsCenter}
+            edgeIndex={index}
           />
         )
       })}

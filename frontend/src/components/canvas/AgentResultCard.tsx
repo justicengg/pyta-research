@@ -33,7 +33,14 @@ export function AgentResultCard({ agent, isRunning = false }: Props) {
   }
 
   return (
-    <div className="agent-result-card fade-in-card">
+    <div
+      className={`agent-result-card fade-in-card agent-result-card--${agent.status}`}
+      data-status={agent.status}
+      data-expanded={expanded}
+      data-running={isRunning}
+      data-ring={agent.ring ?? 1}
+      style={{ '--node-ring': agent.ring ?? 1 } as React.CSSProperties}
+    >
       {/* Row 1: sentiment badge + confidence value */}
       <div className="arc-header">
         <span className={`sentiment-badge sentiment-badge--${agent.sentiment}`}>

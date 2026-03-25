@@ -10,7 +10,6 @@ type Props = {
   currentRound: number
   roundHistory: RoundRecord[]
   currentInputEvents: SandboxInputEvent[]
-  onEventsToggle: () => void
 }
 
 export function CommandConsole({
@@ -22,7 +21,6 @@ export function CommandConsole({
   currentRound,
   roundHistory,
   currentInputEvents,
-  onEventsToggle,
 }: Props) {
   const hasHistory = roundHistory.length > 0
   const lastRound = roundHistory[roundHistory.length - 1]
@@ -64,18 +62,13 @@ export function CommandConsole({
           <p className="cmd-context-label">上下文</p>
           <div className="cmd-chips">
 
-            {/* Events chip — toggles EventsPanel */}
-            <button
-              className="cmd-chip cmd-chip--events cmd-chip--btn"
-              onClick={onEventsToggle}
-              title="查看事件上下文"
-            >
+            <span className="cmd-chip cmd-chip--events" title="当前输入事件">
               <span className="cmd-chip-dot" />
-              事件
+              输入事件
               {currentInputEvents.length > 0 && (
                 <span className="cmd-chip-count">{currentInputEvents.length}</span>
               )}
-            </button>
+            </span>
 
             {/* History chip — shows previous rounds */}
             {hasHistory && (
