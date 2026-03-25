@@ -739,6 +739,131 @@
   box-shadow: inset 1px 0 0 color-mix(in srgb, var(--border) 45%, transparent);
 }
 
+.prompt-mascot {
+  position: absolute;
+  right: 36px;
+  bottom: 154px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+  z-index: 14;
+}
+
+.prompt-mascot--visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.prompt-mascot--traditional {
+  right: 30px;
+}
+
+.prompt-mascot--traditional .prompt-mascot-bubble {
+  max-width: 196px;
+  padding: 7px 12px;
+}
+
+.prompt-mascot--traditional .prompt-mascot-orb {
+  width: 84px;
+  height: 84px;
+  filter: drop-shadow(0 8px 14px color-mix(in srgb, var(--accent) 14%, transparent));
+}
+
+.prompt-mascot--ai_native .prompt-mascot-bubble {
+  border-color: color-mix(in srgb, var(--live) 18%, var(--border-subtle));
+  box-shadow: var(--shadow-md), 0 0 0 1px color-mix(in srgb, var(--live) 10%, transparent);
+}
+
+.prompt-mascot--soft .prompt-mascot-bubble {
+  max-width: 188px;
+  padding: 7px 12px;
+}
+
+.prompt-mascot--soft .prompt-mascot-orb {
+  width: 80px;
+  height: 80px;
+}
+
+.prompt-mascot-bubble {
+  max-width: 220px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border-subtle));
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  color: var(--text-1);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(14px);
+}
+
+.prompt-mascot-bubble span {
+  display: block;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: var(--lh-tight);
+}
+
+.prompt-mascot-pair {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  padding-right: 12px;
+}
+
+.prompt-mascot-orb {
+  width: 92px;
+  height: 92px;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--accent) 18%, transparent));
+  opacity: 0;
+  transform: translate3d(0, 14px, 0) scale(0.92);
+}
+
+.prompt-mascot-orb--playful {
+  background-image: url('/orb-playful.png');
+  z-index: 2;
+}
+
+.prompt-mascot-orb--tsundere {
+  background-image: url('/orb-tsundere.png');
+  margin-left: -14px;
+  z-index: 1;
+}
+
+.prompt-mascot--visible .prompt-mascot-bubble {
+  animation: prompt-bubble-in 3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.prompt-mascot--visible .prompt-mascot-orb--playful {
+  animation: mascot-playful-in 3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.prompt-mascot--traditional.prompt-mascot--visible .prompt-mascot-orb--playful {
+  animation: mascot-traditional-in 3.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.prompt-mascot--visible .prompt-mascot-orb--tsundere {
+  animation: mascot-tsundere-in 3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.prompt-mascot--ai_native.prompt-mascot--visible .prompt-mascot-orb--tsundere {
+  animation: mascot-ai-native-in 3.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.prompt-mascot--idle_nudge {
+  bottom: 148px;
+}
+
+.prompt-mascot--first_complete .prompt-mascot-bubble {
+  border-color: color-mix(in srgb, var(--live) 16%, var(--border-subtle));
+}
+
 .stage-head {
   display: flex;
   justify-content: space-between;
@@ -1351,6 +1476,85 @@
   padding: var(--sp-3) var(--sp-6) var(--sp-4);
   border-top: 1px solid var(--border-subtle);
   background: var(--surface-subtle);
+}
+
+@keyframes prompt-bubble-in {
+  0%, 100% {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0) scale(0.98);
+  }
+  12%, 82% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes mascot-playful-in {
+  0%, 100% {
+    opacity: 0;
+    transform: translate3d(10px, 14px, 0) scale(0.9);
+  }
+  16% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  74% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes mascot-traditional-in {
+  0%, 100% {
+    opacity: 0;
+    transform: translate3d(6px, 12px, 0) scale(0.94);
+  }
+  18% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  78% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes mascot-tsundere-in {
+  0%, 100% {
+    opacity: 0;
+    transform: translate3d(22px, 18px, 0) scale(0.88);
+  }
+  26% {
+    opacity: 0;
+    transform: translate3d(22px, 18px, 0) scale(0.88);
+  }
+  42% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  74% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes mascot-ai-native-in {
+  0%, 100% {
+    opacity: 0;
+    transform: translate3d(18px, 16px, 0) scale(0.9);
+  }
+  24% {
+    opacity: 0;
+    transform: translate3d(18px, 16px, 0) scale(0.9);
+  }
+  38% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  76% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
 }
 
 /* ── Event Chips bar ─────────────────────────────────────────────── */

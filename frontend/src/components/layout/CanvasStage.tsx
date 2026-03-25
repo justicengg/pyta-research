@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CanvasState, RoundRecord, SceneParams } from '../../lib/types/canvas'
 import type { SandboxInputEvent } from '../../lib/types/sandbox'
 import { useCanvasViewport } from '../../hooks/useCanvasViewport'
@@ -11,6 +11,14 @@ import { EdgeLayer } from '../canvas/EdgeLayer'
 import { MeridianGridView } from '../canvas/MeridianGridView'
 import '../../styles/meridian-grid.css'
 import { CommandConsole } from './CommandConsole'
+import { PromptMascot } from './PromptMascot'
+import {
+  ORB_PROFILES,
+  pickOrbMessage,
+  resolveOrbMode,
+  resolveOrbVariant,
+  type OrbTrigger,
+} from '../../lib/orb/promptProfiles'
 
 type AgentPos = { x: number; y: number }
 
@@ -54,6 +62,14 @@ export function CanvasStage({
   const computedPositions = useTopologyLayout(state.agents)
 
   const [viewMode, setViewMode] = useState<'topology' | 'meridian'>('topology')
+  const [showPromptMascot, setShowPromptMascot] = useState(false)
+  const [promptMessage, setPromptMessage] = useState('说吧，今天研究什么')
+  const [promptTrigger, setPromptTrigger] = useState<OrbTrigger>('first_load')
+  const [orbVariant] = useState(resolveOrbVariant)
+  const [orbMode] = useState(resolveOrbMode)
+  const hasShownFirstCompleteRef = useRef(false)
+  const wasRunningRef = useRef(isRunning)
+  const promptHideTimerRef = useRef<number | null>(null)
 
   // Drag overrides — user drag moves nodes away from computed positions
   const [dragOverrides, setDragOverrides] = useState<Record<string, AgentPos>>({})
@@ -69,6 +85,63 @@ export function CanvasStage({
       return { ...prev, [id]: { x: base.x + dx, y: base.y + dy } }
     })
   }, [computedPositions])
+
+  const dismissPromptMascot = useCallback(() => {
+    if (promptHideTimerRef.current) {
+      window.clearTimeout(promptHideTimerRef.current)
+      promptHideTimerRef.current = null
+    }
+    setShowPromptMascot(false)
+  }, [])
+
+  const revealPromptMascot = useCallback((trigger: OrbTrigger) => {
+    if (orbMode === 'off') return
+    const profile = ORB_PROFILES[orbVariant]
+    setPromptTrigger(trigger)
+    setPromptMessage(pickOrbMessage(orbVariant, trigger))
+    setShowPromptMascot(true)
+    if (promptHideTimerRef.current) {
+      window.clearTimeout(promptHideTimerRef.current)
+    }
+    promptHideTimerRef.current = window.setTimeout(() => {
+      setShowPromptMascot(false)
+      promptHideTimerRef.current = null
+    }, orbMode === 'soft' ? Math.round(profile.dwellMs * 0.8) : profile.dwellMs)
+  }, [orbMode, orbVariant])
+
+  useEffect(() => {
+    if (orbMode === 'off') return
+    const timer = window.setTimeout(() => {
+      revealPromptMascot('first_load')
+    }, 900)
+    return () => window.clearTimeout(timer)
+  }, [orbMode, revealPromptMascot])
+
+  useEffect(() => {
+    if (wasRunningRef.current && !isRunning && roundHistory.length > 0 && !hasShownFirstCompleteRef.current) {
+      hasShownFirstCompleteRef.current = true
+      revealPromptMascot('first_complete')
+      wasRunningRef.current = isRunning
+      return
+    }
+    wasRunningRef.current = isRunning
+  }, [isRunning, roundHistory.length, revealPromptMascot])
+
+  useEffect(() => {
+    if (orbMode === 'off' || isRunning || draft.trim()) {
+      return
+    }
+    const timer = window.setTimeout(() => {
+      revealPromptMascot('idle_nudge')
+    }, ORB_PROFILES[orbVariant].idleDelayMs)
+    return () => window.clearTimeout(timer)
+  }, [draft, isRunning, currentRound, orbMode, orbVariant, revealPromptMascot])
+
+  useEffect(() => {
+    if (draft.trim()) {
+      dismissPromptMascot()
+    }
+  }, [draft, dismissPromptMascot])
 
   return (
     <section
@@ -142,6 +215,13 @@ export function CanvasStage({
       </div>
 
       {/* Zone C — Command console */}
+      <PromptMascot
+        visible={showPromptMascot}
+        message={promptMessage}
+        variant={orbVariant}
+        mode={orbMode}
+        trigger={promptTrigger}
+      />
       <CommandConsole
         draft={draft}
         onDraftChange={onDraftChange}
