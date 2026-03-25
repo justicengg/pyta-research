@@ -46,8 +46,9 @@ export function CanvasToolbar({ onSceneSettings, onReset, zoomPercent = 100 }: P
 
   return (
     <div
-      className="canvas-toolbar"
+      className="canvas-toolbar canvas-toolbar--alive"
       data-no-pan
+      data-toolbar-state="open"
       style={{
         transform: `translate(calc(-50% + ${offset.x}px), ${offset.y}px)`,
       }}

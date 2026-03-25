@@ -53,12 +53,21 @@ export function AgentNode({ agent, position, zoom, onDragMove, isRunning = false
 
   const ring = agent.ring ?? 1
   const ringClass = `agent-cluster--ring-${ring}`
+  const statusClass = `agent-cluster--status-${agent.status}`
 
   return (
     <div
-      className={`agent-cluster ${ringClass}${isDragging ? ' agent-cluster--dragging' : ''}`}
-      style={{ left: position.x, top: position.y, '--node-index': nodeIndex } as React.CSSProperties}
+      className={`agent-cluster ${ringClass} ${statusClass}${isRunning ? ' agent-cluster--running' : ''}${isDragging ? ' agent-cluster--dragging' : ''}`}
+      style={{
+        left: position.x,
+        top: position.y,
+        '--node-index': nodeIndex,
+        '--node-ring': ring,
+      } as React.CSSProperties}
       data-no-pan
+      data-status={agent.status}
+      data-ring={ring}
+      aria-busy={isRunning}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

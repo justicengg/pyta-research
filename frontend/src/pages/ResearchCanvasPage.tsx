@@ -25,7 +25,7 @@ export function ResearchCanvasPage() {
   })
 
   return (
-    <div className={`shell ${leftCollapsed ? 'left-collapsed' : ''}`}>
+    <div className={`shell research-canvas-shell ${leftCollapsed ? 'left-collapsed' : ''}`}>
       <InformationPanel
         collapsed={leftCollapsed}
         onToggle={() => setLeftCollapsed((value) => !value)}

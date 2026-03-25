@@ -109,6 +109,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
         <button
           ref={gearRef}
           className="sidebar-float-btn"
+          type="button"
           onClick={() => setSettingsOpen((v) => !v)}
           aria-label="打开设置"
         >
@@ -122,7 +123,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
             anchorRef={gearRef}
           />
         )}
-        <button className="sidebar-float-btn" onClick={onToggle} aria-label="展开左侧边栏">
+        <button className="sidebar-float-btn" type="button" onClick={onToggle} aria-label="展开左侧边栏">
           ⟩
         </button>
       </aside>
@@ -141,6 +142,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
             <IconButton
               ref={gearRef}
               aria-label="打开设置"
+              type="button"
               onClick={() => setSettingsOpen((v) => !v)}
             >⚙</IconButton>
             {settingsOpen && (
@@ -152,12 +154,35 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
               />
             )}
           </div>
-          <IconButton onClick={onToggle} aria-label="收起左侧边栏">⟨</IconButton>
+          <IconButton type="button" onClick={onToggle} aria-label="收起左侧边栏">⟨</IconButton>
+        </div>
+      </div>
+
+      <div className="sidebar-summary">
+        <div className="sidebar-summary-copy">
+          <span className="sidebar-summary-label">Research layer</span>
+          <strong className="sidebar-summary-title">
+            {defaultSymbol ? `${defaultSymbol} · ${defaultMarket}` : '研究工作台'}
+          </strong>
+          <span className="sidebar-summary-sub">
+            负责接入来源、筛选推荐 Bundle，并维持会话上下文。
+          </span>
+        </div>
+        <div className="sidebar-summary-meta">
+          <span className="sidebar-summary-pill">
+            <span className={`sidebar-summary-pill-dot ${sessionStatus === 'running' ? 'running' : ''}`} />
+            {sessionStatus === 'running' ? '运行中' : sessionStatus}
+          </span>
+          <span className="sidebar-summary-pill">{liveConnectors.length} sources</span>
         </div>
       </div>
 
       <div className="side-search">
-        <input type="text" placeholder="搜索来源、事件、参考资料" />
+        <input
+          type="text"
+          placeholder="搜索来源、事件、参考资料"
+          aria-label="搜索来源、事件、参考资料"
+        />
       </div>
 
       <div className="sidebar-body">
@@ -170,6 +195,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
               <button
                 className="section-action-btn"
                 aria-label="上传文件"
+                type="button"
                 onClick={() => setUploadOpen(true)}
                 title="上传 CSV / Excel / Markdown"
               >
@@ -178,6 +204,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
               <button
                 className="section-action-btn"
                 aria-label="接入新来源"
+                type="button"
                 onClick={() => setAddSourceOpen(true)}
               >
                 + 接入
@@ -197,7 +224,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
               <div className="copilot-entry-title">🤖 Connector Copilot</div>
               <div className="copilot-entry-sub">粘贴 API 文档，自动生成接入配置</div>
             </div>
-            <button className="copilot-entry-btn" onClick={() => setCopilotOpen(true)}>
+            <button className="copilot-entry-btn" type="button" onClick={() => setCopilotOpen(true)}>
               开始接入 →
             </button>
           </div>

@@ -69,7 +69,12 @@ export function CenterCoreCard({ sceneParams, onSceneParamsChange }: Props) {
 
   if (editing) {
     return (
-      <div ref={cardRef} className="center-core center-core--editing" data-no-pan>
+      <div
+        ref={cardRef}
+        className="center-core center-core--editing"
+        data-no-pan
+        data-core-state="editing"
+      >
         <p className="center-core-edit-hint">编辑场景参数</p>
         <input
           className="core-field-input"
@@ -133,6 +138,7 @@ export function CenterCoreCard({ sceneParams, onSceneParamsChange }: Props) {
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && setEditing(true)}
       data-no-pan
+      data-core-state="view"
       title="点击编辑场景参数"
     >
       <h3>

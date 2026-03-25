@@ -3,12 +3,12 @@ import type { CanvasState, RoundRecord, SceneParams } from '../../lib/types/canv
 import type { SandboxInputEvent } from '../../lib/types/sandbox'
 import { useCanvasViewport } from '../../hooks/useCanvasViewport'
 import { useTopologyLayout, TOPOLOGY_CENTER } from '../../hooks/useTopologyLayout'
+import '../../styles/canvas-motion.css'
 import { AgentNode } from '../canvas/AgentNode'
 import { CanvasBackground } from '../canvas/CanvasBackground'
 import { CenterCoreCard } from '../canvas/CenterCoreCard'
 import { EdgeLayer } from '../canvas/EdgeLayer'
 import { CommandConsole } from './CommandConsole'
-import { EventsPanel } from './EventsPanel'
 
 type AgentPos = { x: number; y: number }
 
@@ -54,9 +54,6 @@ export function CanvasStage({
   // Drag overrides — user drag moves nodes away from computed positions
   const [dragOverrides, setDragOverrides] = useState<Record<string, AgentPos>>({})
 
-  // Events panel open state (Layer 3 right-side panel)
-  const [eventsPanelOpen, setEventsPanelOpen] = useState(false)
-
   // Final positions: computed topology base + any drag overrides
   const agentPositions: Record<string, AgentPos> = {}
   for (const agent of state.agents) {
@@ -71,7 +68,11 @@ export function CanvasStage({
   }, [computedPositions])
 
   return (
-    <section className="stage-wrap">
+    <section
+      className={`stage-wrap canvas-stage${isRunning ? ' canvas-stage--running' : ''}`}
+      data-quality={qualityLabel}
+      data-round={currentRound}
+    >
 
       {/* Zone A — Context bar */}
       <div className="stage-head">
@@ -155,17 +156,6 @@ export function CanvasStage({
         currentRound={currentRound}
         roundHistory={roundHistory}
         currentInputEvents={currentInputEvents}
-        onEventsToggle={() => setEventsPanelOpen((v) => !v)}
-      />
-
-      {/* Layer 3 — Events side panel (viewport-anchored, slides in from right) */}
-      <EventsPanel
-        isOpen={eventsPanelOpen}
-        onClose={() => setEventsPanelOpen(false)}
-        onSelectEvent={(title) => {
-          onDraftChange(title)
-          setEventsPanelOpen(false)
-        }}
       />
     </section>
   )
