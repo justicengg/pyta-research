@@ -184,17 +184,16 @@
 
 /* ── Core column content ──────────────────────────────── */
 
+.meridian-core-header {
+  /* shares .meridian-col-header layout; only override ticker size */
+}
+
 .meridian-core-ticker {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-1);
   letter-spacing: -0.02em;
-}
-
-.meridian-core-meta {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
+  margin-bottom: var(--sp-1);
 }
 
 .meridian-core-badge {
@@ -207,12 +206,6 @@
   padding: 2px 8px;
   border-radius: 999px;
   width: fit-content;
-}
-
-.meridian-core-quality {
-  margin-top: auto;
-  font-size: var(--fs-xs);
-  color: var(--text-3);
 }
 
 /* ── Loading shimmer for live agents during run ───────── */
