@@ -1089,7 +1089,6 @@
   cursor: grab;
   user-select: none;
   transition: box-shadow 0.15s ease, transform 0.15s ease;
-  will-change: transform;
   animation: node-enter 0.35s ease both;
 }
 
@@ -1101,6 +1100,9 @@
 
 .agent-cluster--ring-2 .agent {
   font-size: 0.88em;
+  /* no backdrop-filter on ring-2+: reduces GPU compositing layers */
+  backdrop-filter: none;
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
 }
 
 .agent-cluster--ring-2 .agent-title-row strong {
@@ -1111,6 +1113,11 @@
 .agent-cluster--ring-1 { animation-delay: calc(var(--node-index, 0) * 60ms); }
 .agent-cluster--ring-2 { animation-delay: calc(300ms + var(--node-index, 0) * 80ms); }
 
+.agent-cluster:hover,
+.agent-cluster:focus-within {
+  will-change: transform;
+}
+
 .agent-cluster:active,
 .agent-cluster--dragging {
   cursor: grabbing;
@@ -1118,6 +1125,7 @@
   transform: scale(1.03);
   z-index: 10;
   transition: box-shadow 0.08s ease;
+  will-change: transform;
 }
 
 /* ── Agent card header ──────────────────────────────────────────── */
