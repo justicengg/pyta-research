@@ -47,7 +47,7 @@ export function MeridianGridView({ agents, isRunning, sceneParams }: MeridianGri
           <span className="meridian-core-badge">{ring1Agents.length} 个 Agent</span>
         </div>
         <div className="meridian-core-quality">
-          Meridian Grid View
+          对比视图
         </div>
       </div>
 

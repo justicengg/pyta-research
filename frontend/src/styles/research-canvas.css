@@ -790,7 +790,7 @@
 .stage {
   position: relative;
   flex: 1;
-  min-height: 900px;
+  min-height: 0;
   overflow: hidden;
   background:
     radial-gradient(circle at 50% 46%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 40%),
@@ -917,7 +917,7 @@
 /* ── Minimal corner controls (replaces floating toolbar) ─────────── */
 .canvas-corner-controls {
   position: absolute;
-  bottom: var(--sp-3);
+  top: var(--sp-3);
   right: var(--sp-3);
   display: flex;
   align-items: center;
@@ -2346,7 +2346,7 @@ select.field-input {
   }
 
   .stage {
-    min-height: 1200px;
+    min-height: 0;
   }
 }
 

@@ -6,9 +6,10 @@
 .meridian-grid {
   display: flex;
   flex-direction: row;
+  align-items: flex-start;   /* columns grow to content height, not full stage */
   height: 100%;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
   gap: 0;
   background:
     radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 60%);
@@ -133,7 +134,6 @@
 /* ── Field sections ───────────────────────────────────── */
 
 .meridian-fields {
-  flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -142,7 +142,6 @@
 .meridian-field-section {
   padding: var(--sp-2) var(--sp-3);
   border-bottom: 1px solid color-mix(in srgb, var(--border) 25%, transparent);
-  flex: 1;
 }
 
 .meridian-field-section:last-child {
