@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -33,6 +34,7 @@ def test_sources_events_requires_api_key(client: TestClient):
 
 
 def test_sources_events_filters_by_symbol_and_returns_total(client: TestClient):
+    now = datetime.now(timezone.utc)
     store.save_events(
         [
             {
@@ -45,8 +47,8 @@ def test_sources_events_filters_by_symbol_and_returns_total(client: TestClient):
                 "impact_direction": "positive",
                 "impact_strength": 0.7,
                 "symbols": ["AAPL", "0700.HK"],
-                "published_at": "2026-03-23T10:00:00+00:00",
-                "ingested_at": "2026-03-23T10:01:00+00:00",
+                "published_at": (now - timedelta(hours=2)).isoformat(),
+                "ingested_at": (now - timedelta(hours=1, minutes=59)).isoformat(),
             },
             {
                 "id": "evt-tsla",
@@ -58,8 +60,8 @@ def test_sources_events_filters_by_symbol_and_returns_total(client: TestClient):
                 "impact_direction": "negative",
                 "impact_strength": 0.6,
                 "symbols": ["TSLA"],
-                "published_at": "2026-03-23T09:00:00+00:00",
-                "ingested_at": "2026-03-23T09:01:00+00:00",
+                "published_at": (now - timedelta(hours=3)).isoformat(),
+                "ingested_at": (now - timedelta(hours=2, minutes=59)).isoformat(),
             },
         ]
     )
