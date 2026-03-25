@@ -160,7 +160,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
 
       <div className="sidebar-summary">
         <div className="sidebar-summary-copy">
-          <span className="sidebar-summary-label">Research layer</span>
+          <span className="sidebar-summary-label">研究层</span>
           <strong className="sidebar-summary-title">
             {defaultSymbol ? `${defaultSymbol} · ${defaultMarket}` : '研究工作台'}
           </strong>
@@ -173,7 +173,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
             <span className={`sidebar-summary-pill-dot ${sessionStatus === 'running' ? 'running' : ''}`} />
             {sessionStatus === 'running' ? '运行中' : sessionStatus}
           </span>
-          <span className="sidebar-summary-pill">{liveConnectors.length} sources</span>
+          <span className="sidebar-summary-pill">{liveConnectors.length} 个来源</span>
         </div>
       </div>
 
@@ -190,7 +190,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
         {/* SOURCES */}
         <section className="section">
           <div className="section-label-row">
-            <span className="section-label">Sources</span>
+            <span className="section-label">数据来源</span>
             <div style={{ display: 'flex', gap: 'var(--sp-2)' }}>
               <button
                 className="section-action-btn"
@@ -265,7 +265,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
 
         {/* RECOMMENDED */}
         <section className="section">
-          <div className="section-label">Recommended</div>
+          <div className="section-label">推荐配置</div>
           {state.leftPanel.recommendedBundles.map((bundle) => (
             <BundleRow key={bundle.name} bundle={bundle} />
           ))}
@@ -273,7 +273,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
 
         {/* SESSION */}
         <section className="section">
-          <div className="section-label">Session</div>
+          <div className="section-label">会话状态</div>
           <div className="session-row">
             <span className={`session-status-dot ${sessionStatus === 'running' ? 'running' : ''}`} />
             <span className="session-status-text">
@@ -287,7 +287,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
 
         {/* EXTERNAL AGENT */}
         <section className="section">
-          <div className="section-label">External Agent</div>
+          <div className="section-label">外部 Agent</div>
           <div className="inline-entry">
             <div className="inline-entry-main">
               <span className="inline-entry-title">外部 Agent 接入口</span>
