@@ -11,7 +11,6 @@ export function ResearchCanvasPage() {
     backendState,
     draft,
     setDraft,
-    submit,
     isRunning,
     error,
     qualityLabel,
@@ -20,6 +19,7 @@ export function ResearchCanvasPage() {
     roundHistory,
     sceneParams,
     setSceneParams,
+    submit,
   } = useSandboxRun({
     initialDraft: mockCanvasState.commandDraft,
   })
@@ -40,7 +40,6 @@ export function ResearchCanvasPage() {
         state={canvasState}
         draft={draft}
         onDraftChange={setDraft}
-        onSubmit={submit}
         isRunning={isRunning}
         error={error}
         qualityLabel={qualityLabel}
@@ -49,6 +48,7 @@ export function ResearchCanvasPage() {
         currentInputEvents={currentInputEvents}
         sceneParams={sceneParams}
         onSceneParamsChange={setSceneParams}
+        onSubmit={() => void submit()}
       />
     </div>
   )

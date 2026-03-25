@@ -1,11 +1,14 @@
 """Source connector API — catalog browsing + CRUD management."""
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Response, status
+from datetime import datetime, timedelta, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import BaseModel
 
 import asyncio
 
+from src.api.deps import verify_api_key
 from src.sources import adapter, store
 
 router = APIRouter()
@@ -80,6 +83,12 @@ class SourceEventResponse(BaseModel):
     impact_strength: float
     published_at: str | None
     ingested_at: str
+    symbols: list[str]
+
+
+class SourceEventListResponse(BaseModel):
+    total: int
+    items: list[SourceEventResponse]
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -174,8 +183,20 @@ def delete_connector(connector_id: str) -> Response:
     return Response(status_code=204)
 
 
-@router.get("/sources/events", response_model=list[SourceEventResponse])
-def list_events(limit: int = 5) -> list[SourceEventResponse]:
-    """Return the most recent events across all connected sources."""
-    rows = store.list_events(limit=min(limit, 20))
-    return [SourceEventResponse(**r) for r in rows]
+@router.get("/sources/events", response_model=SourceEventListResponse, dependencies=[Depends(verify_api_key)])
+def list_events(
+    symbol: str | None = None,
+    since: datetime | None = None,
+    limit: int = Query(default=20, ge=1, le=100),
+) -> SourceEventListResponse:
+    """Return recent source events, optionally filtered by ticker."""
+    effective_since = since or (datetime.now(timezone.utc) - timedelta(hours=24))
+    total, rows = store.list_events(
+        limit=limit,
+        symbol=symbol,
+        since=effective_since,
+    )
+    return SourceEventListResponse(
+        total=total,
+        items=[SourceEventResponse(**row) for row in rows],
+    )

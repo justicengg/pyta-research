@@ -6,13 +6,14 @@ Tables:
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-_DB_PATH = Path("pyta.db")
+from src.config.settings import settings
 
 
 def _ensure_column(conn: sqlite3.Connection, table: str, column: str, ddl: str) -> None:
@@ -22,8 +23,16 @@ def _ensure_column(conn: sqlite3.Connection, table: str, column: str, ddl: str) 
         conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
 
 
+def _db_path() -> Path:
+    database_url = settings.database_url
+    if database_url.startswith("sqlite:///"):
+        raw_path = database_url.removeprefix("sqlite:///")
+        return Path(raw_path)
+    return Path("pyta.db")
+
+
 def _conn() -> sqlite3.Connection:
-    conn = sqlite3.connect(_DB_PATH)
+    conn = sqlite3.connect(_db_path())
     conn.row_factory = sqlite3.Row
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS source_connector (
@@ -45,6 +54,7 @@ def _conn() -> sqlite3.Connection:
             dimension        TEXT,
             impact_direction TEXT NOT NULL DEFAULT 'neutral',
             impact_strength  REAL NOT NULL DEFAULT 0.5,
+            symbols          JSON,
             published_at     TEXT,
             ingested_at      TEXT NOT NULL
         );
@@ -52,6 +62,7 @@ def _conn() -> sqlite3.Connection:
             ON source_event (ingested_at DESC);
     """)
     _ensure_column(conn, "source_connector", "custom_config", "TEXT")
+    _ensure_column(conn, "source_event", "symbols", "JSON")
     conn.commit()
     return conn
 
@@ -138,30 +149,81 @@ def save_events(events: list[dict[str, Any]]) -> None:
     """Upsert a batch of events. Silently skips duplicates by id."""
     if not events:
         return
+    normalized_events = []
+    for event in events:
+        row = dict(event)
+        row["symbols"] = json.dumps(row.get("symbols") or [])
+        normalized_events.append(row)
     with _conn() as conn:
         conn.executemany(
             """INSERT OR IGNORE INTO source_event
                (id, connector_id, provider_id, title, summary, dimension,
-                impact_direction, impact_strength, published_at, ingested_at)
+                impact_direction, impact_strength, symbols, published_at, ingested_at)
                VALUES (:id, :connector_id, :provider_id, :title, :summary,
                        :dimension, :impact_direction, :impact_strength,
-                       :published_at, :ingested_at)""",
-            events,
+                       :symbols, :published_at, :ingested_at)""",
+            normalized_events,
         )
         conn.commit()
 
 
-def list_events(limit: int = 10) -> list[dict[str, Any]]:
+def _parse_timestamp(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    normalized = value.replace("Z", "+00:00")
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _deserialize_symbols(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item) for item in value]
+    if not value:
+        return []
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except json.JSONDecodeError:
+            return []
+        if isinstance(parsed, list):
+            return [str(item) for item in parsed]
+    return []
+
+
+def list_events(
+    limit: int = 10,
+    *,
+    symbol: str | None = None,
+    since: datetime | None = None,
+) -> tuple[int, list[dict[str, Any]]]:
     with _conn() as conn:
         rows = conn.execute(
             """SELECT id, connector_id, provider_id, title, summary, dimension,
-                      impact_direction, impact_strength, published_at, ingested_at
+                      impact_direction, impact_strength, published_at, ingested_at, symbols
                FROM source_event
-               ORDER BY ingested_at DESC
-               LIMIT ?""",
-            (limit,),
+               ORDER BY published_at DESC, ingested_at DESC""",
         ).fetchall()
-    return [dict(r) for r in rows]
+    items: list[dict[str, Any]] = []
+    normalized_symbol = symbol.upper() if symbol else None
+    for row in rows:
+        item = dict(row)
+        item["symbols"] = _deserialize_symbols(item.get("symbols"))
+        published_at = _parse_timestamp(item.get("published_at"))
+        ingested_at = _parse_timestamp(item.get("ingested_at"))
+        effective_timestamp = published_at or ingested_at
+        if since and effective_timestamp and effective_timestamp < since:
+            continue
+        if normalized_symbol:
+            symbols = {candidate.upper() for candidate in item["symbols"]}
+            if normalized_symbol not in symbols:
+                continue
+        items.append(item)
+    return len(items), items[:limit]
 
 
 def delete_events_by_connector(connector_id: str) -> None:

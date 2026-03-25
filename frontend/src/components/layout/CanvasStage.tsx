@@ -16,7 +16,6 @@ type Props = {
   state: CanvasState
   draft: string
   onDraftChange: (value: string) => void
-  onSubmit: () => void
   isRunning: boolean
   error: string | null
   qualityLabel: string
@@ -25,6 +24,7 @@ type Props = {
   currentInputEvents: SandboxInputEvent[]
   sceneParams: SceneParams
   onSceneParamsChange: (p: SceneParams) => void
+  onSubmit: () => void
 }
 
 // Center core anchor — matches TOPOLOGY_CENTER from useTopologyLayout
@@ -34,7 +34,6 @@ export function CanvasStage({
   state,
   draft,
   onDraftChange,
-  onSubmit,
   isRunning,
   error,
   qualityLabel,
@@ -43,6 +42,7 @@ export function CanvasStage({
   currentInputEvents,
   sceneParams,
   onSceneParamsChange,
+  onSubmit,
 }: Props) {
   const stageRef = useRef<HTMLDivElement>(null)
   const { panX, panY, zoom, zoomPercent, isPanning, stagePointerHandlers, resetViewport } =
@@ -53,7 +53,6 @@ export function CanvasStage({
 
   // Drag overrides — user drag moves nodes away from computed positions
   const [dragOverrides, setDragOverrides] = useState<Record<string, AgentPos>>({})
-
   // Final positions: computed topology base + any drag overrides
   const agentPositions: Record<string, AgentPos> = {}
   for (const agent of state.agents) {
