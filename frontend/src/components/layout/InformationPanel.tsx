@@ -134,8 +134,7 @@ export function InformationPanel({ collapsed, onToggle, state, currentInputEvent
     <aside className="sidebar">
       <div className="sidebar-head">
         <div>
-          <div className="eyebrow">信源管理</div>
-          <h2>情报台</h2>
+          <h2>感知中枢</h2>
         </div>
         <div className="head-actions">
           <div style={{ position: 'relative' }}>
