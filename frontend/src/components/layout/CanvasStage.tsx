@@ -8,6 +8,8 @@ import { AgentNode } from '../canvas/AgentNode'
 import { CanvasBackground } from '../canvas/CanvasBackground'
 import { CenterCoreCard } from '../canvas/CenterCoreCard'
 import { EdgeLayer } from '../canvas/EdgeLayer'
+import { MeridianGridView } from '../canvas/MeridianGridView'
+import '../../styles/meridian-grid.css'
 import { CommandConsole } from './CommandConsole'
 
 type AgentPos = { x: number; y: number }
@@ -50,6 +52,8 @@ export function CanvasStage({
 
   // Computed positions from topology layout algorithm
   const computedPositions = useTopologyLayout(state.agents)
+
+  const [viewMode, setViewMode] = useState<'topology' | 'meridian'>('topology')
 
   // Drag overrides — user drag moves nodes away from computed positions
   const [dragOverrides, setDragOverrides] = useState<Record<string, AgentPos>>({})
@@ -94,54 +98,53 @@ export function CanvasStage({
         {...stagePointerHandlers}
       >
         {/* canvas-layer transforms with pan + zoom */}
-        <div
-          className="canvas-layer"
-          style={{
-            transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
-            transformOrigin: '0 0',
-          }}
-        >
-          <CanvasBackground />
-
-          {/* Edge layer — rendered before agent nodes so cards appear above edges */}
-          <EdgeLayer
-            edges={state.edges}
-            agentPositions={agentPositions}
-            centerPos={CENTER_POS}
-          />
-
-          {/* Center core — editable scene params */}
-          <CenterCoreCard
+        {viewMode === 'topology' ? (
+          <div
+            className="canvas-layer"
+            style={{ transform: `translate(${panX}px, ${panY}px) scale(${zoom})`, transformOrigin: '0 0' }}
+          >
+            <CanvasBackground />
+            <EdgeLayer edges={state.edges} agentPositions={agentPositions} centerPos={CENTER_POS} />
+            <CenterCoreCard sceneParams={sceneParams} onSceneParamsChange={onSceneParamsChange} />
+            {state.agents.map((agent, i) => (
+              <AgentNode key={agent.id} agent={agent} position={agentPositions[agent.id]} zoom={zoom} onDragMove={handleAgentDragMove} isRunning={isRunning} nodeIndex={i} />
+            ))}
+            {error ? <div className="canvas-error">{error}</div> : null}
+          </div>
+        ) : (
+          <MeridianGridView
+            agents={state.agents.filter(a => (a.ring ?? 1) === 1)}
+            isRunning={isRunning}
             sceneParams={sceneParams}
-            onSceneParamsChange={onSceneParamsChange}
           />
-
-          {/* Agent nodes */}
-          {state.agents.map((agent, i) => (
-            <AgentNode
-              key={agent.id}
-              agent={agent}
-              position={agentPositions[agent.id]}
-              zoom={zoom}
-              onDragMove={handleAgentDragMove}
-              isRunning={isRunning}
-              nodeIndex={i}
-            />
-          ))}
-
-          {error ? <div className="canvas-error">{error}</div> : null}
-        </div>
+        )}
 
         {/* Corner controls — zoom readout + reset */}
         <div className="canvas-corner-controls" data-no-pan>
-          <span className="corner-zoom">{zoomPercent}%</span>
-          <button
-            className="corner-reset"
-            onClick={resetViewport}
-            title="重置视图 (Reset view)"
-          >
-            ⌖
-          </button>
+          <div className="view-toggle-group" data-no-pan>
+            <button
+              className={`view-toggle-btn${viewMode === 'topology' ? ' view-toggle-btn--active' : ''}`}
+              onClick={() => setViewMode('topology')}
+              title="拓扑视图"
+            >⬡</button>
+            <button
+              className={`view-toggle-btn${viewMode === 'meridian' ? ' view-toggle-btn--active' : ''}`}
+              onClick={() => setViewMode('meridian')}
+              title="经线对比视图"
+            >⊞</button>
+          </div>
+          {viewMode === 'topology' && (
+            <>
+              <span className="corner-zoom">{zoomPercent}%</span>
+              <button
+                className="corner-reset"
+                onClick={resetViewport}
+                title="重置视图 (Reset view)"
+              >
+                ⌖
+              </button>
+            </>
+          )}
         </div>
       </div>
 
