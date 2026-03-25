@@ -742,7 +742,7 @@
 .stage-head {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--sp-4);
   padding: var(--sp-5) var(--sp-6) var(--sp-4);
   border-bottom: 1px solid var(--border-subtle);

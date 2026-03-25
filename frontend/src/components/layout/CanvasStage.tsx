@@ -82,6 +82,18 @@ export function CanvasStage({
         <div className="stage-head-left">
           <h2>多 Agent 沙盘推演</h2>
         </div>
+        <div className="view-toggle-group">
+          <button
+            className={`view-toggle-btn${viewMode === 'topology' ? ' view-toggle-btn--active' : ''}`}
+            onClick={() => setViewMode('topology')}
+            title="拓扑视图"
+          >⬡</button>
+          <button
+            className={`view-toggle-btn${viewMode === 'meridian' ? ' view-toggle-btn--active' : ''}`}
+            onClick={() => setViewMode('meridian')}
+            title="经线对比视图"
+          >⊞</button>
+        </div>
       </div>
 
       {/* Zone B — Canvas viewport */}
@@ -112,20 +124,8 @@ export function CanvasStage({
           />
         )}
 
-        {/* Corner controls — zoom readout + reset */}
+        {/* Corner controls — zoom readout + reset (topology only) */}
         <div className="canvas-corner-controls" data-no-pan>
-          <div className="view-toggle-group" data-no-pan>
-            <button
-              className={`view-toggle-btn${viewMode === 'topology' ? ' view-toggle-btn--active' : ''}`}
-              onClick={() => setViewMode('topology')}
-              title="拓扑视图"
-            >⬡</button>
-            <button
-              className={`view-toggle-btn${viewMode === 'meridian' ? ' view-toggle-btn--active' : ''}`}
-              onClick={() => setViewMode('meridian')}
-              title="经线对比视图"
-            >⊞</button>
-          </div>
           {viewMode === 'topology' && (
             <>
               <span className="corner-zoom">{zoomPercent}%</span>
