@@ -13,7 +13,7 @@ export const DEFAULT_ORB_MODE: OrbMode = 'full'
 
 export const ORB_PROFILES: Record<OrbVariant, OrbProfile> = {
   traditional: {
-    dwellMs: 10000,
+    dwellMs: 8000,
     idleDelayMs: 10000,
     copy: {
       first_load: ['先从一个具体事件开始', '给我一个清晰的问题'],
@@ -22,7 +22,7 @@ export const ORB_PROFILES: Record<OrbVariant, OrbProfile> = {
     },
   },
   product_logic: {
-    dwellMs: 10000,
+    dwellMs: 8000,
     idleDelayMs: 8000,
     copy: {
       first_load: ['说吧，今天研究什么', '先给我一个具体事件'],
@@ -31,7 +31,7 @@ export const ORB_PROFILES: Record<OrbVariant, OrbProfile> = {
     },
   },
   ai_native: {
-    dwellMs: 10000,
+    dwellMs: 8000,
     idleDelayMs: 9000,
     copy: {
       first_load: ['我在，先给我一个起点', '把问题抛进来，我来接住'],

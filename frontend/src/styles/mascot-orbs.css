@@ -1,0 +1,164 @@
+/* =========================================================
+   mascot-orbs.css — command-anchored mascot placement
+   ========================================================= */
+
+.prompt-mascot {
+  position: absolute;
+  right: 88px;
+  bottom: calc(100% - 0px);
+  width: 162px;
+  height: 54px;
+  display: block;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+  z-index: 10;
+  overflow: visible;
+  transition: opacity 220ms ease, transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.prompt-mascot--visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.prompt-mascot--traditional {
+  right: 82px;
+}
+
+.prompt-mascot--idle_nudge {
+  bottom: calc(100% + 8px);
+}
+
+.prompt-mascot-bubble {
+  position: absolute;
+  right: -26px;
+  bottom: calc(100% + 10px);
+  z-index: 2;
+  max-width: 212px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border-subtle));
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  color: var(--text-1);
+  box-shadow: var(--shadow-md);
+  backdrop-filter: blur(14px);
+  white-space: nowrap;
+}
+
+.prompt-mascot-bubble span {
+  display: block;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: var(--lh-tight);
+}
+
+.prompt-mascot-pair {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  width: 162px;
+  padding-right: 0;
+  margin-top: 0;
+  gap: 6px;
+  overflow: visible;
+}
+
+.prompt-mascot-orb {
+  position: relative;
+  width: 76px;
+  height: 54px;
+  flex: 0 0 76px;
+  overflow: hidden;
+  clip-path: inset(0 0 2px 0);
+  opacity: 0;
+  transform: translate3d(0, 14px, 0) scale(0.92);
+  filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--accent) 18%, transparent));
+}
+
+.orb-raster {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  image-rendering: pixelated;
+}
+
+.orb-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter:
+    drop-shadow(0 0 8px rgba(74, 126, 224, 0.70))
+    drop-shadow(0 0 3px rgba(180, 210, 255, 0.50));
+}
+
+.prompt-mascot-orb--playful {
+  z-index: 2;
+  margin-bottom: -1px;
+  clip-path: inset(0 0 1px 0);
+}
+
+.prompt-mascot-orb--tsundere {
+  margin-left: 0;
+  z-index: 1;
+}
+
+.prompt-mascot--visible .prompt-mascot-orb {
+  opacity: 1;
+}
+
+.prompt-mascot--traditional .prompt-mascot-bubble {
+  max-width: 196px;
+  padding: 7px 12px;
+}
+
+.prompt-mascot--traditional .prompt-mascot-orb {
+  width: 50px;
+  height: 50px;
+  flex-basis: 50px;
+  filter: drop-shadow(0 8px 14px color-mix(in srgb, var(--accent) 14%, transparent));
+}
+
+.prompt-mascot--ai_native .prompt-mascot-bubble {
+  border-color: color-mix(in srgb, var(--live) 18%, var(--border-subtle));
+  box-shadow: var(--shadow-md), 0 0 0 1px color-mix(in srgb, var(--live) 10%, transparent);
+}
+
+.prompt-mascot--soft .prompt-mascot-bubble {
+  max-width: 188px;
+  padding: 7px 12px;
+}
+
+.prompt-mascot--soft .prompt-mascot-orb {
+  width: 48px;
+  height: 48px;
+  flex-basis: 48px;
+}
+
+.prompt-mascot--first_complete .prompt-mascot-bubble {
+  border-color: color-mix(in srgb, var(--live) 16%, var(--border-subtle));
+}
+
+.prompt-mascot--visible .prompt-mascot-orb--playful {
+  animation: orb-enter 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.prompt-mascot--visible .prompt-mascot-orb--tsundere {
+  animation: orb-enter-sassy 520ms cubic-bezier(0.34, 1.42, 0.64, 1) 160ms both;
+}
+
+@keyframes orb-enter {
+  from { transform: translateY(120px); }
+  to { transform: translateY(0); }
+}
+
+@keyframes orb-enter-sassy {
+  from { transform: translateY(120px); }
+  to { transform: translateY(3px); }
+}

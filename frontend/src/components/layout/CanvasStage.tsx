@@ -63,13 +63,13 @@ export function CanvasStage({
 
   const [viewMode, setViewMode] = useState<'topology' | 'meridian'>('topology')
   const [showPromptMascot, setShowPromptMascot] = useState(false)
+  const [isOrbExiting, setIsOrbExiting] = useState(false)
   const [promptMessage, setPromptMessage] = useState('说吧，今天研究什么')
   const [promptTrigger, setPromptTrigger] = useState<OrbTrigger>('first_load')
   const [orbVariant] = useState(resolveOrbVariant)
   const [orbMode] = useState(resolveOrbMode)
   const hasShownFirstCompleteRef = useRef(false)
   const wasRunningRef = useRef(isRunning)
-  const promptHideTimerRef = useRef<number | null>(null)
 
   // Drag overrides — user drag moves nodes away from computed positions
   const [dragOverrides, setDragOverrides] = useState<Record<string, AgentPos>>({})
@@ -87,26 +87,19 @@ export function CanvasStage({
   }, [computedPositions])
 
   const dismissPromptMascot = useCallback(() => {
-    if (promptHideTimerRef.current) {
-      window.clearTimeout(promptHideTimerRef.current)
-      promptHideTimerRef.current = null
-    }
-    setShowPromptMascot(false)
+    setIsOrbExiting(true)
+    window.setTimeout(() => {
+      setShowPromptMascot(false)
+      setIsOrbExiting(false)
+    }, 220)
   }, [])
 
   const revealPromptMascot = useCallback((trigger: OrbTrigger) => {
     if (orbMode === 'off') return
-    const profile = ORB_PROFILES[orbVariant]
     setPromptTrigger(trigger)
     setPromptMessage(pickOrbMessage(orbVariant, trigger))
+    setIsOrbExiting(false)
     setShowPromptMascot(true)
-    if (promptHideTimerRef.current) {
-      window.clearTimeout(promptHideTimerRef.current)
-    }
-    promptHideTimerRef.current = window.setTimeout(() => {
-      setShowPromptMascot(false)
-      promptHideTimerRef.current = null
-    }, orbMode === 'soft' ? Math.round(profile.dwellMs * 0.8) : profile.dwellMs)
   }, [orbMode, orbVariant])
 
   useEffect(() => {
@@ -138,10 +131,11 @@ export function CanvasStage({
   }, [draft, isRunning, currentRound, orbMode, orbVariant, revealPromptMascot])
 
   useEffect(() => {
-    if (draft.trim()) {
+    if (isRunning) {
       dismissPromptMascot()
     }
-  }, [draft, dismissPromptMascot])
+  }, [isRunning, dismissPromptMascot])
+
 
   return (
     <section
@@ -197,20 +191,8 @@ export function CanvasStage({
           />
         )}
 
-        {/* Corner controls — zoom readout + reset */}
+        {/* Corner controls — zoom readout + reset only */}
         <div className="canvas-corner-controls" data-no-pan>
-          <div className="view-toggle-group" data-no-pan>
-            <button
-              className={`view-toggle-btn${viewMode === 'topology' ? ' view-toggle-btn--active' : ''}`}
-              onClick={() => setViewMode('topology')}
-              title="拓扑视图"
-            >⬡</button>
-            <button
-              className={`view-toggle-btn${viewMode === 'meridian' ? ' view-toggle-btn--active' : ''}`}
-              onClick={() => setViewMode('meridian')}
-              title="经线对比视图"
-            >⊞</button>
-          </div>
           {viewMode === 'topology' && (
             <>
               <span className="corner-zoom">{zoomPercent}%</span>
@@ -227,13 +209,6 @@ export function CanvasStage({
       </div>
 
       {/* Zone C — Command console */}
-      <PromptMascot
-        visible={showPromptMascot}
-        message={promptMessage}
-        variant={orbVariant}
-        mode={orbMode}
-        trigger={promptTrigger}
-      />
       <CommandConsole
         draft={draft}
         onDraftChange={onDraftChange}
@@ -243,6 +218,15 @@ export function CanvasStage({
         currentRound={currentRound}
         roundHistory={roundHistory}
         currentInputEvents={currentInputEvents}
+        promptMascot={showPromptMascot ? (
+          <PromptMascot
+            visible={!isOrbExiting}
+            message={promptMessage}
+            variant={orbVariant}
+            mode={orbMode}
+            trigger={promptTrigger}
+          />
+        ) : undefined}
       />
     </section>
   )
