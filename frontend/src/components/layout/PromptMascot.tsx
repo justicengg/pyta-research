@@ -1,4 +1,7 @@
 import type { OrbMode, OrbTrigger, OrbVariant } from '../../lib/orb/promptProfiles'
+import { BallPlayful } from '../mascot/BallPlayful'
+import { BallSassy } from '../mascot/BallSassy'
+import '../../styles/mascot-orbs.css'
 
 type Props = {
   visible: boolean
@@ -8,7 +11,7 @@ type Props = {
   trigger: OrbTrigger
 }
 
-export function PromptMascot({ visible, message, variant, mode, trigger }: Props) {
+export function PromptMascot({ visible, message: _message, variant, mode, trigger }: Props) {
   if (mode === 'off') {
     return null
   }
@@ -18,12 +21,15 @@ export function PromptMascot({ visible, message, variant, mode, trigger }: Props
       className={`prompt-mascot prompt-mascot--${variant} prompt-mascot--${mode} prompt-mascot--${trigger}${visible ? ' prompt-mascot--visible' : ''}`}
       aria-hidden={!visible}
     >
-      <div className="prompt-mascot-bubble">
-        <span>{message}</span>
-      </div>
       <div className="prompt-mascot-pair" aria-hidden="true">
-        <div className="prompt-mascot-orb prompt-mascot-orb--playful" />
-        {mode === 'full' ? <div className="prompt-mascot-orb prompt-mascot-orb--tsundere" /> : null}
+        <div className="prompt-mascot-orb prompt-mascot-orb--playful">
+          <BallPlayful />
+        </div>
+        {mode === 'full' ? (
+          <div className="prompt-mascot-orb prompt-mascot-orb--tsundere">
+            <BallSassy />
+          </div>
+        ) : null}
       </div>
     </div>
   )

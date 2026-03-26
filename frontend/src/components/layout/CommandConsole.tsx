@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { RoundRecord } from '../../lib/types/canvas'
 import type { SandboxInputEvent } from '../../lib/types/sandbox'
 
@@ -10,6 +11,7 @@ type Props = {
   currentRound: number
   roundHistory: RoundRecord[]
   currentInputEvents: SandboxInputEvent[]
+  promptMascot?: ReactNode
 }
 
 export function CommandConsole({
@@ -21,6 +23,7 @@ export function CommandConsole({
   currentRound,
   roundHistory,
   currentInputEvents,
+  promptMascot,
 }: Props) {
   const hasHistory = roundHistory.length > 0
   const lastRound = roundHistory[roundHistory.length - 1]
@@ -30,7 +33,9 @@ export function CommandConsole({
     lastRound?.quality === 'partial'  ? '部分收敛' : '待优化'
 
   return (
-    <section className="command">
+    <div className="command-shell">
+      {promptMascot}
+      <section className="command">
 
       {/* ── Timeline (always visible after first run) ────────────── */}
       {hasHistory && (
@@ -138,6 +143,7 @@ export function CommandConsole({
       </div>
 
       {error && <p className="command-error">{error}</p>}
-    </section>
+      </section>
+    </div>
   )
 }
