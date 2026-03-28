@@ -41,8 +41,8 @@ type Props = {
   onSubmit: () => void
 }
 
-const PARALLEL_ROW_Y = 344
-const PARALLEL_START_X = 40
+const PARALLEL_ROW_Y = 372
+const PARALLEL_START_X = 52
 const PARALLEL_GAP_X = 304
 
 export function CanvasStage({

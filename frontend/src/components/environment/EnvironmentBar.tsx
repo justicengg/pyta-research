@@ -35,13 +35,6 @@ const ENVIRONMENT_ORDER: SandboxEnvironmentType[] = [
   'alternative_data',
 ]
 
-const RISK_TONE_LABEL: Record<string, string> = {
-  risk_on: '↑ 风险偏好',
-  risk_off: '↓ 风险规避',
-  mixed: '↕ 信号分化',
-  neutral: '— 中性基准',
-}
-
 const AFFECTED_AGENT_MAP: Record<SandboxEnvironmentType, SandboxAgentId[]> = {
   geopolitics: ['offshore_capital', 'traditional_institution', 'short_term_capital'],
   macro_policy: ['traditional_institution', 'quant_institution', 'offshore_capital'],
@@ -59,7 +52,7 @@ export function EnvironmentBar({
 }: Props) {
   const [expandedType, setExpandedType] = useState<SandboxEnvironmentType | null>(null)
   const [hoveredSignalId, setHoveredSignalId] = useState<string | null>(null)
-  const [position, setPosition] = useState({ x: 24, y: 104 })
+  const [position, setPosition] = useState({ x: 0, y: 108 })
   const bucketRefs = useRef<Partial<Record<SandboxEnvironmentType, HTMLButtonElement | null>>>({})
   const dragRef = useRef<{ active: boolean; lastX: number; lastY: number }>({
     active: false,
@@ -129,7 +122,7 @@ export function EnvironmentBar({
     <section
       className={`env-rail env-rail--${pipelineStage}${isRunning ? ' env-rail--running' : ''}`}
       aria-label="Environment Rail"
-      style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
+      style={{ transform: `translate(calc(-50% + ${position.x}px), ${position.y}px)` }}
       data-no-pan
       onPointerDown={(event) => {
         const target = event.target as HTMLElement
@@ -159,17 +152,6 @@ export function EnvironmentBar({
         }
       }}
     >
-      <div className="env-rail-toolbar">
-        <span className="env-rail-handle" aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </span>
-        <span className={`env-risk-badge env-risk-badge--${state.globalRiskTone}`}>
-          {RISK_TONE_LABEL[state.globalRiskTone] ?? '— 中性基准'}
-        </span>
-      </div>
-
       <div className="env-rail-buckets">
         {buckets.map((bucket) => {
           const isExpanded = expandedType === bucket.type

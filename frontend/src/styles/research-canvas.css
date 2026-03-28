@@ -3177,11 +3177,12 @@ select.field-input {
 /* ── Environment Rail v2 — inspectable signal rail ─────────────── */
 .env-rail {
   position: absolute;
+  left: 50%;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
-  width: min(1320px, calc(100% - var(--sp-8)));
-  padding: var(--sp-3) var(--sp-4) var(--sp-4);
+  gap: var(--sp-2);
+  width: min(1320px, calc(100% - var(--sp-10)));
+  padding: var(--sp-3);
   border: 1px solid color-mix(in srgb, var(--border-subtle) 92%, transparent);
   border-radius: var(--r-xl);
   background:
@@ -3221,27 +3222,6 @@ select.field-input {
   background-size: 200% 100%;
   animation: env-band-scan-glow 1.8s linear infinite;
   pointer-events: none;
-}
-
-.env-rail-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-3);
-}
-
-.env-rail-handle {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  opacity: 0.5;
-}
-
-.env-rail-handle span {
-  width: 5px;
-  height: 5px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--text-3) 88%, transparent);
 }
 
 .env-rail-buckets {
@@ -3542,8 +3522,6 @@ select.field-input {
 
 @media (max-width: 760px) {
   .env-rail {
-    padding-left: var(--sp-4);
-    padding-right: var(--sp-4);
     width: calc(100% - var(--sp-6));
   }
 
