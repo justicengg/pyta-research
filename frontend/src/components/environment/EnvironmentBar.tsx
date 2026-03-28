@@ -52,7 +52,7 @@ export function EnvironmentBar({
 }: Props) {
   const [expandedType, setExpandedType] = useState<SandboxEnvironmentType | null>(null)
   const [hoveredSignalId, setHoveredSignalId] = useState<string | null>(null)
-  const [position, setPosition] = useState({ x: 0, y: 108 })
+  const [position, setPosition] = useState({ x: 0, y: 118 })
   const bucketRefs = useRef<Partial<Record<SandboxEnvironmentType, HTMLButtonElement | null>>>({})
   const dragRef = useRef<{ active: boolean; lastX: number; lastY: number }>({
     active: false,
