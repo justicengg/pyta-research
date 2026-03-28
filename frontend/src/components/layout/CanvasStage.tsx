@@ -6,6 +6,7 @@ import type {
   SandboxInputEvent,
   SandboxPipelineStage,
 } from '../../lib/types/sandbox'
+import { useCanvasViewport } from '../../hooks/useCanvasViewport'
 import { SANDBOX_AGENT_ORDER } from '../../lib/types/sandbox'
 import '../../styles/canvas-motion.css'
 import { AgentNode } from '../canvas/AgentNode'
@@ -68,6 +69,8 @@ export function CanvasStage({
   onSubmit,
 }: Props) {
   const stageRef = useRef<HTMLDivElement>(null)
+  const { panX, panY, zoom, zoomPercent, isPanning, stagePointerHandlers, resetViewport } =
+    useCanvasViewport(stageRef)
   const [flowInspect, setFlowInspect] = useState<FlowInspectState>(EMPTY_FLOW_INSPECT)
   const [showPromptMascot, setShowPromptMascot] = useState(false)
   const [isOrbExiting, setIsOrbExiting] = useState(false)
@@ -188,9 +191,13 @@ export function CanvasStage({
       {/* Zone B — Canvas viewport */}
       <div
         ref={stageRef}
-        className="stage stage--parallel"
+        className={`stage stage--parallel${isPanning ? ' panning' : ''}`}
+        {...stagePointerHandlers}
       >
-        <div className="canvas-layer canvas-layer--parallel">
+        <div
+          className="canvas-layer canvas-layer--parallel"
+          style={{ transform: `translate(${panX}px, ${panY}px) scale(${zoom})`, transformOrigin: '0 0' }}
+        >
           <CanvasBackground />
           <EnvironmentFlowLayer
             environmentType={flowInspect.environmentType}
@@ -214,6 +221,17 @@ export function CanvasStage({
             ))}
           </div>
           {error ? <div className="canvas-error">{error}</div> : null}
+        </div>
+
+        <div className="canvas-corner-controls" data-no-pan>
+          <span className="corner-zoom">{zoomPercent}%</span>
+          <button
+            className="corner-reset"
+            onClick={resetViewport}
+            title="重置视图 (Reset view)"
+          >
+            ⌖
+          </button>
         </div>
       </div>
 

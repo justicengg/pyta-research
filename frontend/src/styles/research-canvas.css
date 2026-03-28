@@ -3583,8 +3583,8 @@ select.field-input {
 }
 
 .stage--parallel {
-  cursor: default;
-  touch-action: auto;
+  cursor: grab;
+  touch-action: none;
 }
 
 .stage--parallel .canvas-background__ring,
