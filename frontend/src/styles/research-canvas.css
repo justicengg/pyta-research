@@ -1449,10 +1449,10 @@
   margin-top: var(--sp-3);
 }
 
-/* ── Agent cluster (draggable node) — 200px compact ─────────────── */
+/* ── Agent cluster — widened for parallel board readability ─────── */
 .agent-cluster {
   position: absolute;
-  width: 200px;
+  width: 228px;
   overflow: hidden;
   cursor: grab;
   user-select: none;
@@ -1462,7 +1462,7 @@
 
 /* Ring 2+ derived nodes — slightly smaller, softer visual weight */
 .agent-cluster--ring-2 {
-  width: 180px;
+  width: 204px;
   opacity: 0.92;
 }
 
@@ -1525,7 +1525,7 @@
 }
 
 .agent-title-row strong {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-1);
   line-height: 1.2;
@@ -1534,9 +1534,9 @@
 
 .agent-copy span {
   display: block;
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-3);
-  line-height: 1.3;
+  line-height: 1.35;
   margin-bottom: 0;
 }
 

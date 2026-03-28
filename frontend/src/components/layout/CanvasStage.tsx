@@ -42,8 +42,8 @@ type Props = {
 }
 
 const PARALLEL_ROW_Y = 344
-const PARALLEL_START_X = 40
-const PARALLEL_GAP_X = 235
+const PARALLEL_START_X = 18
+const PARALLEL_GAP_X = 236
 
 export function CanvasStage({
   state,
