@@ -9,7 +9,7 @@ import type {
 import { useCanvasViewport } from '../../hooks/useCanvasViewport'
 import { SANDBOX_AGENT_ORDER } from '../../lib/types/sandbox'
 import '../../styles/canvas-motion.css'
-import { AgentNode } from '../canvas/AgentNode'
+import { AgentNode, CARD_WIDTH } from '../canvas/AgentNode'
 import { CanvasBackground } from '../canvas/CanvasBackground'
 import { EnvironmentFlowLayer } from '../canvas/EnvironmentFlowLayer'
 import { EnvironmentBar } from '../environment/EnvironmentBar'
@@ -41,9 +41,11 @@ type Props = {
   onSubmit: () => void
 }
 
-const PARALLEL_ROW_Y = 372
-const PARALLEL_START_X = 52
-const PARALLEL_GAP_X = 304
+const PARALLEL_CENTER_X = 800
+const PARALLEL_CENTER_Y = 516
+const PARALLEL_CENTER_GAP_X = 304
+const PARALLEL_CARD_HEIGHT = 288
+const RETAIL_CENTER_INDEX = 2
 
 export function CanvasStage({
   state,
@@ -86,7 +88,12 @@ export function CanvasStage({
 
   const agentPositions: Record<string, AgentPos> = {}
   for (const [index, agent] of visibleAgents.entries()) {
-    const basePosition = { x: PARALLEL_START_X + index * PARALLEL_GAP_X, y: PARALLEL_ROW_Y }
+    const centerIndexOffset = index - RETAIL_CENTER_INDEX
+    const centerX = PARALLEL_CENTER_X + centerIndexOffset * PARALLEL_CENTER_GAP_X
+    const basePosition = {
+      x: centerX - CARD_WIDTH / 2,
+      y: PARALLEL_CENTER_Y - PARALLEL_CARD_HEIGHT / 2,
+    }
     agentPositions[agent.id] = dragOverrides[agent.id] ?? basePosition
   }
   const envState = state.environmentState
@@ -112,9 +119,11 @@ export function CanvasStage({
   const handleAgentDragMove = useCallback((id: string, dx: number, dy: number) => {
     setDragOverrides((prev) => {
       const agentIndex = visibleAgents.findIndex((agent) => agent.id === id)
+      const centerIndexOffset = Math.max(agentIndex, 0) - RETAIL_CENTER_INDEX
+      const centerX = PARALLEL_CENTER_X + centerIndexOffset * PARALLEL_CENTER_GAP_X
       const fallback = {
-        x: PARALLEL_START_X + Math.max(agentIndex, 0) * PARALLEL_GAP_X,
-        y: PARALLEL_ROW_Y,
+        x: centerX - CARD_WIDTH / 2,
+        y: PARALLEL_CENTER_Y - PARALLEL_CARD_HEIGHT / 2,
       }
       const base = prev[id] ?? fallback
       return { ...prev, [id]: { x: base.x + dx, y: base.y + dy } }
