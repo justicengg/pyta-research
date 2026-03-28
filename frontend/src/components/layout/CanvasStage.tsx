@@ -183,7 +183,6 @@ export function CanvasStage({
       <div className="stage-head">
         <div className="stage-head-left">
           <h2>多 Agent 沙盘推演</h2>
-          <p className="stage-head-sub">环境信号在上游聚合，再并行传输给 5 个市场 Agent。</p>
         </div>
       </div>
 

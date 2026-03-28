@@ -59,7 +59,13 @@ export function EnvironmentBar({
 }: Props) {
   const [expandedType, setExpandedType] = useState<SandboxEnvironmentType | null>(null)
   const [hoveredSignalId, setHoveredSignalId] = useState<string | null>(null)
+  const [position, setPosition] = useState({ x: 24, y: 104 })
   const bucketRefs = useRef<Partial<Record<SandboxEnvironmentType, HTMLButtonElement | null>>>({})
+  const dragRef = useRef<{ active: boolean; lastX: number; lastY: number }>({
+    active: false,
+    lastX: 0,
+    lastY: 0,
+  })
 
   const buckets = useMemo(() => {
     if (!state) return []
@@ -113,7 +119,7 @@ export function EnvironmentBar({
       observer.disconnect()
       window.removeEventListener('resize', measure)
     }
-  }, [buckets, expandedType, onAnchorLayoutChange])
+  }, [buckets, expandedType, onAnchorLayoutChange, position.x, position.y])
 
   if (!state) {
     return null
@@ -123,18 +129,45 @@ export function EnvironmentBar({
     <section
       className={`env-rail env-rail--${pipelineStage}${isRunning ? ' env-rail--running' : ''}`}
       aria-label="Environment Rail"
+      style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
+      data-no-pan
+      onPointerDown={(event) => {
+        const target = event.target as HTMLElement
+        if (target.closest('button, a, input, textarea, select')) return
+        event.stopPropagation()
+        dragRef.current = { active: true, lastX: event.clientX, lastY: event.clientY }
+        event.currentTarget.setPointerCapture(event.pointerId)
+      }}
+      onPointerMove={(event) => {
+        if (!dragRef.current.active) return
+        const dx = event.clientX - dragRef.current.lastX
+        const dy = event.clientY - dragRef.current.lastY
+        dragRef.current.lastX = event.clientX
+        dragRef.current.lastY = event.clientY
+        setPosition((current) => ({ x: current.x + dx, y: current.y + dy }))
+      }}
+      onPointerUp={(event) => {
+        dragRef.current.active = false
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId)
+        }
+      }}
+      onPointerCancel={(event) => {
+        dragRef.current.active = false
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId)
+        }
+      }}
     >
-      <div className="env-rail-head">
-        <div className="env-rail-meta">
-          <span className="env-rail-kicker">Environment Rail</span>
-          <span className={`env-risk-badge env-risk-badge--${state.globalRiskTone}`}>
-            {RISK_TONE_LABEL[state.globalRiskTone] ?? '— 中性基准'}
-          </span>
-        </div>
-        <div className="env-rail-copy">
-          <strong>环境信号先成型，再触发 5 个市场力量同步响应。</strong>
-          <span>点击类别展开具体信号，悬停单条信号可查看它影响哪些 Agent。</span>
-        </div>
+      <div className="env-rail-toolbar">
+        <span className="env-rail-handle" aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </span>
+        <span className={`env-risk-badge env-risk-badge--${state.globalRiskTone}`}>
+          {RISK_TONE_LABEL[state.globalRiskTone] ?? '— 中性基准'}
+        </span>
       </div>
 
       <div className="env-rail-buckets">
