@@ -45,10 +45,6 @@ export function EnvironmentFlowLayer({ isActive, agentOrder, agentPositions, anc
           const path = `M ${anchor.x} ${anchor.y} C ${anchor.x} ${curveMidY}, ${targetX} ${curveMidY}, ${targetX} ${targetY}`
           return (
             <g key={agentId}>
-              <circle className="environment-flow-anchor" cx={anchor.x} cy={anchor.y} r={9} />
-              <text className="environment-flow-anchor-label" x={anchor.x} y={anchor.y - 18} textAnchor="middle">
-                {baseAnchor.label}
-              </text>
               <path className="environment-flow-line" d={path} />
             </g>
           )
