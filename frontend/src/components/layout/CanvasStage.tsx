@@ -233,7 +233,7 @@ export function CanvasStage({
             anchors={environmentAnchors}
           />
           <InteractionFlowLayer
-            isActive={state.interactionResolution != null}
+            isActive={isRunning && state.interactionResolution != null}
             agentOrder={visibleAgents.map((agent) => agent.id as SandboxAgentId)}
             agentPositions={agentPositions}
             panelPosition={interactionPanelPosition}
