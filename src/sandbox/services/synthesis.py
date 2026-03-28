@@ -17,6 +17,7 @@ from src.sandbox.schemas.reports import (
     RoundComplete,
     TensionItem,
 )
+from src.sandbox.services.interaction_resolver import resolve_interactions
 
 
 def build_summary_from_perspective(perspective: AgentPerspective) -> str:
@@ -37,7 +38,8 @@ def build_round_complete(
 ) -> RoundComplete:
     per_agent_status: list[PerAgentStatus] = []
     perspectives: list[AgentPerspective] = []
-    for result in results:
+    normalized_results = list(results)
+    for result in normalized_results:
         if result.perspective is None:
             continue
         perspectives.append(result.perspective)
@@ -52,7 +54,8 @@ def build_round_complete(
         )
 
     divergence_map = _build_divergence_map(perspectives)
-    data_quality = _derive_data_quality(results)
+    interaction_resolution = resolve_interactions(normalized_results)
+    data_quality = _derive_data_quality(normalized_results)
     return RoundComplete(
         sandbox_id=sandbox_id,
         ticker=ticker,
@@ -61,6 +64,7 @@ def build_round_complete(
         stop_reason=stop_reason,
         per_agent_status=per_agent_status,
         divergence_map=divergence_map,
+        interaction_resolution=interaction_resolution,
         data_quality=data_quality,
     )
 
@@ -94,6 +98,7 @@ def build_market_reading_report(round_complete: RoundComplete, results: Iterable
         data_quality=round_complete.data_quality,
         perspective_detail=detail,
         action_detail=actions,
+        interaction_resolution=round_complete.interaction_resolution,
     )
 
 
