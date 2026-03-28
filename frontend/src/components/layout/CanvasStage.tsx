@@ -12,6 +12,7 @@ import '../../styles/canvas-motion.css'
 import { AgentNode, CARD_WIDTH } from '../canvas/AgentNode'
 import { CanvasBackground } from '../canvas/CanvasBackground'
 import { EnvironmentFlowLayer } from '../canvas/EnvironmentFlowLayer'
+import { InteractionSummaryPanel } from '../canvas/InteractionSummaryPanel'
 import { EnvironmentBar } from '../environment/EnvironmentBar'
 import { CommandConsole } from './CommandConsole'
 import { PromptMascot } from './PromptMascot'
@@ -73,6 +74,7 @@ export function CanvasStage({
   const hasShownFirstCompleteRef = useRef(false)
   const wasRunningRef = useRef(isRunning)
   const [environmentAnchorViewportMap, setEnvironmentAnchorViewportMap] = useState<EnvironmentAnchorMap>({})
+  const [highlightedAgentIds, setHighlightedAgentIds] = useState<SandboxAgentId[]>([])
 
   // Drag overrides — user drag moves nodes away from computed positions
   const [dragOverrides, setDragOverrides] = useState<Record<string, AgentPos>>({})
@@ -97,6 +99,7 @@ export function CanvasStage({
     agentPositions[agent.id] = dragOverrides[agent.id] ?? basePosition
   }
   const envState = state.environmentState
+  const highlightedAgentSet = useMemo(() => new Set(highlightedAgentIds), [highlightedAgentIds])
   const pipelineStage = resolvePipelineStage(envState, isRunning, currentInputEvents.length)
   const environmentAnchors = useMemo(() => {
     const stageElement = stageRef.current
@@ -230,11 +233,19 @@ export function CanvasStage({
                 onDragMove={handleAgentDragMove}
                 isRunning={isRunning}
                 nodeIndex={i}
+                isHighlighted={highlightedAgentSet.has(agent.id as SandboxAgentId)}
+                isDimmed={highlightedAgentSet.size > 0 && !highlightedAgentSet.has(agent.id as SandboxAgentId)}
               />
             ))}
           </div>
           {error ? <div className="canvas-error">{error}</div> : null}
         </div>
+
+        <InteractionSummaryPanel
+          resolution={state.interactionResolution}
+          onHighlightAgents={setHighlightedAgentIds}
+          onClearHighlight={() => setHighlightedAgentIds([])}
+        />
 
         <div className="canvas-corner-controls" data-no-pan>
           <span className="corner-zoom">{zoomPercent}%</span>

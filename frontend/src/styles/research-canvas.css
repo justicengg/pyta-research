@@ -3579,3 +3579,195 @@ select.field-input {
   bottom: var(--sp-6);
   transform: translateX(-50%);
 }
+
+.interaction-panel {
+  position: absolute;
+  top: 118px;
+  right: 22px;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 340px;
+  padding: 14px;
+  border-radius: 22px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 88%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 96%, transparent) 0%,
+      color-mix(in srgb, var(--surface-subtle) 92%, transparent) 100%
+    );
+  box-shadow: 0 22px 42px rgba(7, 12, 20, 0.14);
+  backdrop-filter: blur(14px);
+}
+
+.interaction-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.interaction-panel__header strong {
+  display: block;
+  font-size: 14px;
+  color: var(--text-1);
+}
+
+.interaction-panel__header p {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--text-3);
+}
+
+.interaction-panel__pills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.interaction-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface-subtle) 84%, transparent);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-2);
+}
+
+.interaction-pill--expansion,
+.interaction-pill--bullish {
+  border-color: color-mix(in srgb, var(--lime) 30%, transparent);
+  color: var(--lime);
+}
+
+.interaction-pill--contraction,
+.interaction-pill--bearish {
+  border-color: color-mix(in srgb, var(--orange) 30%, transparent);
+  color: var(--orange);
+}
+
+.interaction-pill--fragmented,
+.interaction-pill--mixed {
+  border-color: color-mix(in srgb, var(--accent) 36%, transparent);
+  color: var(--accent);
+}
+
+.interaction-panel__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.interaction-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 92%, transparent);
+  background: color-mix(in srgb, var(--surface-subtle) 84%, transparent);
+}
+
+.interaction-metric span {
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+.interaction-metric strong {
+  font-size: 18px;
+  color: var(--text-1);
+}
+
+.interaction-panel__group,
+.interaction-panel__column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.interaction-panel__columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.interaction-panel__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.interaction-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.interaction-chip,
+.interaction-item {
+  appearance: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.interaction-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  font-size: 11px;
+  color: var(--text-2);
+  transition: border-color 0.16s ease, transform 0.16s ease;
+}
+
+.interaction-chip:hover,
+.interaction-item:hover {
+  transform: translateY(-1px);
+}
+
+.interaction-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  min-height: 92px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 92%, transparent);
+  background: color-mix(in srgb, var(--surface-subtle) 86%, transparent);
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.interaction-item strong {
+  font-size: 11px;
+  color: var(--text-1);
+  line-height: 1.45;
+}
+
+.interaction-item span {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-3);
+}
+
+.interaction-item--reinforce:hover {
+  border-color: color-mix(in srgb, var(--lime) 36%, var(--border));
+  box-shadow: 0 12px 24px rgba(7, 12, 20, 0.12);
+}
+
+.interaction-item--conflict:hover {
+  border-color: color-mix(in srgb, var(--orange) 36%, var(--border));
+  box-shadow: 0 12px 24px rgba(7, 12, 20, 0.12);
+}

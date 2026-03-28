@@ -1,6 +1,7 @@
 import type {
   BackendAgentPerspective,
   BackendAgentActionSnapshot,
+  BackendInteractionResolution,
   BackendCheckpoint,
   BackendSandboxEnvironmentState,
   BackendMarketReadingReport,
@@ -11,6 +12,7 @@ import type {
   BackendSandboxRunResponse,
   CanvasAgentCard,
   CanvasInputEvent,
+  CanvasInteractionResolution,
   CanvasRunState,
   CanvasTension,
   SandboxAgentId,
@@ -123,6 +125,9 @@ function buildCanvasRunState(input: {
   const perAgentStatus = input.roundComplete?.per_agent_status ?? buildFallbackStatuses(agentDetail)
   const synthesis = buildSynthesis(agentDetail, input.report.perspective_synthesis, perAgentStatus)
   const tensions = buildTensions(input.report.key_tensions ?? input.roundComplete?.divergence_map ?? [])
+  const interactionResolution = mapInteractionResolution(
+    input.report.interaction_resolution ?? input.roundComplete?.interaction_resolution ?? null,
+  )
   const trackingSignals = uniqueStrings(input.report.tracking_signals ?? [])
 
   return {
@@ -144,11 +149,48 @@ function buildCanvasRunState(input: {
     ),
     synthesis,
     tensions,
+    interactionResolution,
     trackingSignals,
     inputEvents: input.inputEvents,
     latestCheckpoint: input.latestCheckpoint,
     roundComplete: input.roundComplete,
     report: input.report,
+  }
+}
+
+function mapInteractionResolution(
+  input: BackendInteractionResolution | null | undefined,
+): CanvasInteractionResolution | null {
+  if (!input) {
+    return null
+  }
+
+  return {
+    edges: input.interaction_edges.map((item) => ({
+      sourceAgent: item.source_agent,
+      targetAgent: item.target_agent,
+      relationType: item.relation_type,
+      strength: item.strength,
+      description: item.description,
+    })),
+    conflicts: input.conflict_map.map((item) => ({
+      between: item.between,
+      strength: item.strength,
+      description: item.description,
+    })),
+    reinforcements: input.reinforcement_map.map((item) => ({
+      between: item.between,
+      strength: item.strength,
+      description: item.description,
+    })),
+    marketForceSummary: {
+      regime: input.market_force_summary.regime,
+      netBias: input.market_force_summary.net_bias,
+      dominantAgents: input.market_force_summary.dominant_agents,
+      bullishPressure: input.market_force_summary.bullish_pressure,
+      bearishPressure: input.market_force_summary.bearish_pressure,
+      summary: input.market_force_summary.summary,
+    },
   }
 }
 
@@ -349,6 +391,7 @@ export function createEmptyCanvasRunState(): CanvasRunState {
       return acc
     }, {} as Record<SandboxAgentId, string>),
     tensions: [],
+    interactionResolution: null,
     trackingSignals: [],
     inputEvents: [],
     latestCheckpoint: null,
