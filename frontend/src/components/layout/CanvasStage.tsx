@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CanvasState, RoundRecord, SceneParams } from '../../lib/types/canvas'
 import type {
   SandboxAgentId,
+  SandboxEnvironmentType,
   SandboxInputEvent,
   SandboxPipelineStage,
 } from '../../lib/types/sandbox'
@@ -23,6 +24,7 @@ import {
 } from '../../lib/orb/promptProfiles'
 
 type AgentPos = { x: number; y: number }
+type EnvironmentAnchorMap = Partial<Record<SandboxEnvironmentType, { x: number; y: number }>>
 
 type Props = {
   state: CanvasState
@@ -68,6 +70,7 @@ export function CanvasStage({
   const [orbMode] = useState(resolveOrbMode)
   const hasShownFirstCompleteRef = useRef(false)
   const wasRunningRef = useRef(isRunning)
+  const [environmentAnchorViewportMap, setEnvironmentAnchorViewportMap] = useState<EnvironmentAnchorMap>({})
 
   // Drag overrides — user drag moves nodes away from computed positions
   const [dragOverrides, setDragOverrides] = useState<Record<string, AgentPos>>({})
@@ -88,6 +91,23 @@ export function CanvasStage({
   }
   const envState = state.environmentState
   const pipelineStage = resolvePipelineStage(envState, isRunning, currentInputEvents.length)
+  const environmentAnchors = useMemo(() => {
+    const stageElement = stageRef.current
+    if (!stageElement) {
+      return {}
+    }
+    const stageRect = stageElement.getBoundingClientRect()
+    const mapped: EnvironmentAnchorMap = {}
+    for (const [type, anchor] of Object.entries(environmentAnchorViewportMap) as Array<
+      [SandboxEnvironmentType, { x: number; y: number }]
+    >) {
+      mapped[type] = {
+        x: (anchor.x - stageRect.left - panX) / zoom,
+        y: (anchor.y - stageRect.top - panY) / zoom,
+      }
+    }
+    return mapped
+  }, [environmentAnchorViewportMap, panX, panY, zoom])
 
   const handleAgentDragMove = useCallback((id: string, dx: number, dy: number) => {
     setDragOverrides((prev) => {
@@ -172,6 +192,7 @@ export function CanvasStage({
         state={envState}
         pipelineStage={pipelineStage}
         isRunning={isRunning}
+        onAnchorLayoutChange={setEnvironmentAnchorViewportMap}
       />
 
       {/* Zone B — Canvas viewport */}
@@ -189,6 +210,7 @@ export function CanvasStage({
             isActive={isRunning}
             agentOrder={visibleAgents.map((agent) => agent.id as SandboxAgentId)}
             agentPositions={agentPositions}
+            anchors={environmentAnchors}
           />
           <div className="parallel-agent-board">
             {visibleAgents.map((agent, i) => (

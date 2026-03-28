@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type {
   SandboxAgentId,
   SandboxEnvironmentSignal,
@@ -16,6 +16,7 @@ type Props = {
     signalId: string | null
     agentIds: SandboxAgentId[]
   }) => void
+  onAnchorLayoutChange?: (anchors: Partial<Record<SandboxEnvironmentType, { x: number; y: number }>>) => void
 }
 
 const ENVIRONMENT_LABELS: Record<SandboxEnvironmentType, string> = {
@@ -54,9 +55,11 @@ export function EnvironmentBar({
   pipelineStage = 'idle',
   isRunning = false,
   onInspectChange,
+  onAnchorLayoutChange,
 }: Props) {
   const [expandedType, setExpandedType] = useState<SandboxEnvironmentType | null>(null)
   const [hoveredSignalId, setHoveredSignalId] = useState<string | null>(null)
+  const bucketRefs = useRef<Partial<Record<SandboxEnvironmentType, HTMLButtonElement | null>>>({})
 
   const buckets = useMemo(() => {
     if (!state) return []
@@ -77,6 +80,40 @@ export function EnvironmentBar({
       agentIds: environmentType ? AFFECTED_AGENT_MAP[environmentType] : [],
     })
   }, [expandedType, inspectedSignal, onInspectChange])
+
+  useEffect(() => {
+    if (!onAnchorLayoutChange) {
+      return
+    }
+
+    const measure = () => {
+      const anchors: Partial<Record<SandboxEnvironmentType, { x: number; y: number }>> = {}
+      for (const type of ENVIRONMENT_ORDER) {
+        const element = bucketRefs.current[type]
+        if (!element) continue
+        const rect = element.getBoundingClientRect()
+        anchors[type] = {
+          x: rect.left + rect.width / 2,
+          y: rect.bottom - 8,
+        }
+      }
+      onAnchorLayoutChange(anchors)
+    }
+
+    measure()
+    const observer = new ResizeObserver(() => measure())
+    for (const type of ENVIRONMENT_ORDER) {
+      const element = bucketRefs.current[type]
+      if (element) {
+        observer.observe(element)
+      }
+    }
+    window.addEventListener('resize', measure)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [buckets, expandedType, onAnchorLayoutChange])
 
   if (!state) {
     return null
@@ -109,6 +146,9 @@ export function EnvironmentBar({
               key={bucket.type}
               type="button"
               className={`env-bucket${isExpanded ? ' env-bucket--expanded' : ''}${isActive ? ' env-bucket--active' : ''}`}
+              ref={(element) => {
+                bucketRefs.current[bucket.type] = element
+              }}
               onClick={() => {
                 setHoveredSignalId(null)
                 setExpandedType((current) => (current === bucket.type ? null : bucket.type))

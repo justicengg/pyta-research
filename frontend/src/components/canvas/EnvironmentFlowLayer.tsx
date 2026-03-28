@@ -5,6 +5,7 @@ type Props = {
   isActive: boolean
   agentOrder: SandboxAgentId[]
   agentPositions: Record<string, { x: number; y: number }>
+  anchors?: Partial<Record<SandboxEnvironmentType, { x: number; y: number }>>
 }
 
 const ENVIRONMENT_ANCHORS: Record<SandboxEnvironmentType, { x: number; y: number; label: string }> = {
@@ -23,7 +24,7 @@ const ENVIRONMENT_ORDER: SandboxEnvironmentType[] = [
   'alternative_data',
 ]
 
-export function EnvironmentFlowLayer({ isActive, agentOrder, agentPositions }: Props) {
+export function EnvironmentFlowLayer({ isActive, agentOrder, agentPositions, anchors = {} }: Props) {
   if (!isActive || agentOrder.length === 0) {
     return null
   }
@@ -33,7 +34,9 @@ export function EnvironmentFlowLayer({ isActive, agentOrder, agentPositions }: P
       <g className="environment-flow-layer__group">
         {agentOrder.map((agentId, index) => {
           const environmentType = ENVIRONMENT_ORDER[index]
-          const anchor = ENVIRONMENT_ANCHORS[environmentType]
+          const baseAnchor = ENVIRONMENT_ANCHORS[environmentType]
+          const measuredAnchor = anchors[environmentType]
+          const anchor = measuredAnchor ?? baseAnchor
           const target = agentPositions[agentId]
           if (!target) return null
           const targetX = target.x + CARD_WIDTH / 2
@@ -44,7 +47,7 @@ export function EnvironmentFlowLayer({ isActive, agentOrder, agentPositions }: P
             <g key={agentId}>
               <circle className="environment-flow-anchor" cx={anchor.x} cy={anchor.y} r={9} />
               <text className="environment-flow-anchor-label" x={anchor.x} y={anchor.y - 18} textAnchor="middle">
-                {anchor.label}
+                {baseAnchor.label}
               </text>
               <path className="environment-flow-line" d={path} />
             </g>

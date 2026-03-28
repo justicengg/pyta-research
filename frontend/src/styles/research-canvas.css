@@ -3585,6 +3585,7 @@ select.field-input {
 .stage--parallel {
   cursor: grab;
   touch-action: none;
+  overflow: visible;
 }
 
 .stage--parallel .canvas-background__ring,
@@ -3596,6 +3597,10 @@ select.field-input {
 .canvas-layer--parallel {
   width: 1200px;
   height: 720px;
+}
+
+.canvas-stage {
+  overflow: visible;
 }
 
 .parallel-agent-board {
