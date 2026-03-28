@@ -1,6 +1,15 @@
 export type SandboxSessionStatus = 'initializing' | 'running' | 'complete' | 'partial' | 'degraded' | 'error'
 export type SandboxPerspectiveStatus = 'live' | 'reused_last_round' | 'degraded'
 export type SandboxMarketBias = 'bullish' | 'bearish' | 'neutral' | 'mixed'
+export type SandboxEnvironmentType =
+  | 'geopolitics'
+  | 'macro_policy'
+  | 'market_sentiment'
+  | 'fundamentals'
+  | 'alternative_data'
+export type SandboxSignalDirection = 'positive' | 'negative' | 'mixed' | 'neutral'
+export type SandboxTimeHorizon = 'intraday' | 'short_term' | 'mid_term' | 'long_term'
+export type SandboxRiskTone = 'risk_on' | 'risk_off' | 'mixed' | 'neutral'
 export type SandboxAgentId =
   | 'traditional_institution'
   | 'quant_institution'
@@ -26,10 +35,54 @@ export type SandboxInputEvent = {
   metadata?: Record<string, unknown>
 }
 
+export type SandboxEnvironmentEvidence = {
+  kind: 'quote' | 'metric' | 'event'
+  value: string
+}
+
+export type SandboxEnvironmentSignal = {
+  id: string
+  messageId: string
+  environmentType: SandboxEnvironmentType
+  title: string
+  summary: string
+  direction: SandboxSignalDirection
+  strength: 1 | 2 | 3 | 4 | 5
+  horizon: SandboxTimeHorizon
+  relatedSymbols: string[]
+  relatedMarkets: string[]
+  entities: string[]
+  tags: string[]
+  detectedAt: string
+  expiresAt?: string | null
+  evidence: SandboxEnvironmentEvidence[]
+}
+
+export type SandboxEnvironmentBucket = {
+  type: SandboxEnvironmentType
+  displayName: string
+  activeSignals: SandboxEnvironmentSignal[]
+  dominantDirection: SandboxSignalDirection
+  aggregateStrength: number
+  lastUpdatedAt?: string | null
+  status: 'idle' | 'active' | 'cooling'
+}
+
+export type SandboxEnvironmentState = {
+  sandboxId?: string | null
+  symbol?: string | null
+  market?: string | null
+  buckets: SandboxEnvironmentBucket[]
+  globalRiskTone: SandboxRiskTone
+  updatedAt: string
+  version: number
+}
+
 export type SandboxRunRequest = {
   ticker: string
   market: string
   events: SandboxInputEvent[]
+  environmentState?: SandboxEnvironmentState | null
   roundTimeoutMs?: number
   narrativeGuide?: string | null
 }
@@ -44,10 +97,54 @@ export type BackendSandboxInputEvent = {
   metadata?: Record<string, unknown>
 }
 
+export type BackendSandboxEnvironmentEvidence = {
+  kind: 'quote' | 'metric' | 'event'
+  value: string
+}
+
+export type BackendSandboxEnvironmentSignal = {
+  id: string
+  message_id: string
+  environment_type: SandboxEnvironmentType
+  title: string
+  summary: string
+  direction: SandboxSignalDirection
+  strength: 1 | 2 | 3 | 4 | 5
+  horizon: SandboxTimeHorizon
+  related_symbols: string[]
+  related_markets: string[]
+  entities: string[]
+  tags: string[]
+  detected_at: string
+  expires_at?: string | null
+  evidence: BackendSandboxEnvironmentEvidence[]
+}
+
+export type BackendSandboxEnvironmentBucket = {
+  type: SandboxEnvironmentType
+  display_name: string
+  active_signals: BackendSandboxEnvironmentSignal[]
+  dominant_direction: SandboxSignalDirection
+  aggregate_strength: number
+  last_updated_at?: string | null
+  status: 'idle' | 'active' | 'cooling'
+}
+
+export type BackendSandboxEnvironmentState = {
+  sandbox_id?: string | null
+  symbol?: string | null
+  market?: string | null
+  buckets: BackendSandboxEnvironmentBucket[]
+  global_risk_tone: SandboxRiskTone
+  updated_at: string
+  version: number
+}
+
 export type BackendSandboxRunRequest = {
   ticker: string
   market: string
   events: BackendSandboxInputEvent[]
+  environment_state?: BackendSandboxEnvironmentState | null
   round_timeout_ms?: number
   narrative_guide?: string | null
 }
@@ -134,6 +231,7 @@ export type BackendCheckpoint = {
 export type BackendSandboxRunResponse = {
   sandbox_id: string
   session_status: SandboxSessionStatus
+  environment_state?: BackendSandboxEnvironmentState | null
   round_complete: BackendRoundComplete
   report: BackendMarketReadingReport
 }
@@ -176,6 +274,7 @@ export type CanvasRunState = {
   sandboxId: string
   ticker: string
   market: string
+  environmentState: SandboxEnvironmentState | null
   sessionStatus: SandboxSessionStatus
   quality: 'complete' | 'partial' | 'degraded'
   stopReason: string | null

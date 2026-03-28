@@ -12,9 +12,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.sandbox.agents.runner import RunnerResult, SecondaryAgentRunner
+from src.sandbox.environment_pipeline import build_environment_state
 
 logger = logging.getLogger(__name__)
 from src.sandbox.schemas.agents import AgentNarrative, AgentPerspective, MarketBias, ParticipantType, PerspectiveStatus
+from src.sandbox.schemas.environment import EnvironmentState
 from src.sandbox.schemas.memory import AgentSnapshot, Checkpoint, ReportRecord, SandboxEventRecord, SandboxSession
 from src.sandbox.schemas.reports import MarketReadingReport, RoundComplete
 from src.sandbox.services.synthesis import build_assembly_notes, build_market_reading_report, build_round_complete
@@ -23,6 +25,7 @@ from src.sandbox.services.synthesis import build_assembly_notes, build_market_re
 @dataclass
 class SecondaryRunResult:
     sandbox_id: UUID
+    environment_state: EnvironmentState
     round_complete: RoundComplete
     report: MarketReadingReport
 
@@ -38,6 +41,7 @@ class SecondaryOrchestrator:
         ticker: str,
         market: str,
         events: list[dict[str, Any]],
+        environment_state: EnvironmentState | None = None,
         round_timeout_ms: int = 30000,
         narrative_guide: str | None = None,
         sandbox_id: UUID | None = None,
@@ -52,6 +56,13 @@ class SecondaryOrchestrator:
             narrative_guide=narrative_guide,
         )
         event_rows = self._persist_input_events(session, sandbox.id, round_number, events)
+        environment_state = environment_state or build_environment_state(
+            ticker=ticker,
+            market=market,
+            events=event_rows,
+        )
+        environment_state.sandbox_id = sandbox.id
+        self._persist_environment_state(session, sandbox.id, round_number, environment_state)
 
         # ── Fetch real market data (yfinance, with DB cache) and inject into agent prompts ────
         market_data: dict[str, Any] | None = None
@@ -73,6 +84,7 @@ class SecondaryOrchestrator:
             narrative_guide=narrative_guide,
             timeout_ms=round_timeout_ms,
             market_data=market_data,
+            environment_state=environment_state.model_dump(mode="json"),
         )
         resolved_results = [self._resolve_result(session, sandbox.id, round_number, result) for result in runner_results]
         stop_reason = self._determine_stop_reason(resolved_results)
@@ -91,7 +103,12 @@ class SecondaryOrchestrator:
         sandbox.status = round_complete.data_quality
         sandbox.current_round = round_number
         sandbox.total_rounds = round_number
-        return SecondaryRunResult(sandbox_id=sandbox.id, round_complete=round_complete, report=report)
+        return SecondaryRunResult(
+            sandbox_id=sandbox.id,
+            environment_state=environment_state,
+            round_complete=round_complete,
+            report=report,
+        )
 
     def _get_or_create_session(
         self,
@@ -142,6 +159,29 @@ class SecondaryOrchestrator:
             persisted.append(event)
         session.flush()
         return persisted
+
+    def _persist_environment_state(
+        self,
+        session: Session,
+        sandbox_id: UUID,
+        round_number: int,
+        environment_state: EnvironmentState,
+    ) -> None:
+        session.add(
+            SandboxEventRecord(
+                sandbox_id=sandbox_id,
+                round=round_number,
+                channel="CH-A",
+                event_type="environment_state",
+                source="system",
+                trace_id=uuid4(),
+                agent_id=None,
+                payload=environment_state.model_dump(mode="json"),
+                perspective_status=None,
+                is_degraded=False,
+            )
+        )
+        session.flush()
 
     def _resolve_result(self, session: Session, sandbox_id: UUID, round_number: int, result: RunnerResult) -> RunnerResult:
         if result.perspective is not None and result.narrative is not None:

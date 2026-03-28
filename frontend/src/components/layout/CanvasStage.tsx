@@ -9,6 +9,7 @@ import { CanvasBackground } from '../canvas/CanvasBackground'
 import { CenterCoreCard } from '../canvas/CenterCoreCard'
 import { EdgeLayer } from '../canvas/EdgeLayer'
 import { MeridianGridView } from '../canvas/MeridianGridView'
+import { EnvironmentBar } from '../environment/EnvironmentBar'
 import '../../styles/meridian-grid.css'
 import { CommandConsole } from './CommandConsole'
 import { PromptMascot } from './PromptMascot'
@@ -148,6 +149,7 @@ export function CanvasStage({
       <div className="stage-head">
         <div className="stage-head-left">
           <h2>多 Agent 沙盘推演</h2>
+          <EnvironmentBar state={state.environmentState} />
         </div>
         <div className="view-toggle-group">
           <button

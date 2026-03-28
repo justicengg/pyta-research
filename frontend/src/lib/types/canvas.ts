@@ -1,3 +1,5 @@
+import type { SandboxEnvironmentState } from './sandbox'
+
 export type AgentStatus = 'live' | 'reused_last_round' | 'degraded'
 
 export type AgentSentiment = 'bullish' | 'neutral' | 'bearish'
@@ -76,6 +78,7 @@ export type RecommendedBundle = {
 
 export type CanvasState = {
   quality: 'complete' | 'partial' | 'degraded'
+  environmentState: SandboxEnvironmentState | null
   leftPanel: {
     connectedSources: ConnectorSource[]
     recentEvents: RecentEvent[]

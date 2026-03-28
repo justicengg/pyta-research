@@ -34,7 +34,9 @@ Implement the first code slice for the Environment Bar refactor:
 
 - [x] inspect current sandbox/frontend entry points
 - [x] create task note
-- [ ] create git checkpoint before edits
-- [ ] implement frontend environment pipeline
-- [ ] implement backend environment contract
-- [ ] validate build/check
+- [x] create git checkpoint before edits
+- [x] implement frontend environment pipeline
+- [x] implement backend environment contract
+- [x] validate frontend build
+- [x] validate backend syntax
+- [ ] run repo dev-check script if/when restored in this worktree

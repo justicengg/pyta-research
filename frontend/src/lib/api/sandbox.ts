@@ -1,7 +1,9 @@
 import type {
+  BackendSandboxEnvironmentState,
   BackendSandboxResultResponse,
   BackendSandboxRunRequest,
   BackendSandboxRunResponse,
+  SandboxEnvironmentState,
   SandboxInputEvent,
   SandboxRunRequest,
 } from '../types/sandbox'
@@ -44,6 +46,42 @@ function toBackendEvent(event: SandboxInputEvent) {
     timestamp: event.timestamp,
     symbol: event.symbol ?? null,
     metadata: event.metadata ?? {},
+  }
+}
+
+function toBackendEnvironmentState(state: SandboxEnvironmentState): BackendSandboxEnvironmentState {
+  return {
+    sandbox_id: state.sandboxId ?? null,
+    symbol: state.symbol ?? null,
+    market: state.market ?? null,
+    buckets: state.buckets.map((bucket) => ({
+      type: bucket.type,
+      display_name: bucket.displayName,
+      active_signals: bucket.activeSignals.map((signal) => ({
+        id: signal.id,
+        message_id: signal.messageId,
+        environment_type: signal.environmentType,
+        title: signal.title,
+        summary: signal.summary,
+        direction: signal.direction,
+        strength: signal.strength,
+        horizon: signal.horizon,
+        related_symbols: signal.relatedSymbols,
+        related_markets: signal.relatedMarkets,
+        entities: signal.entities,
+        tags: signal.tags,
+        detected_at: signal.detectedAt,
+        expires_at: signal.expiresAt ?? null,
+        evidence: signal.evidence.map((item) => ({ kind: item.kind, value: item.value })),
+      })),
+      dominant_direction: bucket.dominantDirection,
+      aggregate_strength: bucket.aggregateStrength,
+      last_updated_at: bucket.lastUpdatedAt ?? null,
+      status: bucket.status,
+    })),
+    global_risk_tone: state.globalRiskTone,
+    updated_at: state.updatedAt,
+    version: state.version,
   }
 }
 
@@ -109,6 +147,7 @@ export async function runSandbox(
     ticker: request.ticker,
     market: request.market,
     events: request.events.map(toBackendEvent),
+    environment_state: request.environmentState ? toBackendEnvironmentState(request.environmentState) : null,
     round_timeout_ms: request.roundTimeoutMs,
     narrative_guide: request.narrativeGuide ?? null,
   }

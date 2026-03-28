@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { mapRunResponseToCanvasState } from '../lib/adapters'
 import { runSandbox } from '../lib/api'
+import { buildEnvironmentStateFromInputEvents } from '../lib/environment/pipeline'
 import { mockCanvasState } from '../lib/mock/canvasState'
 import type { AgentCardData, AgentEdge, CanvasState, RecentEvent, RoundRecord, SceneParams } from '../lib/types/canvas'
 import type { SourceEvent } from '../lib/types/sourceEvents'
@@ -58,11 +59,17 @@ export function useSandboxRun(options: Options = {}): SandboxRunController {
     }
 
     const inputEvents = mergeInputEvents(content, sourceEvents, sceneParams.ticker)
+    const environmentState = buildEnvironmentStateFromInputEvents(
+      inputEvents,
+      sceneParams.ticker,
+      sceneParams.market,
+    )
     setCurrentInputEvents(inputEvents)
     setError(null)
     setIsRunning(true)
     setCanvasState((current) => ({
       ...current,
+      environmentState,
       leftPanel: {
         ...current.leftPanel,
         recentEvents: inputEvents.map(toRecentEvent),
@@ -80,6 +87,7 @@ export function useSandboxRun(options: Options = {}): SandboxRunController {
         ticker: sceneParams.ticker,
         market: sceneParams.market,
         events: inputEvents,
+        environmentState,
         roundTimeoutMs: 60000,
         narrativeGuide: narrativeWithContext,
       })
@@ -253,6 +261,7 @@ function mergeCanvasState(
 
   return {
     quality: runState.quality,
+    environmentState: runState.environmentState,
     commandDraft: mockCanvasState.commandDraft,
     leftPanel: {
       ...mockCanvasState.leftPanel,

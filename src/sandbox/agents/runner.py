@@ -48,6 +48,7 @@ class SecondaryAgentRunner:
         narrative_guide: str | None,
         timeout_ms: int,
         market_data: dict[str, Any] | None = None,
+        environment_state: dict[str, Any] | None = None,
     ) -> list[RunnerResult]:
         tasks = [
             self._run_single(
@@ -59,6 +60,7 @@ class SecondaryAgentRunner:
                 narrative_guide=narrative_guide,
                 timeout_ms=timeout_ms,
                 market_data=market_data,
+                environment_state=environment_state,
             )
             for agent_type in ParticipantType
         ]
@@ -75,6 +77,7 @@ class SecondaryAgentRunner:
         narrative_guide: str | None,
         timeout_ms: int,
         market_data: dict[str, Any] | None = None,
+        environment_state: dict[str, Any] | None = None,
     ) -> RunnerResult:
         return await self._run_single(
             agent_type=agent_type,
@@ -85,6 +88,7 @@ class SecondaryAgentRunner:
             narrative_guide=narrative_guide,
             timeout_ms=timeout_ms,
             market_data=market_data,
+            environment_state=environment_state,
         )
 
     async def _run_single(
@@ -98,10 +102,20 @@ class SecondaryAgentRunner:
         narrative_guide: str | None,
         timeout_ms: int,
         market_data: dict[str, Any] | None = None,
+        environment_state: dict[str, Any] | None = None,
     ) -> RunnerResult:
         try:
             return await asyncio.wait_for(
-                self._generate(agent_type, ticker, market, round_number, events, narrative_guide, market_data),
+                self._generate(
+                    agent_type,
+                    ticker,
+                    market,
+                    round_number,
+                    events,
+                    narrative_guide,
+                    market_data,
+                    environment_state,
+                ),
                 timeout=timeout_ms / 1000,
             )
         except asyncio.TimeoutError:
@@ -118,17 +132,28 @@ class SecondaryAgentRunner:
         events: list[dict[str, Any]],
         narrative_guide: str | None,
         market_data: dict[str, Any] | None = None,
+        environment_state: dict[str, Any] | None = None,
     ) -> RunnerResult:
         if self.llm_client.enabled:
             response = await self.llm_client.generate_json(
                 SECONDARY_SANDBOX_SYSTEM_PROMPT,
-                build_secondary_user_prompt(agent_type, ticker, market, round_number, events, narrative_guide, market_data),
+                build_secondary_user_prompt(
+                    agent_type,
+                    ticker,
+                    market,
+                    round_number,
+                    events,
+                    narrative_guide,
+                    market_data,
+                    environment_state,
+                    self._focused_signals(agent_type, environment_state),
+                ),
             )
             payload = json.loads(response.content)
             perspective, narrative = self._parse_llm_payload(agent_type, payload)
             return RunnerResult(agent_type=agent_type, perspective=perspective, narrative=narrative)
 
-        perspective, narrative = self._stub_response(agent_type, ticker, market, events)
+        perspective, narrative = self._stub_response(agent_type, ticker, market, events, environment_state)
         return RunnerResult(
             agent_type=agent_type,
             perspective=perspective,
@@ -142,8 +167,10 @@ class SecondaryAgentRunner:
         ticker: str,
         market: str,
         events: list[dict[str, Any]],
+        environment_state: dict[str, Any] | None,
     ) -> tuple[AgentPerspective, AgentNarrative]:
         latest_event = events[0]["content"] if events else f"{ticker} 当前暂无事件"
+        leading_environment = self._leading_environment_label(environment_state)
         focus_map = {
             ParticipantType.TRADITIONAL_INSTITUTION: ["估值与基本面", "中长期配置"],
             ParticipantType.QUANT_INSTITUTION: ["价格变化", "流动性信号"],
@@ -155,9 +182,9 @@ class SecondaryAgentRunner:
             agent_type=agent_type,
             perspective_type=agent_type,
             market_bias=MarketBias.NEUTRAL,
-            key_observations=[f"{agent_type.value} 关注到：{latest_event}"],
+            key_observations=[f"{agent_type.value} 关注到：{latest_event}", f"当前主导环境变量：{leading_environment}"],
             key_concerns=[f"{market} 市场短期不确定性仍在"],
-            analytical_focus=focus_map[agent_type],
+            analytical_focus=[leading_environment, *focus_map[agent_type]][:3],
             confidence=0.35,
             perspective_status=PerspectiveStatus.LIVE,
         )
@@ -289,3 +316,44 @@ class SecondaryAgentRunner:
             except ValueError:
                 continue
         return mentions
+
+    def _focused_signals(
+        self,
+        agent_type: ParticipantType,
+        environment_state: dict[str, Any] | None,
+    ) -> list[dict[str, Any]]:
+        if not environment_state:
+            return []
+
+        preference_map = {
+            ParticipantType.TRADITIONAL_INSTITUTION: {"fundamentals", "macro_policy"},
+            ParticipantType.QUANT_INSTITUTION: {"alternative_data", "market_sentiment", "macro_policy"},
+            ParticipantType.RETAIL: {"market_sentiment", "fundamentals"},
+            ParticipantType.OFFSHORE_CAPITAL: {"geopolitics", "macro_policy", "fundamentals"},
+            ParticipantType.SHORT_TERM_CAPITAL: {"market_sentiment", "alternative_data"},
+        }
+        preferred = preference_map[agent_type]
+        focused: list[dict[str, Any]] = []
+
+        for bucket in environment_state.get("buckets", []):
+            if bucket.get("type") not in preferred:
+                continue
+            focused.extend(bucket.get("active_signals", [])[:2])
+
+        return focused[:4]
+
+    def _leading_environment_label(self, environment_state: dict[str, Any] | None) -> str:
+        if not environment_state:
+            return "环境信号不足"
+
+        buckets = environment_state.get("buckets", [])
+        if not buckets:
+            return "环境信号不足"
+
+        ranked = sorted(
+            buckets,
+            key=lambda bucket: bucket.get("aggregate_strength", 0),
+            reverse=True,
+        )
+        top = ranked[0]
+        return str(top.get("display_name") or top.get("type") or "环境信号")

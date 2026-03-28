@@ -1,6 +1,7 @@
 import type {
   BackendAgentPerspective,
   BackendCheckpoint,
+  BackendSandboxEnvironmentState,
   BackendMarketReadingReport,
   BackendPerAgentStatus,
   BackendReportRecord,
@@ -12,6 +13,7 @@ import type {
   CanvasRunState,
   CanvasTension,
   SandboxAgentId,
+  SandboxEnvironmentState,
   SandboxInputEvent,
 } from '../types/sandbox'
 
@@ -62,6 +64,7 @@ export function mapRunResponseToCanvasState(
     sandboxId: response.sandbox_id,
     ticker: response.round_complete.ticker,
     market: response.round_complete.market,
+    environmentState: mapEnvironmentState(response.environment_state),
     sessionStatus: response.session_status,
     quality: response.round_complete.data_quality,
     stopReason: response.round_complete.stop_reason,
@@ -81,6 +84,7 @@ export function mapResultResponseToCanvasState(
     sandboxId: response.sandbox_id,
     ticker: response.ticker,
     market: response.market,
+    environmentState: null,
     sessionStatus: response.session_status,
     quality: response.report.data_quality,
     stopReason: null,
@@ -103,6 +107,7 @@ function buildCanvasRunState(input: {
   sandboxId: string
   ticker: string
   market: string
+  environmentState: SandboxEnvironmentState | null
   sessionStatus: CanvasRunState['sessionStatus']
   quality: CanvasRunState['quality']
   stopReason: string | null
@@ -122,6 +127,7 @@ function buildCanvasRunState(input: {
     sandboxId: input.sandboxId,
     ticker: input.ticker,
     market: input.market,
+    environmentState: input.environmentState,
     sessionStatus: input.sessionStatus,
     quality: input.quality,
     stopReason: input.stopReason,
@@ -243,6 +249,48 @@ function uniqueStrings(values: string[]): string[] {
   return [...new Set(values.filter((item) => item.trim().length > 0))]
 }
 
+function mapEnvironmentState(
+  state: BackendSandboxEnvironmentState | null | undefined,
+): SandboxEnvironmentState | null {
+  if (!state) {
+    return null
+  }
+
+  return {
+    sandboxId: state.sandbox_id ?? null,
+    symbol: state.symbol ?? null,
+    market: state.market ?? null,
+    buckets: state.buckets.map((bucket) => ({
+      type: bucket.type,
+      displayName: bucket.display_name,
+      activeSignals: bucket.active_signals.map((signal) => ({
+        id: signal.id,
+        messageId: signal.message_id,
+        environmentType: signal.environment_type,
+        title: signal.title,
+        summary: signal.summary,
+        direction: signal.direction,
+        strength: signal.strength,
+        horizon: signal.horizon,
+        relatedSymbols: signal.related_symbols,
+        relatedMarkets: signal.related_markets,
+        entities: signal.entities,
+        tags: signal.tags,
+        detectedAt: signal.detected_at,
+        expiresAt: signal.expires_at ?? null,
+        evidence: signal.evidence.map((item) => ({ kind: item.kind, value: item.value })),
+      })),
+      dominantDirection: bucket.dominant_direction,
+      aggregateStrength: bucket.aggregate_strength,
+      lastUpdatedAt: bucket.last_updated_at ?? null,
+      status: bucket.status,
+    })),
+    globalRiskTone: state.global_risk_tone,
+    updatedAt: state.updated_at,
+    version: state.version,
+  }
+}
+
 function isSandboxAgentId(value: string): value is SandboxAgentId {
   return AGENT_ORDER.includes(value as SandboxAgentId)
 }
@@ -252,6 +300,7 @@ export function createEmptyCanvasRunState(): CanvasRunState {
     sandboxId: '',
     ticker: '',
     market: '',
+    environmentState: null,
     sessionStatus: 'initializing',
     quality: 'partial',
     stopReason: null,

@@ -66,6 +66,8 @@ def build_secondary_user_prompt(
     events: list[dict],
     narrative_guide: str | None = None,
     market_data: dict | None = None,
+    environment_state: dict | None = None,
+    focused_signals: list[dict] | None = None,
 ) -> str:
     payload = {
         "agent_type": agent_type.value,
@@ -76,6 +78,10 @@ def build_secondary_user_prompt(
         "narrative_guide": narrative_guide or "",
         "events": events,
     }
+    if environment_state:
+        payload["environment_state"] = environment_state
+    if focused_signals:
+        payload["focused_signals"] = focused_signals
     # Inject real market data when available — agents use this as factual grounding
     if market_data:
         payload["market_data"] = market_data
