@@ -71,6 +71,8 @@ def test_run_sandbox_returns_round_complete_and_report(client: TestClient):
     assert data["round_complete"]["market"] == "HK"
     assert data["report"]["ticker"] == "0700.HK"
     assert len(data["report"]["perspective_synthesis"]) == 5
+    assert data["round_complete"]["interaction_resolution"] is not None
+    assert data["report"]["interaction_resolution"] is not None
 
     with get_session() as session:
         sandbox_rows = session.execute(select(SandboxSession)).scalars().all()
@@ -92,7 +94,8 @@ def test_run_sandbox_returns_round_complete_and_report(client: TestClient):
 
 def test_get_sandbox_result_returns_persisted_report(client: TestClient):
     run_resp = client.post("/api/v1/sandbox/run", json=_sample_payload(), headers=AUTH)
-    sandbox_id = run_resp.json()["sandbox_id"]
+    run_data = run_resp.json()
+    sandbox_id = run_data["sandbox_id"]
 
     result_resp = client.get(f"/api/v1/sandbox/{sandbox_id}/result", headers=AUTH)
     assert result_resp.status_code == 200
@@ -102,3 +105,16 @@ def test_get_sandbox_result_returns_persisted_report(client: TestClient):
     assert data["report"]["report_type"] == "market_reading_report"
     assert data["latest_checkpoint"]["round"] == 1
     assert len(data["report"]["perspective_synthesis"]) == 5
+    assert data["report"]["interaction_resolution"] == run_data["report"]["interaction_resolution"]
+    assert data["latest_checkpoint"]["round_summary"]["interaction_edge_count"] == len(
+        run_data["report"]["interaction_resolution"]["interaction_edges"]
+    )
+    assert data["latest_checkpoint"]["round_summary"]["conflict_count"] == len(
+        run_data["report"]["interaction_resolution"]["conflict_map"]
+    )
+    assert data["latest_checkpoint"]["round_summary"]["reinforcement_count"] == len(
+        run_data["report"]["interaction_resolution"]["reinforcement_map"]
+    )
+    assert data["latest_checkpoint"]["round_summary"]["market_regime"] == run_data["report"]["interaction_resolution"][
+        "market_force_summary"
+    ]["regime"]

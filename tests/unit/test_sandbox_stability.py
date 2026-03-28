@@ -167,3 +167,11 @@ def test_orchestrator_persists_fallback_and_degraded_paths(migrated_db: str):
         assert checkpoint.reused_agent_ids == ["quant_institution"]
         assert checkpoint.degraded_agent_ids == ["retail"]
         assert bundle.reports[0].data_quality == "degraded"
+        interaction_resolution = bundle.reports[0].assembly_notes["interaction_resolution"]
+        assert interaction_resolution["market_force_summary"]["net_bias"] == (
+            result.report.interaction_resolution.market_force_summary.net_bias
+        )
+        assert checkpoint.round_summary["interaction_edge_count"] == len(interaction_resolution["interaction_edges"])
+        assert checkpoint.round_summary["conflict_count"] == len(interaction_resolution["conflict_map"])
+        assert checkpoint.round_summary["reinforcement_count"] == len(interaction_resolution["reinforcement_map"])
+        assert checkpoint.round_summary["market_regime"] == interaction_resolution["market_force_summary"]["regime"]

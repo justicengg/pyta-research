@@ -340,6 +340,9 @@ class SecondaryOrchestrator:
         report: MarketReadingReport,
         results: list[RunnerResult],
     ) -> ReportRecord:
+        assembly_notes = build_assembly_notes(results)
+        if report.interaction_resolution is not None:
+            assembly_notes["interaction_resolution"] = report.interaction_resolution.model_dump(mode="json")
         record = ReportRecord(
             sandbox_id=sandbox_id,
             trace_id=uuid4(),
@@ -353,7 +356,7 @@ class SecondaryOrchestrator:
                 agent.value: perspective.model_dump(mode="json")
                 for agent, perspective in (report.perspective_detail or {}).items()
             },
-            assembly_notes=build_assembly_notes(results),
+            assembly_notes=assembly_notes,
         )
         session.add(record)
         session.flush()
@@ -371,6 +374,7 @@ class SecondaryOrchestrator:
         active = [r.agent_type.value for r in results if r.perspective and r.perspective.perspective_status == PerspectiveStatus.LIVE]
         reused = [r.agent_type.value for r in results if r.perspective and r.perspective.perspective_status == PerspectiveStatus.REUSED_LAST_ROUND]
         degraded = [r.agent_type.value for r in results if r.perspective and r.perspective.perspective_status == PerspectiveStatus.DEGRADED]
+        interaction_resolution = round_complete.interaction_resolution
         session.add(
             Checkpoint(
                 sandbox_id=sandbox_id,
@@ -381,6 +385,11 @@ class SecondaryOrchestrator:
                 degraded_agent_ids=degraded,
                 round_summary={
                     "divergence_count": len(round_complete.divergence_map),
+                    "interaction_edge_count": len(interaction_resolution.interaction_edges) if interaction_resolution is not None else 0,
+                    "conflict_count": len(interaction_resolution.conflict_map) if interaction_resolution is not None else 0,
+                    "reinforcement_count": len(interaction_resolution.reinforcement_map) if interaction_resolution is not None else 0,
+                    "market_regime": interaction_resolution.market_force_summary.regime if interaction_resolution is not None else None,
+                    "market_net_bias": interaction_resolution.market_force_summary.net_bias if interaction_resolution is not None else None,
                     "quality": round_complete.data_quality,
                     "generated_report_id": str(report_id),
                 },
