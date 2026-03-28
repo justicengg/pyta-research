@@ -185,6 +185,8 @@ class SecondaryOrchestrator:
 
     def _resolve_result(self, session: Session, sandbox_id: UUID, round_number: int, result: RunnerResult) -> RunnerResult:
         if result.perspective is not None and result.narrative is not None:
+            if result.action is None:
+                result.action = self.runner._build_default_action_snapshot(result.agent_type, result.perspective, None)
             return result
 
         previous = self._get_latest_snapshot(session, sandbox_id, result.agent_type.value, round_number)
@@ -205,6 +207,7 @@ class SecondaryOrchestrator:
                 trace_id=previous.source_trace_id,
             )
             result.perspective = perspective
+            result.action = self.runner._build_default_action_snapshot(result.agent_type, perspective, None)
             result.narrative = narrative
             result.timed_out = False
             result.error = None
@@ -225,6 +228,7 @@ class SecondaryOrchestrator:
             content=f"Degraded default perspective injected for {result.agent_type.value}.",
             trace_id=uuid4(),
         )
+        result.action = self.runner._build_default_action_snapshot(result.agent_type, result.perspective, None)
         return result
 
     def _get_latest_snapshot(self, session: Session, sandbox_id: UUID, agent_id: str, round_number: int) -> AgentSnapshot | None:

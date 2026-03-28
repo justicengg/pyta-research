@@ -46,6 +46,14 @@ SECONDARY_SANDBOX_SYSTEM_PROMPT = """你是 PYTA 二级市场沙盘推演系统�
     \"analytical_focus\": [\"...\"],
     \"confidence\": 0.0
   },
+  \"action\": {
+    \"action_bias\": \"accumulate|reduce|hold|watch|hedge|chase|exit\",
+    \"confidence\": 0.0,
+    \"rationale_summary\": \"...\",
+    \"key_drivers\": [\"...\"],
+    \"affected_environment_types\": [\"macro_policy\"],
+    \"horizon\": \"intraday|short_term|mid_term|long_term\"
+  },
   \"narrative\": {
     \"content\": \"...\",
     \"mentions\": []

@@ -1,5 +1,6 @@
 import type {
   BackendAgentPerspective,
+  BackendAgentActionSnapshot,
   BackendCheckpoint,
   BackendSandboxEnvironmentState,
   BackendMarketReadingReport,
@@ -118,6 +119,7 @@ function buildCanvasRunState(input: {
   inputEvents: CanvasInputEvent[]
 }): CanvasRunState {
   const agentDetail = extractAgentDetail(input.report)
+  const actionDetail = extractActionDetail(input.report)
   const perAgentStatus = input.roundComplete?.per_agent_status ?? buildFallbackStatuses(agentDetail)
   const synthesis = buildSynthesis(agentDetail, input.report.perspective_synthesis, perAgentStatus)
   const tensions = buildTensions(input.report.key_tensions ?? input.roundComplete?.divergence_map ?? [])
@@ -133,7 +135,12 @@ function buildCanvasRunState(input: {
     stopReason: input.stopReason,
     round: input.round,
     agents: AGENT_ORDER.map((agentId) =>
-      buildAgentCard(agentId, agentDetail[agentId], perAgentStatus.find((item) => item.agent_type === agentId)),
+      buildAgentCard(
+        agentId,
+        agentDetail[agentId],
+        actionDetail[agentId],
+        perAgentStatus.find((item) => item.agent_type === agentId),
+      ),
     ),
     synthesis,
     tensions,
@@ -167,9 +174,28 @@ function extractAgentDetail(
   return result
 }
 
+function extractActionDetail(
+  report: BackendMarketReadingReport | BackendReportRecord,
+): Partial<Record<SandboxAgentId, BackendAgentActionSnapshot>> {
+  const rawDetail: Record<string, BackendAgentActionSnapshot> | null | undefined =
+    report.action_detail ?? undefined
+  if (!rawDetail) {
+    return {}
+  }
+
+  const result: Partial<Record<SandboxAgentId, BackendAgentActionSnapshot>> = {}
+  for (const [key, value] of Object.entries(rawDetail)) {
+    if (isSandboxAgentId(key) && value) {
+      result[key] = value
+    }
+  }
+  return result
+}
+
 function buildAgentCard(
   agentId: SandboxAgentId,
   detail: BackendAgentPerspective | undefined,
+  action: BackendAgentActionSnapshot | undefined,
   statusRow: BackendPerAgentStatus | undefined,
 ): CanvasAgentCard {
   const meta = AGENT_META[agentId]
@@ -186,12 +212,24 @@ function buildAgentCard(
     observations: detail?.key_observations ?? [],
     concerns: detail?.key_concerns ?? [],
     focus: detail?.analytical_focus ?? [],
+    actionBias: action?.action_bias ?? deriveFallbackActionBias(detail?.market_bias),
+    actionSummary: action?.rationale_summary ?? fallbackSummary,
+    keyDrivers: action?.key_drivers ?? detail?.analytical_focus ?? [],
+    affectedEnvironmentTypes: action?.affected_environment_types ?? [],
+    actionHorizon: action?.horizon ?? 'short_term',
     bias: detail?.market_bias ?? 'neutral',
     confidence: detail?.confidence ?? 0,
     perspectiveType: detail?.perspective_type ?? agentId,
     perspectiveStatus: status,
     sourceTraceId: undefined,
   }
+}
+
+function deriveFallbackActionBias(marketBias: BackendAgentPerspective['market_bias'] | undefined): CanvasAgentCard['actionBias'] {
+  if (marketBias === 'bullish') return 'accumulate'
+  if (marketBias === 'bearish') return 'reduce'
+  if (marketBias === 'mixed') return 'hedge'
+  return 'watch'
 }
 
 function summarizePerspective(detail: BackendAgentPerspective | undefined, fallbackSummary: string): string {
@@ -305,7 +343,7 @@ export function createEmptyCanvasRunState(): CanvasRunState {
     quality: 'partial',
     stopReason: null,
     round: 0,
-    agents: AGENT_ORDER.map((agentId) => buildAgentCard(agentId, undefined, undefined)),
+    agents: AGENT_ORDER.map((agentId) => buildAgentCard(agentId, undefined, undefined, undefined)),
     synthesis: AGENT_ORDER.reduce((acc, agentId) => {
       acc[agentId] = `${AGENT_META[agentId].title} 暂无摘要。`
       return acc

@@ -37,6 +37,8 @@ Implement the first code slice for the Environment Bar refactor:
 - [x] create git checkpoint before edits
 - [x] implement frontend environment pipeline
 - [x] implement backend environment contract
+- [x] add agent action snapshot schema and report wiring
+- [x] surface action bias and drivers in agent cards
 - [x] validate frontend build
 - [x] validate backend syntax
 - [ ] run repo dev-check script if/when restored in this worktree

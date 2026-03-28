@@ -22,12 +22,14 @@ from src.sandbox.schemas.agents import (
     ParticipantType,
     PerspectiveStatus,
 )
+from src.sandbox.schemas.reports import AgentActionSnapshot
 
 
 @dataclass
 class RunnerResult:
     agent_type: ParticipantType
     perspective: AgentPerspective | None
+    action: AgentActionSnapshot | None
     narrative: AgentNarrative | None
     error: str | None = None
     timed_out: bool = False
@@ -119,9 +121,9 @@ class SecondaryAgentRunner:
                 timeout=timeout_ms / 1000,
             )
         except asyncio.TimeoutError:
-            return RunnerResult(agent_type=agent_type, perspective=None, narrative=None, timed_out=True, error="timeout")
+            return RunnerResult(agent_type=agent_type, perspective=None, action=None, narrative=None, timed_out=True, error="timeout")
         except Exception as exc:  # pragma: no cover - defensive branch
-            return RunnerResult(agent_type=agent_type, perspective=None, narrative=None, error=str(exc))
+            return RunnerResult(agent_type=agent_type, perspective=None, action=None, narrative=None, error=str(exc))
 
     async def _generate(
         self,
@@ -151,12 +153,14 @@ class SecondaryAgentRunner:
             )
             payload = json.loads(response.content)
             perspective, narrative = self._parse_llm_payload(agent_type, payload)
-            return RunnerResult(agent_type=agent_type, perspective=perspective, narrative=narrative)
+            action = self._coerce_action_snapshot(agent_type, payload.get("action"), perspective, environment_state)
+            return RunnerResult(agent_type=agent_type, perspective=perspective, action=action, narrative=narrative)
 
-        perspective, narrative = self._stub_response(agent_type, ticker, market, events, environment_state)
+        perspective, action, narrative = self._stub_response(agent_type, ticker, market, events, environment_state)
         return RunnerResult(
             agent_type=agent_type,
             perspective=perspective,
+            action=action,
             narrative=narrative,
             used_stub=True,
         )
@@ -168,7 +172,7 @@ class SecondaryAgentRunner:
         market: str,
         events: list[dict[str, Any]],
         environment_state: dict[str, Any] | None,
-    ) -> tuple[AgentPerspective, AgentNarrative]:
+    ) -> tuple[AgentPerspective, AgentActionSnapshot, AgentNarrative]:
         latest_event = events[0]["content"] if events else f"{ticker} 当前暂无事件"
         leading_environment = self._leading_environment_label(environment_state)
         focus_map = {
@@ -188,12 +192,13 @@ class SecondaryAgentRunner:
             confidence=0.35,
             perspective_status=PerspectiveStatus.LIVE,
         )
+        action = self._build_default_action_snapshot(agent_type, perspective, environment_state)
         narrative = AgentNarrative(
             agent_type=agent_type,
             content=f"{datetime.now(timezone.utc).isoformat()} {agent_type.value} 对 {ticker} 的初步观察已生成。",
             trace_id=uuid4(),
         )
-        return perspective, narrative
+        return perspective, action, narrative
 
     def _parse_llm_payload(
         self,
@@ -239,6 +244,35 @@ class SecondaryAgentRunner:
             trace_id=uuid4(),
         )
         return perspective, narrative
+
+    def _coerce_action_snapshot(
+        self,
+        agent_type: ParticipantType,
+        raw_action: Any,
+        perspective: AgentPerspective,
+        environment_state: dict[str, Any] | None,
+    ) -> AgentActionSnapshot:
+        if isinstance(raw_action, dict):
+            action_bias = self._coerce_action_bias(raw_action.get("action_bias"))
+            rationale_summary = self._coerce_text(
+                raw_action.get("rationale_summary"),
+                fallback="；".join((perspective.key_observations + perspective.analytical_focus)[:2]) or f"{agent_type.value} action captured.",
+            )
+            key_drivers = self._coerce_string_list(raw_action.get("key_drivers"))[:3]
+            affected_environment_types = self._coerce_environment_types(raw_action.get("affected_environment_types"))
+            horizon = self._coerce_time_horizon(raw_action.get("horizon"))
+            confidence = self._coerce_confidence(raw_action.get("confidence"))
+            return AgentActionSnapshot(
+                agent_type=agent_type,
+                action_bias=action_bias,
+                confidence=confidence if confidence > 0 else perspective.confidence,
+                rationale_summary=rationale_summary,
+                key_drivers=key_drivers or perspective.analytical_focus[:3],
+                affected_environment_types=affected_environment_types,
+                horizon=horizon,
+            )
+
+        return self._build_default_action_snapshot(agent_type, perspective, environment_state)
 
     def _coerce_string_list(self, value: Any) -> list[str]:
         if value is None:
@@ -317,6 +351,35 @@ class SecondaryAgentRunner:
                 continue
         return mentions
 
+    def _coerce_action_bias(self, value: Any) -> str:
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"accumulate", "reduce", "hold", "watch", "hedge", "chase", "exit"}:
+                return normalized
+        return "watch"
+
+    def _coerce_time_horizon(self, value: Any) -> str:
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"intraday", "short_term", "mid_term", "long_term"}:
+                return normalized
+        return "short_term"
+
+    def _coerce_text(self, value: Any, fallback: str) -> str:
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+        return fallback
+
+    def _coerce_environment_types(self, value: Any) -> list[str]:
+        if not isinstance(value, list):
+            return []
+        supported = {"geopolitics", "macro_policy", "market_sentiment", "fundamentals", "alternative_data"}
+        normalized: list[str] = []
+        for item in value:
+            if isinstance(item, str) and item in supported and item not in normalized:
+                normalized.append(item)
+        return normalized
+
     def _focused_signals(
         self,
         agent_type: ParticipantType,
@@ -357,3 +420,52 @@ class SecondaryAgentRunner:
         )
         top = ranked[0]
         return str(top.get("display_name") or top.get("type") or "环境信号")
+
+    def _build_default_action_snapshot(
+        self,
+        agent_type: ParticipantType,
+        perspective: AgentPerspective,
+        environment_state: dict[str, Any] | None,
+    ) -> AgentActionSnapshot:
+        action_bias = self._default_action_bias(agent_type, perspective.market_bias)
+        return AgentActionSnapshot(
+            agent_type=agent_type,
+            action_bias=action_bias,
+            confidence=perspective.confidence,
+            rationale_summary="；".join((perspective.key_observations + perspective.analytical_focus)[:2]) or f"{agent_type.value} action captured.",
+            key_drivers=(perspective.analytical_focus or perspective.key_concerns or perspective.key_observations)[:3],
+            affected_environment_types=self._infer_affected_environment_types(environment_state),
+            horizon=self._default_horizon(agent_type),
+        )
+
+    def _default_action_bias(self, agent_type: ParticipantType, market_bias: MarketBias) -> str:
+        if market_bias == MarketBias.BULLISH:
+            return "chase" if agent_type == ParticipantType.SHORT_TERM_CAPITAL else "accumulate"
+        if market_bias == MarketBias.BEARISH:
+            return "exit" if agent_type == ParticipantType.SHORT_TERM_CAPITAL else "reduce"
+        if market_bias == MarketBias.MIXED:
+            return "hedge"
+        return "watch"
+
+    def _default_horizon(self, agent_type: ParticipantType) -> str:
+        if agent_type == ParticipantType.SHORT_TERM_CAPITAL:
+            return "intraday"
+        if agent_type == ParticipantType.RETAIL:
+            return "short_term"
+        if agent_type == ParticipantType.QUANT_INSTITUTION:
+            return "short_term"
+        if agent_type == ParticipantType.TRADITIONAL_INSTITUTION:
+            return "long_term"
+        return "mid_term"
+
+    def _infer_affected_environment_types(self, environment_state: dict[str, Any] | None) -> list[str]:
+        if not environment_state:
+            return []
+        active_types: list[str] = []
+        for bucket in environment_state.get("buckets", []):
+            if bucket.get("status") != "active":
+                continue
+            bucket_type = bucket.get("type")
+            if isinstance(bucket_type, str) and bucket_type not in active_types:
+                active_types.append(bucket_type)
+        return active_types[:3]

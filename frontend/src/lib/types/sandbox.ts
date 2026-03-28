@@ -1,4 +1,23 @@
 export type SandboxSessionStatus = 'initializing' | 'running' | 'complete' | 'partial' | 'degraded' | 'error'
+
+/**
+ * 细粒度管线阶段状态 — 对应双层推演的内部处理步骤
+ * 用于驱动前端 Environment Bar 的时序动效
+ *
+ * ingesting         → 消息已进入，等待分类
+ * classifying       → Layer 1: 正在分类 + 清洗（chip 扫描动效触发阶段）
+ * environment_ready → Environment Bar 已更新，等待派发 Agent
+ * simulating        → Layer 2: 5 个 Agent 正在动作模拟
+ * completed         → 本轮推演结束
+ * failed            → 管线异常中断
+ */
+export type SandboxPipelineStage =
+  | 'ingesting'
+  | 'classifying'
+  | 'environment_ready'
+  | 'simulating'
+  | 'completed'
+  | 'failed'
 export type SandboxPerspectiveStatus = 'live' | 'reused_last_round' | 'degraded'
 export type SandboxMarketBias = 'bullish' | 'bearish' | 'neutral' | 'mixed'
 export type SandboxEnvironmentType =
@@ -10,6 +29,7 @@ export type SandboxEnvironmentType =
 export type SandboxSignalDirection = 'positive' | 'negative' | 'mixed' | 'neutral'
 export type SandboxTimeHorizon = 'intraday' | 'short_term' | 'mid_term' | 'long_term'
 export type SandboxRiskTone = 'risk_on' | 'risk_off' | 'mixed' | 'neutral'
+export type SandboxActionBias = 'accumulate' | 'reduce' | 'hold' | 'watch' | 'hedge' | 'chase' | 'exit'
 export type SandboxAgentId =
   | 'traditional_institution'
   | 'quant_institution'
@@ -190,6 +210,16 @@ export type BackendAgentPerspective = {
   perspective_status: SandboxPerspectiveStatus
 }
 
+export type BackendAgentActionSnapshot = {
+  agent_type: SandboxAgentId
+  action_bias: SandboxActionBias
+  confidence: number
+  rationale_summary: string
+  key_drivers: string[]
+  affected_environment_types: SandboxEnvironmentType[]
+  horizon: SandboxTimeHorizon
+}
+
 export type BackendMarketReadingReport = {
   sandbox_id: string
   ticker: string
@@ -199,6 +229,7 @@ export type BackendMarketReadingReport = {
   tracking_signals: string[]
   data_quality: 'complete' | 'partial' | 'degraded'
   perspective_detail?: Record<string, BackendAgentPerspective> | null
+  action_detail?: Record<string, BackendAgentActionSnapshot> | null
 }
 
 export type BackendReportRecord = {
@@ -212,6 +243,7 @@ export type BackendReportRecord = {
   key_tensions: BackendTensionItem[]
   tracking_signals: string[]
   per_agent_detail: Record<string, BackendAgentPerspective>
+  action_detail?: Record<string, BackendAgentActionSnapshot>
   assembly_notes: Record<string, unknown>
   generated_at: string
 }
@@ -256,6 +288,11 @@ export type CanvasAgentCard = {
   observations: string[]
   concerns: string[]
   focus: string[]
+  actionBias: SandboxActionBias
+  actionSummary: string
+  keyDrivers: string[]
+  affectedEnvironmentTypes: SandboxEnvironmentType[]
+  actionHorizon: SandboxTimeHorizon
   bias: SandboxMarketBias
   confidence: number
   perspectiveType: SandboxAgentId

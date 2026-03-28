@@ -768,91 +768,371 @@
   display: none; /* description hidden — context is self-evident */
 }
 
-.environment-bar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  min-width: 0;
-}
+/* ================================================================
+   ENVIRONMENT BAND — 独立横条带，位于 stage-head 和 canvas 之间
+   语义：市场背景条件层，上游驱动 5 个 Agent
+   ================================================================ */
 
-.environment-bar-meta {
+.env-band {
   display: flex;
   align-items: center;
-  gap: var(--sp-2);
+  gap: var(--sp-3);
+  padding: 0 var(--sp-6);
+  height: 48px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  backdrop-filter: blur(10px);
+  overflow-x: auto;
+  scrollbar-width: none;
+  position: relative;
+  z-index: 4;
 }
 
-.environment-bar-label {
-  font-size: var(--fs-xs);
-  color: var(--text-3);
-  letter-spacing: var(--ls-wide);
-  text-transform: uppercase;
+.env-band::-webkit-scrollbar {
+  display: none;
 }
 
-.environment-risk {
+/* Risk tone badge — 左侧汇总读数 */
+.env-risk-badge {
   display: inline-flex;
   align-items: center;
-  min-height: 22px;
-  padding: 0 var(--sp-2);
-  border-radius: var(--r-full);
+  gap: var(--sp-1);
+  padding: 3px var(--sp-2);
+  border-radius: var(--r-sm);
   font-size: var(--fs-xs);
-  border: 1px solid var(--border);
-  background: var(--surface-subtle);
-  color: var(--text-2);
+  font-weight: 600;
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border: 1px solid;
+  border-left-width: 3px;
+  transition: color 0.3s ease, background 0.3s ease;
 }
 
-.environment-risk--risk_on {
-  color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+.env-risk-badge--risk_on {
+  color: var(--up);
+  background: color-mix(in srgb, var(--up) 10%, transparent);
+  border-color: color-mix(in srgb, var(--up) 28%, transparent);
 }
 
-.environment-risk--risk_off {
-  color: var(--orange);
-  border-color: color-mix(in srgb, var(--orange) 32%, var(--border));
+.env-risk-badge--risk_off {
+  color: var(--down);
+  background: color-mix(in srgb, var(--down) 10%, transparent);
+  border-color: color-mix(in srgb, var(--down) 28%, transparent);
 }
 
-.environment-risk--mixed {
-  color: var(--blue);
-  border-color: color-mix(in srgb, var(--blue) 32%, var(--border));
+.env-risk-badge--mixed {
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+  border-color: color-mix(in srgb, var(--warning) 28%, transparent);
 }
 
-.environment-chip-row {
+.env-risk-badge--neutral {
+  color: var(--text-3);
+  background: transparent;
+  border-color: var(--border-subtle);
+}
+
+/* 分隔线 */
+.env-band-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border-subtle);
+  flex-shrink: 0;
+}
+
+/* Chip 行 */
+.env-chip-row {
   display: flex;
-  flex-wrap: wrap;
   gap: var(--sp-2);
+  align-items: center;
 }
 
-.environment-chip {
-  min-width: 128px;
-  padding: var(--sp-2) var(--sp-3);
-  border-radius: var(--r-md);
+/* 单个 chip */
+.env-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 4px var(--sp-3);
+  border-radius: var(--r-sm);
   border: 1px solid var(--border-subtle);
-  background: color-mix(in srgb, var(--surface-subtle) 92%, transparent);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  background: transparent;
+  cursor: default;
+  transition: border-color 0.25s ease, background 0.25s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.environment-chip--active.environment-chip--positive {
-  background: color-mix(in srgb, var(--tint-decision) 78%, var(--surface));
+/* 指示灯 */
+.env-chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--text-3);
+  flex-shrink: 0;
+  transition: background 0.25s ease, box-shadow 0.25s ease;
+  opacity: 0.4;
 }
 
-.environment-chip--active.environment-chip--negative {
-  background: color-mix(in srgb, var(--tint-sentiment) 78%, var(--surface));
+/* 类别名称 */
+.env-chip-label {
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--text-3);
+  letter-spacing: var(--ls-wide);
+  transition: color 0.2s ease;
 }
 
-.environment-chip--active.environment-chip--mixed {
-  background: color-mix(in srgb, var(--tint-macro) 78%, var(--surface));
+/* 信号方向 + 数量 */
+.env-chip-signal {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
 }
 
-.environment-chip-title {
-  font-size: var(--fs-sm);
-  color: var(--text-1);
+.env-chip-dir {
+  font-size: 9px;
+  line-height: 1;
   font-weight: 600;
 }
 
-.environment-chip-metrics {
-  font-size: var(--fs-xs);
+/* ── 类别色绑定（通过 data-env-type 设置 --env-color 局部变量）── */
+
+[data-env-type="geopolitics"]     { --env-color: var(--env-geo);         }
+[data-env-type="macro_policy"]    { --env-color: var(--env-macro);        }
+[data-env-type="market_sentiment"]{ --env-color: var(--env-sentiment);    }
+[data-env-type="fundamentals"]    { --env-color: var(--env-fundamental);  }
+[data-env-type="alternative_data"]{ --env-color: var(--env-alt);          }
+
+/* ── Active 态：类别色亮起 ── */
+.env-chip--active {
+  border-color: color-mix(in srgb, var(--env-color) 38%, var(--border-subtle));
+  background:   color-mix(in srgb, var(--env-color)  9%, transparent);
+}
+
+.env-chip--active .env-chip-dot {
+  background:  var(--env-color);
+  box-shadow:  0 0 7px color-mix(in srgb, var(--env-color) 50%, transparent);
+  opacity: 1;
+}
+
+.env-chip--active .env-chip-label {
+  color: var(--text-1);
+}
+
+.env-chip--active .env-chip-signal {
+  color: var(--text-2);
+}
+
+/* ── Cooling 态：信号衰减，微降调 ── */
+.env-chip--cooling {
+  border-color: color-mix(in srgb, var(--env-color) 20%, var(--border-subtle));
+  background:   color-mix(in srgb, var(--env-color)  5%, transparent);
+  opacity: 0.65;
+}
+
+.env-chip--cooling .env-chip-dot {
+  background: color-mix(in srgb, var(--env-color) 50%, var(--text-3));
+  opacity: 0.7;
+}
+
+/* ── 方向色（仅在 active/cooling 内生效）── */
+.env-chip--active .env-chip-dir--positive,
+.env-chip--cooling .env-chip-dir--positive { color: var(--up);      }
+
+.env-chip--active .env-chip-dir--negative,
+.env-chip--cooling .env-chip-dir--negative { color: var(--down);    }
+
+.env-chip--active .env-chip-dir--mixed,
+.env-chip--cooling .env-chip-dir--mixed    { color: var(--warning); }
+
+.env-chip--active .env-chip-dir--neutral,
+.env-chip--cooling .env-chip-dir--neutral  { color: var(--text-3);  }
+
+/* ================================================================
+   ENVIRONMENT BAR ANIMATIONS
+   ================================================================ */
+
+/* ── @keyframes ── */
+
+/* 扫描光波：chip 边框和指示灯短暂脉冲 */
+@keyframes env-scan-pulse {
+  0%   { box-shadow: 0 0 0 0   color-mix(in srgb, var(--env-color, var(--accent)) 0%,   transparent);
+         border-color: var(--border-subtle); }
+  25%  { box-shadow: 0 0 0 3px color-mix(in srgb, var(--env-color, var(--accent)) 28%,  transparent);
+         border-color: color-mix(in srgb, var(--env-color, var(--accent)) 55%, var(--border-subtle)); }
+  60%  { box-shadow: 0 0 0 5px color-mix(in srgb, var(--env-color, var(--accent)) 14%,  transparent);
+         border-color: color-mix(in srgb, var(--env-color, var(--accent)) 40%, var(--border-subtle)); }
+  100% { box-shadow: 0 0 0 0   color-mix(in srgb, var(--env-color, var(--accent)) 0%,   transparent);
+         border-color: var(--border-subtle); }
+}
+
+/* 扫描时指示灯亮起 */
+@keyframes env-dot-scan {
+  0%   { background: var(--text-3); opacity: 0.4; transform: scale(1); }
+  40%  { background: var(--env-color, var(--accent)); opacity: 1;   transform: scale(1.5); }
+  100% { background: var(--text-3); opacity: 0.4; transform: scale(1); }
+}
+
+/* active chip 进场：从 idle → active 的渐入 */
+@keyframes env-chip-activate {
+  from {
+    border-color: var(--border-subtle);
+    background: transparent;
+    opacity: 0.5;
+  }
+  to {
+    border-color: color-mix(in srgb, var(--env-color) 38%, var(--border-subtle));
+    background:   color-mix(in srgb, var(--env-color)  9%, transparent);
+    opacity: 1;
+  }
+}
+
+/* 指示灯 active 进场 */
+@keyframes env-dot-activate {
+  from { background: var(--text-3); opacity: 0.4; transform: scale(1); }
+  to   { background: var(--env-color); opacity: 1; transform: scale(1); }
+}
+
+/* 信号计数数字滚入 */
+@keyframes env-count-roll {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 冲突图标抖动 */
+@keyframes env-conflict-shake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-2px); }
+  40%      { transform: translateX(2px); }
+  60%      { transform: translateX(-1px); }
+  80%      { transform: translateX(1px); }
+}
+
+/* env-band 整体扫描时的顶部流光 */
+@keyframes env-band-scan-glow {
+  0%   { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ── 扫描中状态 ── */
+
+.env-chip--scanning {
+  animation: env-scan-pulse 0.5s ease-out forwards;
+}
+
+.env-chip--scanning .env-chip-dot {
+  animation: env-dot-scan 0.5s ease-out forwards;
+}
+
+/* 扫描省略指示器（3个跳动小点） */
+.env-chip-scan-indicator {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+  margin-left: 2px;
+}
+
+.env-chip-scan-indicator::before,
+.env-chip-scan-indicator::after,
+.env-chip-scan-indicator {
+  /* 用 outline trick 画3个点 */
+}
+
+/* 简洁实现：用 CSS content 3点 */
+.env-chip-scan-indicator::before {
+  content: '···';
+  font-size: 10px;
+  color: color-mix(in srgb, var(--env-color, var(--accent)) 70%, var(--text-3));
+  letter-spacing: 1px;
+  animation: env-count-roll 0.2s ease-out;
+}
+
+/* ── 活跃进场动效 ── */
+
+.env-chip--active {
+  animation: env-chip-activate 0.3s ease-out both;
+}
+
+.env-chip--active .env-chip-dot {
+  animation: env-dot-activate 0.3s ease-out both;
+}
+
+.env-chip--active .env-chip-signal {
+  animation: env-count-roll 0.25s 0.1s ease-out both;
+}
+
+/* ── 冲突状态 ── */
+
+.env-chip--conflicted .env-chip-dir--mixed {
+  animation: env-conflict-shake 0.4s 0.2s ease-out;
+}
+
+/* ── env-band 扫描中顶部流光 ── */
+
+.env-band--classifying::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--accent) 60%, transparent) 40%,
+    color-mix(in srgb, var(--accent) 80%, transparent) 50%,
+    color-mix(in srgb, var(--accent) 60%, transparent) 60%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: env-band-scan-glow 1.8s linear infinite;
+  pointer-events: none;
+}
+
+/* Risk badge 状态切换过渡 */
+.env-risk-badge {
+  transition: color 0.4s ease, background 0.4s ease, border-color 0.4s ease;
+}
+
+/* ── DEV: Environment mock state switcher ── */
+/* TODO: 接入真实后端后整块删除 */
+.env-dev-switcher {
+  display: flex;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-6);
+  background: color-mix(in srgb, var(--warning) 8%, var(--surface));
+  border-bottom: 1px dashed color-mix(in srgb, var(--warning) 30%, transparent);
+}
+
+.env-dev-btn {
+  padding: 2px var(--sp-2);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: transparent;
   color: var(--text-3);
+  font-size: 10px;
+  font-family: var(--sans);
+  letter-spacing: var(--ls-wide);
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.15s ease;
+}
+
+.env-dev-btn:hover {
+  border-color: var(--warning);
+  color: var(--warning);
+}
+
+.env-dev-btn--active {
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  border-color: var(--warning);
+  color: var(--warning);
 }
 
 .chip-row {
@@ -1354,6 +1634,7 @@
 
 .command {
   position: relative;
+  z-index: 2;
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
   border-radius: var(--r-xl);
@@ -2279,6 +2560,53 @@ select.field-input {
   color: var(--text-2);
 }
 
+.action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.action-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-2);
+}
+
+.action-badge--accumulate,
+.action-badge--chase {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.action-badge--reduce,
+.action-badge--exit {
+  color: var(--orange);
+  border-color: color-mix(in srgb, var(--orange) 35%, transparent);
+  background: color-mix(in srgb, var(--orange) 10%, transparent);
+}
+
+.action-badge--hedge {
+  color: var(--blue);
+  border-color: color-mix(in srgb, var(--blue) 35%, transparent);
+  background: color-mix(in srgb, var(--blue) 10%, transparent);
+}
+
+.action-horizon {
+  font-size: 10px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 /* Confidence bar */
 .confidence-bar {
   height: 6px;
@@ -2306,6 +2634,13 @@ select.field-input {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.action-summary {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-2);
+  line-height: var(--lh-base);
 }
 
 /* Expand/collapse toggle */

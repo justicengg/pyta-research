@@ -12,13 +12,24 @@ const SENTIMENT_LABEL: Record<AgentSentiment, string> = {
   bearish: '看空',
 }
 
+const ACTION_LABEL: Record<AgentCardData['actionBias'], string> = {
+  accumulate: '增配',
+  reduce: '减配',
+  hold: '持有',
+  watch: '观察',
+  hedge: '对冲',
+  chase: '追逐',
+  exit: '退出',
+}
+
 export function AgentResultCard({ agent, isRunning = false }: Props) {
   const [expanded, setExpanded] = useState(false)
   const confidence = Math.max(0, Math.min(100, agent.confidence ?? 0))
   const hasDetails =
     agent.observations.length > 0 ||
     agent.concerns.length > 0 ||
-    agent.focus.length > 0
+    agent.focus.length > 0 ||
+    agent.keyDrivers.length > 0
 
   // Shimmer skeleton while inference is running
   if (isRunning) {
@@ -49,6 +60,13 @@ export function AgentResultCard({ agent, isRunning = false }: Props) {
         <span className="confidence-value">{confidence}%</span>
       </div>
 
+      <div className="action-row">
+        <span className={`action-badge action-badge--${agent.actionBias}`}>
+          {ACTION_LABEL[agent.actionBias]}
+        </span>
+        <span className="action-horizon">{agent.actionHorizon}</span>
+      </div>
+
       {/* Row 2: confidence bar */}
       <div className="confidence-bar">
         <div
@@ -59,6 +77,7 @@ export function AgentResultCard({ agent, isRunning = false }: Props) {
 
       {/* Row 3: one-line stance */}
       <p className="stance-summary">{agent.summary}</p>
+      <p className="action-summary">{agent.actionSummary}</p>
 
       {/* Row 4: expandable detail */}
       {hasDetails && (
@@ -92,6 +111,12 @@ export function AgentResultCard({ agent, isRunning = false }: Props) {
                 <div className="agent-result-group">
                   <strong>关注点</strong>
                   <ul>{agent.focus.map((item) => <li key={item}>{item}</li>)}</ul>
+                </div>
+              )}
+              {agent.keyDrivers.length > 0 && (
+                <div className="agent-result-group">
+                  <strong>动作驱动</strong>
+                  <ul>{agent.keyDrivers.map((item) => <li key={item}>{item}</li>)}</ul>
                 </div>
               )}
             </div>
