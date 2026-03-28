@@ -1,10 +1,17 @@
+import { useRef } from 'react'
 import type { CanvasInteractionResolution, SandboxAgentId } from '../../lib/types/sandbox'
 
 type Props = {
   resolution: CanvasInteractionResolution | null
+  position: { x: number; y: number }
+  zoom: number
+  onDragMove: (dx: number, dy: number) => void
   onHighlightAgents: (agentIds: SandboxAgentId[]) => void
   onClearHighlight: () => void
 }
+
+export const INTERACTION_PANEL_WIDTH = 340
+export const INTERACTION_PANEL_HEIGHT = 248
 
 const REGIME_LABEL: Record<CanvasInteractionResolution['marketForceSummary']['regime'], string> = {
   expansion: '扩张',
@@ -28,7 +35,19 @@ const AGENT_LABEL: Record<SandboxAgentId, string> = {
   short_term_capital: '游资 / 短线',
 }
 
-export function InteractionSummaryPanel({ resolution, onHighlightAgents, onClearHighlight }: Props) {
+export function InteractionSummaryPanel({
+  resolution,
+  position,
+  zoom,
+  onDragMove,
+  onHighlightAgents,
+  onClearHighlight,
+}: Props) {
+  const dragRef = useRef<{ active: boolean; lastX: number; lastY: number }>({
+    active: false,
+    lastX: 0,
+    lastY: 0,
+  })
   if (!resolution) {
     return null
   }
@@ -36,7 +55,38 @@ export function InteractionSummaryPanel({ resolution, onHighlightAgents, onClear
   const summary = resolution.marketForceSummary
 
   return (
-    <aside className="interaction-panel" data-no-pan>
+    <aside
+      className="interaction-panel"
+      data-no-pan
+      style={{ left: position.x, top: position.y }}
+      onPointerDown={(event) => {
+        const target = event.target as HTMLElement
+        if (target.closest('button')) return
+        event.stopPropagation()
+        dragRef.current = { active: true, lastX: event.clientX, lastY: event.clientY }
+        event.currentTarget.setPointerCapture(event.pointerId)
+      }}
+      onPointerMove={(event) => {
+        if (!dragRef.current.active) return
+        const dx = event.clientX - dragRef.current.lastX
+        const dy = event.clientY - dragRef.current.lastY
+        dragRef.current.lastX = event.clientX
+        dragRef.current.lastY = event.clientY
+        onDragMove(dx / zoom, dy / zoom)
+      }}
+      onPointerUp={(event) => {
+        dragRef.current.active = false
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId)
+        }
+      }}
+      onPointerCancel={(event) => {
+        dragRef.current.active = false
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId)
+        }
+      }}
+    >
       <div className="interaction-panel__header">
         <div>
           <strong>市场力量博弈</strong>

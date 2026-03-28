@@ -12,7 +12,11 @@ import '../../styles/canvas-motion.css'
 import { AgentNode, CARD_WIDTH } from '../canvas/AgentNode'
 import { CanvasBackground } from '../canvas/CanvasBackground'
 import { EnvironmentFlowLayer } from '../canvas/EnvironmentFlowLayer'
-import { InteractionSummaryPanel } from '../canvas/InteractionSummaryPanel'
+import { InteractionFlowLayer } from '../canvas/InteractionFlowLayer'
+import {
+  InteractionSummaryPanel,
+  INTERACTION_PANEL_WIDTH,
+} from '../canvas/InteractionSummaryPanel'
 import { EnvironmentBar } from '../environment/EnvironmentBar'
 import { CommandConsole } from './CommandConsole'
 import { PromptMascot } from './PromptMascot'
@@ -47,6 +51,10 @@ const PARALLEL_CENTER_Y = 516
 const PARALLEL_CENTER_GAP_X = 304
 const PARALLEL_CARD_HEIGHT = 288
 const RETAIL_CENTER_INDEX = 2
+const INTERACTION_PANEL_DEFAULT_POSITION = {
+  x: PARALLEL_CENTER_X - INTERACTION_PANEL_WIDTH / 2,
+  y: PARALLEL_CENTER_Y + PARALLEL_CARD_HEIGHT / 2 + 54,
+}
 
 export function CanvasStage({
   state,
@@ -75,6 +83,7 @@ export function CanvasStage({
   const wasRunningRef = useRef(isRunning)
   const [environmentAnchorViewportMap, setEnvironmentAnchorViewportMap] = useState<EnvironmentAnchorMap>({})
   const [highlightedAgentIds, setHighlightedAgentIds] = useState<SandboxAgentId[]>([])
+  const [interactionPanelPosition, setInteractionPanelPosition] = useState(INTERACTION_PANEL_DEFAULT_POSITION)
 
   // Drag overrides — user drag moves nodes away from computed positions
   const [dragOverrides, setDragOverrides] = useState<Record<string, AgentPos>>({})
@@ -223,6 +232,12 @@ export function CanvasStage({
             agentPositions={agentPositions}
             anchors={environmentAnchors}
           />
+          <InteractionFlowLayer
+            isActive={state.interactionResolution != null}
+            agentOrder={visibleAgents.map((agent) => agent.id as SandboxAgentId)}
+            agentPositions={agentPositions}
+            panelPosition={interactionPanelPosition}
+          />
           <div className="parallel-agent-board">
             {visibleAgents.map((agent, i) => (
               <AgentNode
@@ -238,14 +253,18 @@ export function CanvasStage({
               />
             ))}
           </div>
+          <InteractionSummaryPanel
+            resolution={state.interactionResolution}
+            position={interactionPanelPosition}
+            zoom={zoom}
+            onDragMove={(dx, dy) =>
+              setInteractionPanelPosition((current) => ({ x: current.x + dx, y: current.y + dy }))
+            }
+            onHighlightAgents={setHighlightedAgentIds}
+            onClearHighlight={() => setHighlightedAgentIds([])}
+          />
           {error ? <div className="canvas-error">{error}</div> : null}
         </div>
-
-        <InteractionSummaryPanel
-          resolution={state.interactionResolution}
-          onHighlightAgents={setHighlightedAgentIds}
-          onClearHighlight={() => setHighlightedAgentIds([])}
-        />
 
         <div className="canvas-corner-controls" data-no-pan>
           <span className="corner-zoom">{zoomPercent}%</span>

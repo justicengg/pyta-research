@@ -25,6 +25,8 @@ Consume backend `interaction_resolution` on the research canvas without breaking
 - [completed] map backend interaction output into canvas state
 - [completed] add lightweight interaction summary panel
 - [completed] highlight related agents on hover
+- [completed] convert interaction panel into draggable result node below agents
+- [completed] add agent-to-summary flow lines
 - [completed] run frontend build verification
 
 ## Verification

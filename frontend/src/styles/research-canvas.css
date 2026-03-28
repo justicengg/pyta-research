@@ -3492,6 +3492,25 @@ select.field-input {
   filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 18%, transparent));
 }
 
+.interaction-flow-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.interaction-flow-line {
+  fill: none;
+  stroke: color-mix(in srgb, var(--warning) 56%, transparent);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-dasharray: 7 8;
+  animation: interaction-flow-dash 1.35s linear infinite;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--warning) 16%, transparent));
+}
+
 .agent-cluster--highlighted {
   z-index: 8;
 }
@@ -3512,6 +3531,15 @@ select.field-input {
 @keyframes env-flow-dash {
   from {
     stroke-dashoffset: 32;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes interaction-flow-dash {
+  from {
+    stroke-dashoffset: 28;
   }
   to {
     stroke-dashoffset: 0;
@@ -3553,7 +3581,7 @@ select.field-input {
 
 .canvas-layer--parallel {
   width: 1600px;
-  height: 720px;
+  height: 980px;
 }
 
 .canvas-stage {
@@ -3582,8 +3610,6 @@ select.field-input {
 
 .interaction-panel {
   position: absolute;
-  top: 118px;
-  right: 22px;
   z-index: 6;
   display: flex;
   flex-direction: column;
