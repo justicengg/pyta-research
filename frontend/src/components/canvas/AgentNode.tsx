@@ -14,9 +14,20 @@ type Props = {
   onDragMove: (id: string, dx: number, dy: number) => void
   isRunning?: boolean
   nodeIndex?: number  // position in the rendered list, used for stagger animation
+  isHighlighted?: boolean
+  isDimmed?: boolean
 }
 
-export function AgentNode({ agent, position, zoom, onDragMove, isRunning = false, nodeIndex = 0 }: Props) {
+export function AgentNode({
+  agent,
+  position,
+  zoom,
+  onDragMove,
+  isRunning = false,
+  nodeIndex = 0,
+  isHighlighted = false,
+  isDimmed = false,
+}: Props) {
   const dragRef = useRef<{ active: boolean; lastX: number; lastY: number }>({
     active: false,
     lastX: 0,
@@ -57,7 +68,7 @@ export function AgentNode({ agent, position, zoom, onDragMove, isRunning = false
 
   return (
     <div
-      className={`agent-cluster ${ringClass} ${statusClass}${isRunning ? ' agent-cluster--running' : ''}${isDragging ? ' agent-cluster--dragging' : ''}`}
+      className={`agent-cluster ${ringClass} ${statusClass}${isRunning ? ' agent-cluster--running' : ''}${isDragging ? ' agent-cluster--dragging' : ''}${isHighlighted ? ' agent-cluster--highlighted' : ''}${isDimmed ? ' agent-cluster--dimmed' : ''}`}
       style={{
         left: position.x,
         top: position.y,

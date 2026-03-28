@@ -3171,3 +3171,406 @@ select.field-input {
   padding-top: var(--sp-2);
   margin-top: var(--sp-1);
 }
+
+/* ── Environment Rail v2 — inspectable signal rail ─────────────── */
+.env-rail {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-6) var(--sp-4);
+  border-bottom: 1px solid var(--border-subtle);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 96%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 90%, transparent) 100%
+    );
+}
+
+.env-rail--simulating::after,
+.env-rail--classifying::after {
+  content: '';
+  position: absolute;
+  left: var(--sp-6);
+  right: var(--sp-6);
+  bottom: 0;
+  height: 1px;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in srgb, var(--accent) 65%, transparent) 40%,
+      color-mix(in srgb, var(--accent) 84%, transparent) 50%,
+      color-mix(in srgb, var(--accent) 65%, transparent) 60%,
+      transparent 100%
+    );
+  background-size: 200% 100%;
+  animation: env-band-scan-glow 1.8s linear infinite;
+  pointer-events: none;
+}
+
+.env-rail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-4);
+}
+
+.env-rail-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.env-rail-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.env-rail-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 560px;
+}
+
+.env-rail-copy strong {
+  font-size: var(--fs-sm);
+  color: var(--text-1);
+}
+
+.env-rail-copy span {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  line-height: var(--lh-relaxed);
+}
+
+.env-rail-buckets {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+
+.env-bucket {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding: var(--sp-3);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 92%, transparent);
+  border-radius: var(--r-lg);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface-subtle) 92%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 88%, transparent) 100%
+    );
+  text-align: left;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.env-bucket:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--border));
+}
+
+.env-bucket--active {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--accent) 8%, var(--surface-subtle)) 0%,
+      color-mix(in srgb, var(--surface) 88%, transparent) 100%
+    );
+}
+
+.env-bucket--expanded {
+  border-color: color-mix(in srgb, var(--accent) 52%, var(--border));
+  box-shadow: 0 12px 28px rgba(11, 18, 32, 0.08);
+}
+
+.env-bucket-topline,
+.env-bucket-bottomline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.env-bucket-title {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.env-bucket-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--text-3);
+  flex-shrink: 0;
+}
+
+.env-bucket-dot--active {
+  background: var(--accent);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.env-bucket-dot--cooling {
+  background: var(--warning);
+}
+
+.env-bucket-direction,
+.env-bucket-count,
+.env-bucket-strength {
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+.env-bucket-direction {
+  font-weight: 700;
+  color: var(--text-2);
+}
+
+.env-detail-tray {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 92%, transparent);
+  border-radius: var(--r-xl);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface-subtle) 90%, transparent) 0%,
+      color-mix(in srgb, var(--surface) 94%, transparent) 100%
+    );
+}
+
+.env-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.env-detail-head p {
+  margin: 6px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+
+.env-detail-status {
+  padding: 3px 8px;
+  border-radius: var(--r-full);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-3);
+}
+
+.env-detail-status--active {
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent);
+}
+
+.env-detail-status--cooling {
+  border-color: color-mix(in srgb, var(--warning) 35%, transparent);
+  color: var(--warning);
+}
+
+.env-signal-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-3);
+}
+
+.env-signal-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-height: 158px;
+  padding: var(--sp-3);
+  border-radius: var(--r-lg);
+  border: 1px solid color-mix(in srgb, var(--border-subtle) 92%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 94%, transparent) 0%,
+      color-mix(in srgb, var(--surface-subtle) 88%, transparent) 100%
+    );
+  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.env-signal-card:hover,
+.env-signal-card--inspected {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
+  box-shadow: 0 14px 28px rgba(6, 16, 24, 0.08);
+}
+
+.env-signal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.env-signal-head strong {
+  font-size: var(--fs-sm);
+  color: var(--text-1);
+  line-height: 1.4;
+}
+
+.env-signal-bias {
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--text-3);
+}
+
+.env-signal-bias--positive {
+  color: var(--lime);
+}
+
+.env-signal-bias--negative {
+  color: var(--orange);
+}
+
+.env-signal-bias--mixed {
+  color: var(--accent);
+}
+
+.env-signal-summary {
+  margin: 0;
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+  line-height: var(--lh-relaxed);
+}
+
+.env-signal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+.env-signal-routing {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.env-route-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: var(--r-full);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  font-size: 10px;
+  color: var(--text-2);
+}
+
+.env-empty-state {
+  padding: var(--sp-4);
+  border-radius: var(--r-lg);
+  border: 1px dashed var(--border-subtle);
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+
+/* ── Environment flow overlay ───────────────────────────────────── */
+.environment-flow-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.environment-flow-anchor {
+  fill: color-mix(in srgb, var(--accent) 22%, var(--surface));
+  stroke: color-mix(in srgb, var(--accent) 58%, transparent);
+  stroke-width: 1.5;
+}
+
+.environment-flow-anchor-label {
+  fill: color-mix(in srgb, var(--accent) 78%, var(--text-2));
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.environment-flow-line {
+  fill: none;
+  stroke: color-mix(in srgb, var(--accent) 52%, transparent);
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-dasharray: 7 9;
+  animation: env-flow-dash 1.25s linear infinite;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 18%, transparent));
+}
+
+.agent-cluster--highlighted {
+  z-index: 8;
+}
+
+.agent-cluster--highlighted .agent,
+.agent-cluster--highlighted .agent-result-card {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent),
+    0 18px 36px rgba(7, 12, 20, 0.18);
+}
+
+.agent-cluster--dimmed {
+  opacity: 0.42;
+  filter: saturate(0.82);
+}
+
+@keyframes env-flow-dash {
+  from {
+    stroke-dashoffset: 32;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (max-width: 1100px) {
+  .env-rail-head {
+    flex-direction: column;
+  }
+
+  .env-rail-buckets {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .env-signal-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .env-rail {
+    padding-left: var(--sp-4);
+    padding-right: var(--sp-4);
+  }
+
+  .env-rail-buckets,
+  .env-signal-list {
+    grid-template-columns: 1fr;
+  }
+}

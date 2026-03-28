@@ -1,7 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CanvasState, RoundRecord, SceneParams } from '../../lib/types/canvas'
-import type { SandboxInputEvent, SandboxPipelineStage } from '../../lib/types/sandbox'
-import { ENV_MOCK_STATES } from '../../lib/mock/environmentState'
+import type {
+  SandboxAgentId,
+  SandboxEnvironmentType,
+  SandboxInputEvent,
+  SandboxPipelineStage,
+} from '../../lib/types/sandbox'
 import { useCanvasViewport } from '../../hooks/useCanvasViewport'
 import { useTopologyLayout, TOPOLOGY_CENTER } from '../../hooks/useTopologyLayout'
 import '../../styles/canvas-motion.css'
@@ -9,6 +13,7 @@ import { AgentNode } from '../canvas/AgentNode'
 import { CanvasBackground } from '../canvas/CanvasBackground'
 import { CenterCoreCard } from '../canvas/CenterCoreCard'
 import { EdgeLayer } from '../canvas/EdgeLayer'
+import { EnvironmentFlowLayer } from '../canvas/EnvironmentFlowLayer'
 import { MeridianGridView } from '../canvas/MeridianGridView'
 import { EnvironmentBar } from '../environment/EnvironmentBar'
 import '../../styles/meridian-grid.css'
@@ -23,6 +28,11 @@ import {
 } from '../../lib/orb/promptProfiles'
 
 type AgentPos = { x: number; y: number }
+type FlowInspectState = {
+  environmentType: SandboxEnvironmentType | null
+  signalId: string | null
+  agentIds: SandboxAgentId[]
+}
 
 type Props = {
   state: CanvasState
@@ -41,6 +51,11 @@ type Props = {
 
 // Center core anchor — matches TOPOLOGY_CENTER from useTopologyLayout
 const CENTER_POS: AgentPos = TOPOLOGY_CENTER
+const EMPTY_FLOW_INSPECT: FlowInspectState = {
+  environmentType: null,
+  signalId: null,
+  agentIds: [],
+}
 
 export function CanvasStage({
   state,
@@ -64,23 +79,7 @@ export function CanvasStage({
   const computedPositions = useTopologyLayout(state.agents)
 
   const [viewMode, setViewMode] = useState<'topology' | 'meridian'>('topology')
-
-  // ── DEV: Environment Bar mock state switcher ──────────────────────────────
-  // TODO: 移除，接入真实后端后删掉这个 state 和 UI
-  type MockKey = keyof typeof ENV_MOCK_STATES
-  const [envMockKey, setEnvMockKey] = useState<MockKey>('idle')
-  const envMockEntry = ENV_MOCK_STATES[envMockKey]
-  const envState = envMockEntry.state
-  const pipelineStage: SandboxPipelineStage | 'idle' = envMockEntry.pipeline
-  // ─────────────────────────────────────────────────────────────────────────
-
-  const MOCK_KEY_LABELS: Record<MockKey, string> = {
-    idle:        '空态',
-    classifying: '分类中',
-    active:      '活跃',
-    cooling:     '衰减',
-    conflicted:  '信号冲突',
-  }
+  const [flowInspect, setFlowInspect] = useState<FlowInspectState>(EMPTY_FLOW_INSPECT)
   const [showPromptMascot, setShowPromptMascot] = useState(false)
   const [isOrbExiting, setIsOrbExiting] = useState(false)
   const [promptMessage, setPromptMessage] = useState('说吧，今天研究什么')
@@ -97,6 +96,9 @@ export function CanvasStage({
   for (const agent of state.agents) {
     agentPositions[agent.id] = dragOverrides[agent.id] ?? computedPositions[agent.id] ?? { x: 0, y: 0 }
   }
+  const envState = state.environmentState
+  const pipelineStage = resolvePipelineStage(envState, isRunning, currentInputEvents.length)
+  const highlightedAgentIds = useMemo(() => new Set(flowInspect.agentIds), [flowInspect.agentIds])
 
   const handleAgentDragMove = useCallback((id: string, dx: number, dy: number) => {
     setDragOverrides((prev) => {
@@ -183,22 +185,12 @@ export function CanvasStage({
       </div>
 
       {/* Environment Band — Layer 1→2 中间层 */}
-      <EnvironmentBar state={envState} pipelineStage={pipelineStage} />
-
-      {/* DEV: mock state switcher — 接入真实后端后删除 */}
-      {import.meta.env.DEV && (
-        <div className="env-dev-switcher">
-          {(Object.keys(ENV_MOCK_STATES) as MockKey[]).map(key => (
-            <button
-              key={key}
-              className={`env-dev-btn${envMockKey === key ? ' env-dev-btn--active' : ''}`}
-              onClick={() => setEnvMockKey(key)}
-            >
-              {MOCK_KEY_LABELS[key]}
-            </button>
-          ))}
-        </div>
-      )}
+      <EnvironmentBar
+        state={envState}
+        pipelineStage={pipelineStage}
+        isRunning={isRunning}
+        onInspectChange={setFlowInspect}
+      />
 
       {/* Zone B — Canvas viewport */}
       <div
@@ -213,10 +205,34 @@ export function CanvasStage({
             style={{ transform: `translate(${panX}px, ${panY}px) scale(${zoom})`, transformOrigin: '0 0' }}
           >
             <CanvasBackground />
+            <EnvironmentFlowLayer
+              environmentType={flowInspect.environmentType}
+              signalId={flowInspect.signalId}
+              agentIds={flowInspect.agentIds}
+              agentPositions={agentPositions}
+            />
             <EdgeLayer edges={state.edges} agentPositions={agentPositions} centerPos={CENTER_POS} />
             <CenterCoreCard sceneParams={sceneParams} onSceneParamsChange={onSceneParamsChange} />
             {state.agents.map((agent, i) => (
-              <AgentNode key={agent.id} agent={agent} position={agentPositions[agent.id]} zoom={zoom} onDragMove={handleAgentDragMove} isRunning={isRunning} nodeIndex={i} />
+              <AgentNode
+                key={agent.id}
+                agent={agent}
+                position={agentPositions[agent.id]}
+                zoom={zoom}
+                onDragMove={handleAgentDragMove}
+                isRunning={isRunning}
+                nodeIndex={i}
+                isHighlighted={
+                  highlightedAgentIds.size > 0 &&
+                  (highlightedAgentIds.has(agent.id as SandboxAgentId) ||
+                    (agent.parentId != null && highlightedAgentIds.has(agent.parentId as SandboxAgentId)))
+                }
+                isDimmed={
+                  highlightedAgentIds.size > 0 &&
+                  !highlightedAgentIds.has(agent.id as SandboxAgentId) &&
+                  !(agent.parentId != null && highlightedAgentIds.has(agent.parentId as SandboxAgentId))
+                }
+              />
             ))}
             {error ? <div className="canvas-error">{error}</div> : null}
           </div>
@@ -267,4 +283,22 @@ export function CanvasStage({
       />
     </section>
   )
+}
+
+function resolvePipelineStage(
+  environmentState: CanvasState['environmentState'],
+  isRunning: boolean,
+  inputCount: number,
+): SandboxPipelineStage | 'idle' {
+  if (isRunning && environmentState == null) {
+    return inputCount > 0 ? 'classifying' : 'ingesting'
+  }
+  if (isRunning && environmentState != null) {
+    return 'simulating'
+  }
+  if (environmentState == null) {
+    return 'idle'
+  }
+  const hasSignals = environmentState.buckets.some((bucket) => bucket.activeSignals.length > 0)
+  return hasSignals ? 'completed' : 'environment_ready'
 }
