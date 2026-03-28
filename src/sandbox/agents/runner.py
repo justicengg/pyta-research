@@ -28,9 +28,9 @@ from src.sandbox.schemas.reports import AgentActionSnapshot
 @dataclass
 class RunnerResult:
     agent_type: ParticipantType
-    perspective: AgentPerspective | None
-    action: AgentActionSnapshot | None
-    narrative: AgentNarrative | None
+    perspective: AgentPerspective | None = None
+    action: AgentActionSnapshot | None = None
+    narrative: AgentNarrative | None = None
     error: str | None = None
     timed_out: bool = False
     used_stub: bool = False
