@@ -1452,7 +1452,7 @@
 /* ── Agent cluster — widened for parallel board readability ─────── */
 .agent-cluster {
   position: absolute;
-  width: 228px;
+  width: 280px;
   overflow: hidden;
   cursor: grab;
   user-select: none;
@@ -1462,7 +1462,7 @@
 
 /* Ring 2+ derived nodes — slightly smaller, softer visual weight */
 .agent-cluster--ring-2 {
-  width: 204px;
+  width: 244px;
   opacity: 0.92;
 }
 
@@ -1522,6 +1522,7 @@
   align-items: center;
   gap: var(--sp-1);
   margin-bottom: 2px;
+  flex-wrap: nowrap;
 }
 
 .agent-title-row strong {
@@ -1530,6 +1531,7 @@
   color: var(--text-1);
   line-height: 1.2;
   margin: 0;
+  white-space: nowrap;
 }
 
 .agent-copy span {
@@ -3582,7 +3584,7 @@ select.field-input {
 }
 
 .canvas-layer--parallel {
-  width: 1200px;
+  width: 1600px;
   height: 720px;
 }
 
