@@ -2,9 +2,8 @@ import type { SandboxAgentId, SandboxEnvironmentType } from '../../lib/types/san
 import { CARD_WIDTH } from './AgentNode'
 
 type Props = {
-  environmentType: SandboxEnvironmentType | null
-  signalId: string | null
-  agentIds: SandboxAgentId[]
+  isActive: boolean
+  agentOrder: SandboxAgentId[]
   agentPositions: Record<string, { x: number; y: number }>
 }
 
@@ -16,28 +15,40 @@ const ENVIRONMENT_ANCHORS: Record<SandboxEnvironmentType, { x: number; y: number
   alternative_data: { x: 1050, y: 92, label: '另类数据' },
 }
 
-export function EnvironmentFlowLayer({ environmentType, signalId, agentIds, agentPositions }: Props) {
-  if (!environmentType || agentIds.length === 0) {
+const ENVIRONMENT_ORDER: SandboxEnvironmentType[] = [
+  'geopolitics',
+  'macro_policy',
+  'market_sentiment',
+  'fundamentals',
+  'alternative_data',
+]
+
+export function EnvironmentFlowLayer({ isActive, agentOrder, agentPositions }: Props) {
+  if (!isActive || agentOrder.length === 0) {
     return null
   }
-
-  const anchor = ENVIRONMENT_ANCHORS[environmentType]
 
   return (
     <svg className="environment-flow-layer" viewBox="0 0 1200 900" preserveAspectRatio="none" aria-hidden="true">
       <g className="environment-flow-layer__group">
-        <circle className="environment-flow-anchor" cx={anchor.x} cy={anchor.y} r={signalId ? 12 : 9} />
-        <text className="environment-flow-anchor-label" x={anchor.x} y={anchor.y - 18} textAnchor="middle">
-          {anchor.label}
-        </text>
-        {agentIds.map((agentId) => {
+        {agentOrder.map((agentId, index) => {
+          const environmentType = ENVIRONMENT_ORDER[index]
+          const anchor = ENVIRONMENT_ANCHORS[environmentType]
           const target = agentPositions[agentId]
           if (!target) return null
           const targetX = target.x + CARD_WIDTH / 2
           const targetY = target.y + 12
           const curveMidY = Math.min(targetY - 110, 232)
           const path = `M ${anchor.x} ${anchor.y} C ${anchor.x} ${curveMidY}, ${targetX} ${curveMidY}, ${targetX} ${targetY}`
-          return <path key={agentId} className="environment-flow-line" d={path} />
+          return (
+            <g key={agentId}>
+              <circle className="environment-flow-anchor" cx={anchor.x} cy={anchor.y} r={9} />
+              <text className="environment-flow-anchor-label" x={anchor.x} y={anchor.y - 18} textAnchor="middle">
+                {anchor.label}
+              </text>
+              <path className="environment-flow-line" d={path} />
+            </g>
+          )
         })}
       </g>
     </svg>

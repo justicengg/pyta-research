@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CanvasState, RoundRecord, SceneParams } from '../../lib/types/canvas'
 import type {
   SandboxAgentId,
-  SandboxEnvironmentType,
   SandboxInputEvent,
   SandboxPipelineStage,
 } from '../../lib/types/sandbox'
@@ -24,11 +23,6 @@ import {
 } from '../../lib/orb/promptProfiles'
 
 type AgentPos = { x: number; y: number }
-type FlowInspectState = {
-  environmentType: SandboxEnvironmentType | null
-  signalId: string | null
-  agentIds: SandboxAgentId[]
-}
 
 type Props = {
   state: CanvasState
@@ -45,11 +39,6 @@ type Props = {
   onSubmit: () => void
 }
 
-const EMPTY_FLOW_INSPECT: FlowInspectState = {
-  environmentType: null,
-  signalId: null,
-  agentIds: [],
-}
 const PARALLEL_ROW_Y = 344
 const PARALLEL_START_X = 40
 const PARALLEL_GAP_X = 235
@@ -71,7 +60,6 @@ export function CanvasStage({
   const stageRef = useRef<HTMLDivElement>(null)
   const { panX, panY, zoom, zoomPercent, isPanning, stagePointerHandlers, resetViewport } =
     useCanvasViewport(stageRef)
-  const [flowInspect, setFlowInspect] = useState<FlowInspectState>(EMPTY_FLOW_INSPECT)
   const [showPromptMascot, setShowPromptMascot] = useState(false)
   const [isOrbExiting, setIsOrbExiting] = useState(false)
   const [promptMessage, setPromptMessage] = useState('说吧，今天研究什么')
@@ -100,7 +88,6 @@ export function CanvasStage({
   }
   const envState = state.environmentState
   const pipelineStage = resolvePipelineStage(envState, isRunning, currentInputEvents.length)
-  const highlightedAgentIds = useMemo(() => new Set(flowInspect.agentIds), [flowInspect.agentIds])
 
   const handleAgentDragMove = useCallback((id: string, dx: number, dy: number) => {
     setDragOverrides((prev) => {
@@ -185,7 +172,6 @@ export function CanvasStage({
         state={envState}
         pipelineStage={pipelineStage}
         isRunning={isRunning}
-        onInspectChange={setFlowInspect}
       />
 
       {/* Zone B — Canvas viewport */}
@@ -200,9 +186,8 @@ export function CanvasStage({
         >
           <CanvasBackground />
           <EnvironmentFlowLayer
-            environmentType={flowInspect.environmentType}
-            signalId={flowInspect.signalId}
-            agentIds={flowInspect.agentIds}
+            isActive={isRunning}
+            agentOrder={visibleAgents.map((agent) => agent.id as SandboxAgentId)}
             agentPositions={agentPositions}
           />
           <div className="parallel-agent-board">
@@ -215,8 +200,6 @@ export function CanvasStage({
                 onDragMove={handleAgentDragMove}
                 isRunning={isRunning}
                 nodeIndex={i}
-                isHighlighted={highlightedAgentIds.size > 0 && highlightedAgentIds.has(agent.id as SandboxAgentId)}
-                isDimmed={highlightedAgentIds.size > 0 && !highlightedAgentIds.has(agent.id as SandboxAgentId)}
               />
             ))}
           </div>

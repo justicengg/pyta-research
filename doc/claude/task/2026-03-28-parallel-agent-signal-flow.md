@@ -19,4 +19,5 @@ Reshape the sandbox canvas from a topology view into a single parallel-agent lay
 - [completed] Removed topology / meridian view switching UI
 - [completed] Replaced radial layout with a five-agent parallel board
 - [completed] Routed environment flow lines into the parallel agent row
+- [completed] Simplified signal transmission to run-only animation: hidden before run, visible during run, hidden after completion
 - [completed] Ran frontend build validation
