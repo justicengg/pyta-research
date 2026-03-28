@@ -12,6 +12,19 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from .agents import AgentPerspective, ParticipantType, PerspectiveStatus
+from .environment import EnvironmentType, TimeHorizon
+
+
+class AgentActionSnapshot(BaseModel):
+    """单个 Agent 的动作模拟快照。"""
+
+    agent_type: ParticipantType
+    action_bias: str
+    confidence: float
+    rationale_summary: str
+    key_drivers: list[str] = Field(default_factory=list)
+    affected_environment_types: list[EnvironmentType] = Field(default_factory=list)
+    horizon: TimeHorizon = "short_term"
 
 
 class PerAgentStatus(BaseModel):
@@ -63,3 +76,4 @@ class MarketReadingReport(BaseModel):
     tracking_signals: list[str] = Field(default_factory=list)
     data_quality: str
     perspective_detail: Optional[dict[ParticipantType, AgentPerspective]] = None
+    action_detail: Optional[dict[ParticipantType, AgentActionSnapshot]] = None

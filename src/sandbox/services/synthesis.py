@@ -10,6 +10,7 @@ from uuid import UUID
 from src.sandbox.agents.runner import RunnerResult
 from src.sandbox.schemas.agents import AgentPerspective, MarketBias, ParticipantType
 from src.sandbox.schemas.reports import (
+    AgentActionSnapshot,
     DivergenceItem,
     MarketReadingReport,
     PerAgentStatus,
@@ -66,6 +67,7 @@ def build_round_complete(
 
 def build_market_reading_report(round_complete: RoundComplete, results: Iterable[RunnerResult]) -> MarketReadingReport:
     detail: dict[ParticipantType, AgentPerspective] = {}
+    actions: dict[ParticipantType, AgentActionSnapshot] = {}
     synthesis: dict[ParticipantType, str] = {}
     tensions: list[TensionItem] = []
     tracking_signals: list[str] = []
@@ -74,6 +76,8 @@ def build_market_reading_report(round_complete: RoundComplete, results: Iterable
         if result.perspective is None:
             continue
         detail[result.agent_type] = result.perspective
+        if result.action is not None:
+            actions[result.agent_type] = result.action
         synthesis[result.agent_type] = build_summary_from_perspective(result.perspective)
         tracking_signals.extend(result.perspective.key_concerns[:1])
 
@@ -89,6 +93,7 @@ def build_market_reading_report(round_complete: RoundComplete, results: Iterable
         tracking_signals=_unique_keep_order(tracking_signals)[:3],
         data_quality=round_complete.data_quality,
         perspective_detail=detail,
+        action_detail=actions,
     )
 
 
@@ -101,6 +106,7 @@ def build_assembly_notes(results: Iterable[RunnerResult]) -> dict:
             "used_stub": result.used_stub,
             "timed_out": result.timed_out,
             "error": result.error,
+            "action_snapshot": result.action.model_dump(mode="json") if result.action is not None else None,
         }
     return notes
 

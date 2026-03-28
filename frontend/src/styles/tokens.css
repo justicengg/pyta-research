@@ -44,20 +44,47 @@
   --text-2: hsl(25, 8%, 36%);
   --text-3: hsl(25, 6%, 56%);
 
-  /* ── Brand & semantic colours (culture-neutral, no red/green) ── */
-  --accent:  hsl(213, 94%, 60%);   /* 品蓝  #3B82F6 — primary accent        */
-  --up:      hsl(210, 94%, 68%);   /* 冰蓝  #60A5FA — positive / price up   */
-  --down:    hsl(239, 84%, 67%);   /* 幽紫  #818CF8 — negative / price down */
-  --live:    hsl(199, 89%, 48%);   /* 亮青  #38BDF8 — live / running status */
-  --warning: hsl(43,  96%, 56%);   /* 琥珀  #FBBF24 — warning / degraded    */
-  --orange:  hsl(43,  96%, 56%);   /* alias → --warning (backwards compat)  */
+  /* ── PYTA Brand Blue — from mascot gradient ── */
+  /* Mascot: #A8C8F0 highlight → #4E7ED8 primary → #1E3E8C base */
+  --brand-200: #A8C8F0;   /* ice highlight */
+  --brand-300: #7AAAE8;   /* mid-light     */
+  --brand-400: #4E7ED8;   /* PRIMARY brand */
+  --brand-500: #3968C8;   /* deep          */
+  --brand-600: #2850A8;   /* darker        */
+  --brand-700: #1E3E8C;   /* navy base     */
 
-  /* Agent role tints — light theme */
+  /* ── Brand & semantic colours (culture-neutral, no red/green) ── */
+  --accent:      #4E7ED8;              /* PYTA 品牌主蓝 — mascot primary       */
+  --accent-glow: rgba(78,126,216,0.35);/* 吉祥物光晕同源                       */
+  --up:      hsl(210, 94%, 68%);       /* 冰蓝  #60A5FA — positive / price up  */
+  --down:    hsl(239, 84%, 67%);       /* 幽紫  #818CF8 — negative / price down*/
+  --live:    hsl(199, 89%, 48%);       /* 亮青  #38BDF8 — live / running status*/
+  --warning: hsl(43,  96%, 56%);       /* 琥珀  #FBBF24 — warning / degraded   */
+  --orange:  hsl(43,  96%, 56%);       /* alias → --warning (backwards compat) */
+  --blue:    #4E7ED8;                  /* alias → --accent                     */
+  --lime:    hsl(160, 55%, 50%);       /* 淡绿  quality / growth indicator     */
+  --lime-glow: rgba(52,196,155,0.18);  /* lime glow for quality orb            */
+
+  /* ── Environment layer category tokens ── */
+  /* All in cool blue-family, hue-shifted for distinction.        */
+  /* Never use for price direction — only for env category tints. */
+  --env-geo:         hsl(202, 72%, 52%);  /* 地缘政治: 偏青蓝  #25A4D5 */
+  --env-macro:       hsl(220, 63%, 57%);  /* 宏观政策: 品牌主蓝 #4E7ED8 */
+  --env-sentiment:   hsl(240, 57%, 63%);  /* 市场情绪: 蓝紫    #7B82D4 */
+  --env-fundamental: hsl(190, 74%, 44%);  /* 公司基本面: 青色  #1AA3B8 */
+  --env-alt:         hsl(257, 52%, 62%);  /* 另类数据: 深紫蓝  #8A6DD4 */
+
+  /* ── Agent role tints — light theme ── */
   --tint-traditional: hsl(213, 38%, 96%);
   --tint-offshore:    hsl(218, 38%, 96%);
   --tint-retail:      hsl(239, 32%, 96%);
   --tint-quant:       hsl(258, 32%, 96%);
   --tint-short-term:  hsl(199, 32%, 96%);
+
+  /* Legacy tints used in existing CSS */
+  --tint-decision:  hsl(220, 36%, 95%);
+  --tint-sentiment: hsl(240, 30%, 95%);
+  --tint-macro:     hsl(213, 36%, 95%);
 
   --grid-line: rgba(80, 68, 52, 0.055);
   --canvas-bg: hsl(40, 14%, 98%);
@@ -90,6 +117,18 @@
   --tint-retail:      hsl(239, 14%, 14%);
   --tint-quant:       hsl(258, 14%, 14%);
   --tint-short-term:  hsl(199, 14%, 14%);
+
+  /* Legacy tints — dark theme */
+  --tint-decision:  hsl(220, 18%, 15%);
+  --tint-sentiment: hsl(240, 14%, 15%);
+  --tint-macro:     hsl(213, 18%, 15%);
+
+  /* Env category tokens — same hues, dark mode unchanged */
+  --env-geo:         hsl(202, 72%, 52%);
+  --env-macro:       hsl(220, 63%, 57%);
+  --env-sentiment:   hsl(240, 57%, 63%);
+  --env-fundamental: hsl(190, 74%, 44%);
+  --env-alt:         hsl(257, 52%, 62%);
 
   --shadow-sm: 0 1px 4px hsl(0 0% 0% / 0.2), 0 1px 2px hsl(0 0% 0% / 0.15);
   --shadow-md: 0 4px 16px hsl(0 0% 0% / 0.25), 0 2px 6px hsl(0 0% 0% / 0.15);

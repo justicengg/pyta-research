@@ -1,3 +1,5 @@
+import type { SandboxActionBias, SandboxEnvironmentState, SandboxEnvironmentType } from './sandbox'
+
 export type AgentStatus = 'live' | 'reused_last_round' | 'degraded'
 
 export type AgentSentiment = 'bullish' | 'neutral' | 'bearish'
@@ -18,6 +20,11 @@ export type AgentCardData = {
   observations: string[]
   concerns: string[]
   focus: string[]
+  actionBias: SandboxActionBias
+  actionSummary: string
+  keyDrivers: string[]
+  affectedEnvironmentTypes: SandboxEnvironmentType[]
+  actionHorizon: 'intraday' | 'short_term' | 'mid_term' | 'long_term'
   position: { x: number; y: number }
   round?: number      // which inference round this data came from
   sentiment: AgentSentiment
@@ -76,6 +83,7 @@ export type RecommendedBundle = {
 
 export type CanvasState = {
   quality: 'complete' | 'partial' | 'degraded'
+  environmentState: SandboxEnvironmentState | null
   leftPanel: {
     connectedSources: ConnectorSource[]
     recentEvents: RecentEvent[]

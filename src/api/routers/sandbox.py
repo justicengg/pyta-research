@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from src.api.deps import get_session, verify_api_key
 from src.sandbox.orchestrator.secondary import SecondaryOrchestrator
+from src.sandbox.schemas.environment import EnvironmentState
 from src.sandbox.schemas.memory import Checkpoint, ReportRecord, SandboxSession
 
 router = APIRouter()
@@ -31,11 +32,17 @@ class SandboxRunRequest(BaseModel):
     ticker: str
     market: str
     events: list[SandboxInputEvent] = Field(min_length=1)
+    environment_state: EnvironmentState | None = None
     round_timeout_ms: int = Field(default=60000, ge=1000, le=120000)
     narrative_guide: str | None = None
 
 
 def _serialize_report_record(record: ReportRecord) -> dict[str, Any]:
+    action_detail = {
+        agent_id: details["action_snapshot"]
+        for agent_id, details in record.assembly_notes.items()
+        if isinstance(details, dict) and details.get("action_snapshot")
+    }
     return {
         "id": str(record.id),
         "sandbox_id": str(record.sandbox_id),
@@ -47,6 +54,7 @@ def _serialize_report_record(record: ReportRecord) -> dict[str, Any]:
         "key_tensions": record.key_tensions,
         "tracking_signals": record.tracking_signals,
         "per_agent_detail": record.per_agent_detail,
+        "action_detail": action_detail,
         "assembly_notes": record.assembly_notes,
         "generated_at": record.generated_at.isoformat(),
     }
@@ -79,6 +87,7 @@ async def run_sandbox(
         ticker=body.ticker,
         market=body.market,
         events=[event.model_dump(mode="json") for event in body.events],
+        environment_state=body.environment_state,
         round_timeout_ms=body.round_timeout_ms,
         narrative_guide=body.narrative_guide,
     )
@@ -86,6 +95,7 @@ async def run_sandbox(
     return {
         "sandbox_id": str(result.sandbox_id),
         "session_status": sandbox.status if sandbox is not None else result.round_complete.data_quality,
+        "environment_state": result.environment_state.model_dump(mode="json"),
         "round_complete": result.round_complete.model_dump(mode="json"),
         "report": result.report.model_dump(mode="json"),
     }

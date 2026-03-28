@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CanvasState, RoundRecord, SceneParams } from '../../lib/types/canvas'
-import type { SandboxInputEvent } from '../../lib/types/sandbox'
+import type { SandboxInputEvent, SandboxPipelineStage } from '../../lib/types/sandbox'
+import { ENV_MOCK_STATES } from '../../lib/mock/environmentState'
 import { useCanvasViewport } from '../../hooks/useCanvasViewport'
 import { useTopologyLayout, TOPOLOGY_CENTER } from '../../hooks/useTopologyLayout'
 import '../../styles/canvas-motion.css'
@@ -9,6 +10,7 @@ import { CanvasBackground } from '../canvas/CanvasBackground'
 import { CenterCoreCard } from '../canvas/CenterCoreCard'
 import { EdgeLayer } from '../canvas/EdgeLayer'
 import { MeridianGridView } from '../canvas/MeridianGridView'
+import { EnvironmentBar } from '../environment/EnvironmentBar'
 import '../../styles/meridian-grid.css'
 import { CommandConsole } from './CommandConsole'
 import { PromptMascot } from './PromptMascot'
@@ -62,6 +64,23 @@ export function CanvasStage({
   const computedPositions = useTopologyLayout(state.agents)
 
   const [viewMode, setViewMode] = useState<'topology' | 'meridian'>('topology')
+
+  // ── DEV: Environment Bar mock state switcher ──────────────────────────────
+  // TODO: 移除，接入真实后端后删掉这个 state 和 UI
+  type MockKey = keyof typeof ENV_MOCK_STATES
+  const [envMockKey, setEnvMockKey] = useState<MockKey>('idle')
+  const envMockEntry = ENV_MOCK_STATES[envMockKey]
+  const envState = envMockEntry.state
+  const pipelineStage: SandboxPipelineStage | 'idle' = envMockEntry.pipeline
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const MOCK_KEY_LABELS: Record<MockKey, string> = {
+    idle:        '空态',
+    classifying: '分类中',
+    active:      '活跃',
+    cooling:     '衰减',
+    conflicted:  '信号冲突',
+  }
   const [showPromptMascot, setShowPromptMascot] = useState(false)
   const [isOrbExiting, setIsOrbExiting] = useState(false)
   const [promptMessage, setPromptMessage] = useState('说吧，今天研究什么')
@@ -162,6 +181,24 @@ export function CanvasStage({
           >⊞</button>
         </div>
       </div>
+
+      {/* Environment Band — Layer 1→2 中间层 */}
+      <EnvironmentBar state={envState} pipelineStage={pipelineStage} />
+
+      {/* DEV: mock state switcher — 接入真实后端后删除 */}
+      {import.meta.env.DEV && (
+        <div className="env-dev-switcher">
+          {(Object.keys(ENV_MOCK_STATES) as MockKey[]).map(key => (
+            <button
+              key={key}
+              className={`env-dev-btn${envMockKey === key ? ' env-dev-btn--active' : ''}`}
+              onClick={() => setEnvMockKey(key)}
+            >
+              {MOCK_KEY_LABELS[key]}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Zone B — Canvas viewport */}
       <div

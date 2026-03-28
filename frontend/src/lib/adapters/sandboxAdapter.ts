@@ -1,6 +1,8 @@
 import type {
   BackendAgentPerspective,
+  BackendAgentActionSnapshot,
   BackendCheckpoint,
+  BackendSandboxEnvironmentState,
   BackendMarketReadingReport,
   BackendPerAgentStatus,
   BackendReportRecord,
@@ -12,6 +14,7 @@ import type {
   CanvasRunState,
   CanvasTension,
   SandboxAgentId,
+  SandboxEnvironmentState,
   SandboxInputEvent,
 } from '../types/sandbox'
 
@@ -62,6 +65,7 @@ export function mapRunResponseToCanvasState(
     sandboxId: response.sandbox_id,
     ticker: response.round_complete.ticker,
     market: response.round_complete.market,
+    environmentState: mapEnvironmentState(response.environment_state),
     sessionStatus: response.session_status,
     quality: response.round_complete.data_quality,
     stopReason: response.round_complete.stop_reason,
@@ -81,6 +85,7 @@ export function mapResultResponseToCanvasState(
     sandboxId: response.sandbox_id,
     ticker: response.ticker,
     market: response.market,
+    environmentState: null,
     sessionStatus: response.session_status,
     quality: response.report.data_quality,
     stopReason: null,
@@ -103,6 +108,7 @@ function buildCanvasRunState(input: {
   sandboxId: string
   ticker: string
   market: string
+  environmentState: SandboxEnvironmentState | null
   sessionStatus: CanvasRunState['sessionStatus']
   quality: CanvasRunState['quality']
   stopReason: string | null
@@ -113,6 +119,7 @@ function buildCanvasRunState(input: {
   inputEvents: CanvasInputEvent[]
 }): CanvasRunState {
   const agentDetail = extractAgentDetail(input.report)
+  const actionDetail = extractActionDetail(input.report)
   const perAgentStatus = input.roundComplete?.per_agent_status ?? buildFallbackStatuses(agentDetail)
   const synthesis = buildSynthesis(agentDetail, input.report.perspective_synthesis, perAgentStatus)
   const tensions = buildTensions(input.report.key_tensions ?? input.roundComplete?.divergence_map ?? [])
@@ -122,12 +129,18 @@ function buildCanvasRunState(input: {
     sandboxId: input.sandboxId,
     ticker: input.ticker,
     market: input.market,
+    environmentState: input.environmentState,
     sessionStatus: input.sessionStatus,
     quality: input.quality,
     stopReason: input.stopReason,
     round: input.round,
     agents: AGENT_ORDER.map((agentId) =>
-      buildAgentCard(agentId, agentDetail[agentId], perAgentStatus.find((item) => item.agent_type === agentId)),
+      buildAgentCard(
+        agentId,
+        agentDetail[agentId],
+        actionDetail[agentId],
+        perAgentStatus.find((item) => item.agent_type === agentId),
+      ),
     ),
     synthesis,
     tensions,
@@ -161,9 +174,28 @@ function extractAgentDetail(
   return result
 }
 
+function extractActionDetail(
+  report: BackendMarketReadingReport | BackendReportRecord,
+): Partial<Record<SandboxAgentId, BackendAgentActionSnapshot>> {
+  const rawDetail: Record<string, BackendAgentActionSnapshot> | null | undefined =
+    report.action_detail ?? undefined
+  if (!rawDetail) {
+    return {}
+  }
+
+  const result: Partial<Record<SandboxAgentId, BackendAgentActionSnapshot>> = {}
+  for (const [key, value] of Object.entries(rawDetail)) {
+    if (isSandboxAgentId(key) && value) {
+      result[key] = value
+    }
+  }
+  return result
+}
+
 function buildAgentCard(
   agentId: SandboxAgentId,
   detail: BackendAgentPerspective | undefined,
+  action: BackendAgentActionSnapshot | undefined,
   statusRow: BackendPerAgentStatus | undefined,
 ): CanvasAgentCard {
   const meta = AGENT_META[agentId]
@@ -180,12 +212,24 @@ function buildAgentCard(
     observations: detail?.key_observations ?? [],
     concerns: detail?.key_concerns ?? [],
     focus: detail?.analytical_focus ?? [],
+    actionBias: action?.action_bias ?? deriveFallbackActionBias(detail?.market_bias),
+    actionSummary: action?.rationale_summary ?? fallbackSummary,
+    keyDrivers: action?.key_drivers ?? detail?.analytical_focus ?? [],
+    affectedEnvironmentTypes: action?.affected_environment_types ?? [],
+    actionHorizon: action?.horizon ?? 'short_term',
     bias: detail?.market_bias ?? 'neutral',
     confidence: detail?.confidence ?? 0,
     perspectiveType: detail?.perspective_type ?? agentId,
     perspectiveStatus: status,
     sourceTraceId: undefined,
   }
+}
+
+function deriveFallbackActionBias(marketBias: BackendAgentPerspective['market_bias'] | undefined): CanvasAgentCard['actionBias'] {
+  if (marketBias === 'bullish') return 'accumulate'
+  if (marketBias === 'bearish') return 'reduce'
+  if (marketBias === 'mixed') return 'hedge'
+  return 'watch'
 }
 
 function summarizePerspective(detail: BackendAgentPerspective | undefined, fallbackSummary: string): string {
@@ -243,6 +287,48 @@ function uniqueStrings(values: string[]): string[] {
   return [...new Set(values.filter((item) => item.trim().length > 0))]
 }
 
+function mapEnvironmentState(
+  state: BackendSandboxEnvironmentState | null | undefined,
+): SandboxEnvironmentState | null {
+  if (!state) {
+    return null
+  }
+
+  return {
+    sandboxId: state.sandbox_id ?? null,
+    symbol: state.symbol ?? null,
+    market: state.market ?? null,
+    buckets: state.buckets.map((bucket) => ({
+      type: bucket.type,
+      displayName: bucket.display_name,
+      activeSignals: bucket.active_signals.map((signal) => ({
+        id: signal.id,
+        messageId: signal.message_id,
+        environmentType: signal.environment_type,
+        title: signal.title,
+        summary: signal.summary,
+        direction: signal.direction,
+        strength: signal.strength,
+        horizon: signal.horizon,
+        relatedSymbols: signal.related_symbols,
+        relatedMarkets: signal.related_markets,
+        entities: signal.entities,
+        tags: signal.tags,
+        detectedAt: signal.detected_at,
+        expiresAt: signal.expires_at ?? null,
+        evidence: signal.evidence.map((item) => ({ kind: item.kind, value: item.value })),
+      })),
+      dominantDirection: bucket.dominant_direction,
+      aggregateStrength: bucket.aggregate_strength,
+      lastUpdatedAt: bucket.last_updated_at ?? null,
+      status: bucket.status,
+    })),
+    globalRiskTone: state.global_risk_tone,
+    updatedAt: state.updated_at,
+    version: state.version,
+  }
+}
+
 function isSandboxAgentId(value: string): value is SandboxAgentId {
   return AGENT_ORDER.includes(value as SandboxAgentId)
 }
@@ -252,11 +338,12 @@ export function createEmptyCanvasRunState(): CanvasRunState {
     sandboxId: '',
     ticker: '',
     market: '',
+    environmentState: null,
     sessionStatus: 'initializing',
     quality: 'partial',
     stopReason: null,
     round: 0,
-    agents: AGENT_ORDER.map((agentId) => buildAgentCard(agentId, undefined, undefined)),
+    agents: AGENT_ORDER.map((agentId) => buildAgentCard(agentId, undefined, undefined, undefined)),
     synthesis: AGENT_ORDER.reduce((acc, agentId) => {
       acc[agentId] = `${AGENT_META[agentId].title} 暂无摘要。`
       return acc

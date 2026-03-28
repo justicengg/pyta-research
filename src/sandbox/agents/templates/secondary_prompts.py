@@ -46,6 +46,14 @@ SECONDARY_SANDBOX_SYSTEM_PROMPT = """你是 PYTA 二级市场沙盘推演系统�
     \"analytical_focus\": [\"...\"],
     \"confidence\": 0.0
   },
+  \"action\": {
+    \"action_bias\": \"accumulate|reduce|hold|watch|hedge|chase|exit\",
+    \"confidence\": 0.0,
+    \"rationale_summary\": \"...\",
+    \"key_drivers\": [\"...\"],
+    \"affected_environment_types\": [\"macro_policy\"],
+    \"horizon\": \"intraday|short_term|mid_term|long_term\"
+  },
   \"narrative\": {
     \"content\": \"...\",
     \"mentions\": []
@@ -66,6 +74,8 @@ def build_secondary_user_prompt(
     events: list[dict],
     narrative_guide: str | None = None,
     market_data: dict | None = None,
+    environment_state: dict | None = None,
+    focused_signals: list[dict] | None = None,
 ) -> str:
     payload = {
         "agent_type": agent_type.value,
@@ -76,6 +86,10 @@ def build_secondary_user_prompt(
         "narrative_guide": narrative_guide or "",
         "events": events,
     }
+    if environment_state:
+        payload["environment_state"] = environment_state
+    if focused_signals:
+        payload["focused_signals"] = focused_signals
     # Inject real market data when available — agents use this as factual grounding
     if market_data:
         payload["market_data"] = market_data
