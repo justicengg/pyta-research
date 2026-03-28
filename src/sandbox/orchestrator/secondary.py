@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 from src.sandbox.schemas.agents import AgentNarrative, AgentPerspective, MarketBias, ParticipantType, PerspectiveStatus
 from src.sandbox.schemas.environment import EnvironmentState
 from src.sandbox.schemas.memory import AgentSnapshot, Checkpoint, ReportRecord, SandboxEventRecord, SandboxSession
-from src.sandbox.schemas.reports import MarketReadingReport, RoundComplete
+from src.sandbox.schemas.reports import AgentActionSnapshot, MarketReadingReport, RoundComplete
 from src.sandbox.services.synthesis import build_assembly_notes, build_market_reading_report, build_round_complete
 
 
@@ -186,7 +186,7 @@ class SecondaryOrchestrator:
     def _resolve_result(self, session: Session, sandbox_id: UUID, round_number: int, result: RunnerResult) -> RunnerResult:
         if result.perspective is not None and result.narrative is not None:
             if result.action is None:
-                result.action = self.runner._build_default_action_snapshot(result.agent_type, result.perspective, None)
+                result.action = self._build_fallback_action_snapshot(result.agent_type, result.perspective)
             return result
 
         previous = self._get_latest_snapshot(session, sandbox_id, result.agent_type.value, round_number)
@@ -207,7 +207,7 @@ class SecondaryOrchestrator:
                 trace_id=previous.source_trace_id,
             )
             result.perspective = perspective
-            result.action = self.runner._build_default_action_snapshot(result.agent_type, perspective, None)
+            result.action = self._build_fallback_action_snapshot(result.agent_type, perspective)
             result.narrative = narrative
             result.timed_out = False
             result.error = None
@@ -228,8 +228,46 @@ class SecondaryOrchestrator:
             content=f"Degraded default perspective injected for {result.agent_type.value}.",
             trace_id=uuid4(),
         )
-        result.action = self.runner._build_default_action_snapshot(result.agent_type, result.perspective, None)
+        result.action = self._build_fallback_action_snapshot(result.agent_type, result.perspective)
         return result
+
+    def _build_fallback_action_snapshot(
+        self,
+        agent_type: ParticipantType,
+        perspective: AgentPerspective,
+    ) -> AgentActionSnapshot:
+        builder = getattr(self.runner, "_build_default_action_snapshot", None)
+        if callable(builder):
+            return builder(agent_type, perspective, None)
+
+        if perspective.market_bias == MarketBias.BULLISH:
+            action_bias = "chase" if agent_type == ParticipantType.SHORT_TERM_CAPITAL else "accumulate"
+        elif perspective.market_bias == MarketBias.BEARISH:
+            action_bias = "exit" if agent_type == ParticipantType.SHORT_TERM_CAPITAL else "reduce"
+        elif perspective.market_bias == MarketBias.MIXED:
+            action_bias = "hedge"
+        else:
+            action_bias = "watch"
+
+        if agent_type == ParticipantType.SHORT_TERM_CAPITAL:
+            horizon = "intraday"
+        elif agent_type == ParticipantType.TRADITIONAL_INSTITUTION:
+            horizon = "long_term"
+        elif agent_type == ParticipantType.OFFSHORE_CAPITAL:
+            horizon = "mid_term"
+        else:
+            horizon = "short_term"
+
+        return AgentActionSnapshot(
+            agent_type=agent_type,
+            action_bias=action_bias,
+            confidence=perspective.confidence,
+            rationale_summary="；".join((perspective.key_observations + perspective.analytical_focus)[:2])
+            or f"{agent_type.value} action captured.",
+            key_drivers=(perspective.analytical_focus or perspective.key_concerns or perspective.key_observations)[:3],
+            affected_environment_types=[],
+            horizon=horizon,
+        )
 
     def _get_latest_snapshot(self, session: Session, sandbox_id: UUID, agent_id: str, round_number: int) -> AgentSnapshot | None:
         stmt = (
