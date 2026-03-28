@@ -1,17 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CanvasState, RoundRecord, SceneParams } from '../../lib/types/canvas'
-import type { SandboxInputEvent, SandboxPipelineStage } from '../../lib/types/sandbox'
-import { ENV_MOCK_STATES } from '../../lib/mock/environmentState'
+import type {
+  SandboxAgentId,
+  SandboxEnvironmentType,
+  SandboxInputEvent,
+  SandboxPipelineStage,
+} from '../../lib/types/sandbox'
 import { useCanvasViewport } from '../../hooks/useCanvasViewport'
-import { useTopologyLayout, TOPOLOGY_CENTER } from '../../hooks/useTopologyLayout'
+import { SANDBOX_AGENT_ORDER } from '../../lib/types/sandbox'
 import '../../styles/canvas-motion.css'
-import { AgentNode } from '../canvas/AgentNode'
+import { AgentNode, CARD_WIDTH } from '../canvas/AgentNode'
 import { CanvasBackground } from '../canvas/CanvasBackground'
-import { CenterCoreCard } from '../canvas/CenterCoreCard'
-import { EdgeLayer } from '../canvas/EdgeLayer'
-import { MeridianGridView } from '../canvas/MeridianGridView'
+import { EnvironmentFlowLayer } from '../canvas/EnvironmentFlowLayer'
 import { EnvironmentBar } from '../environment/EnvironmentBar'
-import '../../styles/meridian-grid.css'
 import { CommandConsole } from './CommandConsole'
 import { PromptMascot } from './PromptMascot'
 import {
@@ -23,6 +24,7 @@ import {
 } from '../../lib/orb/promptProfiles'
 
 type AgentPos = { x: number; y: number }
+type EnvironmentAnchorMap = Partial<Record<SandboxEnvironmentType, { x: number; y: number }>>
 
 type Props = {
   state: CanvasState
@@ -39,8 +41,11 @@ type Props = {
   onSubmit: () => void
 }
 
-// Center core anchor — matches TOPOLOGY_CENTER from useTopologyLayout
-const CENTER_POS: AgentPos = TOPOLOGY_CENTER
+const PARALLEL_CENTER_X = 800
+const PARALLEL_CENTER_Y = 516
+const PARALLEL_CENTER_GAP_X = 304
+const PARALLEL_CARD_HEIGHT = 288
+const RETAIL_CENTER_INDEX = 2
 
 export function CanvasStage({
   state,
@@ -52,35 +57,13 @@ export function CanvasStage({
   currentRound,
   roundHistory,
   currentInputEvents,
-  sceneParams,
-  onSceneParamsChange,
+  sceneParams: _sceneParams,
+  onSceneParamsChange: _onSceneParamsChange,
   onSubmit,
 }: Props) {
   const stageRef = useRef<HTMLDivElement>(null)
   const { panX, panY, zoom, zoomPercent, isPanning, stagePointerHandlers, resetViewport } =
     useCanvasViewport(stageRef)
-
-  // Computed positions from topology layout algorithm
-  const computedPositions = useTopologyLayout(state.agents)
-
-  const [viewMode, setViewMode] = useState<'topology' | 'meridian'>('topology')
-
-  // ── DEV: Environment Bar mock state switcher ──────────────────────────────
-  // TODO: 移除，接入真实后端后删掉这个 state 和 UI
-  type MockKey = keyof typeof ENV_MOCK_STATES
-  const [envMockKey, setEnvMockKey] = useState<MockKey>('idle')
-  const envMockEntry = ENV_MOCK_STATES[envMockKey]
-  const envState = envMockEntry.state
-  const pipelineStage: SandboxPipelineStage | 'idle' = envMockEntry.pipeline
-  // ─────────────────────────────────────────────────────────────────────────
-
-  const MOCK_KEY_LABELS: Record<MockKey, string> = {
-    idle:        '空态',
-    classifying: '分类中',
-    active:      '活跃',
-    cooling:     '衰减',
-    conflicted:  '信号冲突',
-  }
   const [showPromptMascot, setShowPromptMascot] = useState(false)
   const [isOrbExiting, setIsOrbExiting] = useState(false)
   const [promptMessage, setPromptMessage] = useState('说吧，今天研究什么')
@@ -89,21 +72,63 @@ export function CanvasStage({
   const [orbMode] = useState(resolveOrbMode)
   const hasShownFirstCompleteRef = useRef(false)
   const wasRunningRef = useRef(isRunning)
+  const [environmentAnchorViewportMap, setEnvironmentAnchorViewportMap] = useState<EnvironmentAnchorMap>({})
 
   // Drag overrides — user drag moves nodes away from computed positions
   const [dragOverrides, setDragOverrides] = useState<Record<string, AgentPos>>({})
-  // Final positions: computed topology base + any drag overrides
+  const visibleAgents = useMemo(() => {
+    const baseAgents = state.agents.filter((agent) => (agent.ring ?? 1) === 1)
+    const sourceAgents = baseAgents.length > 0 ? baseAgents : state.agents.slice(0, 5)
+    return [...sourceAgents].sort((left, right) => {
+      const leftIndex = SANDBOX_AGENT_ORDER.indexOf(left.id as SandboxAgentId)
+      const rightIndex = SANDBOX_AGENT_ORDER.indexOf(right.id as SandboxAgentId)
+      return leftIndex - rightIndex
+    })
+  }, [state.agents])
+
   const agentPositions: Record<string, AgentPos> = {}
-  for (const agent of state.agents) {
-    agentPositions[agent.id] = dragOverrides[agent.id] ?? computedPositions[agent.id] ?? { x: 0, y: 0 }
+  for (const [index, agent] of visibleAgents.entries()) {
+    const centerIndexOffset = index - RETAIL_CENTER_INDEX
+    const centerX = PARALLEL_CENTER_X + centerIndexOffset * PARALLEL_CENTER_GAP_X
+    const basePosition = {
+      x: centerX - CARD_WIDTH / 2,
+      y: PARALLEL_CENTER_Y - PARALLEL_CARD_HEIGHT / 2,
+    }
+    agentPositions[agent.id] = dragOverrides[agent.id] ?? basePosition
   }
+  const envState = state.environmentState
+  const pipelineStage = resolvePipelineStage(envState, isRunning, currentInputEvents.length)
+  const environmentAnchors = useMemo(() => {
+    const stageElement = stageRef.current
+    if (!stageElement) {
+      return {}
+    }
+    const stageRect = stageElement.getBoundingClientRect()
+    const mapped: EnvironmentAnchorMap = {}
+    for (const [type, anchor] of Object.entries(environmentAnchorViewportMap) as Array<
+      [SandboxEnvironmentType, { x: number; y: number }]
+    >) {
+      mapped[type] = {
+        x: (anchor.x - stageRect.left - panX) / zoom,
+        y: (anchor.y - stageRect.top - panY) / zoom,
+      }
+    }
+    return mapped
+  }, [environmentAnchorViewportMap, panX, panY, zoom])
 
   const handleAgentDragMove = useCallback((id: string, dx: number, dy: number) => {
     setDragOverrides((prev) => {
-      const base = prev[id] ?? computedPositions[id] ?? { x: 0, y: 0 }
+      const agentIndex = visibleAgents.findIndex((agent) => agent.id === id)
+      const centerIndexOffset = Math.max(agentIndex, 0) - RETAIL_CENTER_INDEX
+      const centerX = PARALLEL_CENTER_X + centerIndexOffset * PARALLEL_CENTER_GAP_X
+      const fallback = {
+        x: centerX - CARD_WIDTH / 2,
+        y: PARALLEL_CENTER_Y - PARALLEL_CARD_HEIGHT / 2,
+      }
+      const base = prev[id] ?? fallback
       return { ...prev, [id]: { x: base.x + dx, y: base.y + dy } }
     })
-  }, [computedPositions])
+  }, [visibleAgents])
 
   const dismissPromptMascot = useCallback(() => {
     setIsOrbExiting(true)
@@ -168,80 +193,58 @@ export function CanvasStage({
         <div className="stage-head-left">
           <h2>多 Agent 沙盘推演</h2>
         </div>
-        <div className="view-toggle-group">
-          <button
-            className={`view-toggle-btn${viewMode === 'topology' ? ' view-toggle-btn--active' : ''}`}
-            onClick={() => setViewMode('topology')}
-            title="拓扑视图"
-          >⬡</button>
-          <button
-            className={`view-toggle-btn${viewMode === 'meridian' ? ' view-toggle-btn--active' : ''}`}
-            onClick={() => setViewMode('meridian')}
-            title="经线对比视图"
-          >⊞</button>
-        </div>
       </div>
 
       {/* Environment Band — Layer 1→2 中间层 */}
-      <EnvironmentBar state={envState} pipelineStage={pipelineStage} />
-
-      {/* DEV: mock state switcher — 接入真实后端后删除 */}
-      {import.meta.env.DEV && (
-        <div className="env-dev-switcher">
-          {(Object.keys(ENV_MOCK_STATES) as MockKey[]).map(key => (
-            <button
-              key={key}
-              className={`env-dev-btn${envMockKey === key ? ' env-dev-btn--active' : ''}`}
-              onClick={() => setEnvMockKey(key)}
-            >
-              {MOCK_KEY_LABELS[key]}
-            </button>
-          ))}
-        </div>
-      )}
+      <EnvironmentBar
+        state={envState}
+        pipelineStage={pipelineStage}
+        isRunning={isRunning}
+        onAnchorLayoutChange={setEnvironmentAnchorViewportMap}
+      />
 
       {/* Zone B — Canvas viewport */}
       <div
         ref={stageRef}
-        className={`stage${isPanning ? ' panning' : ''}`}
+        className={`stage stage--parallel${isPanning ? ' panning' : ''}`}
         {...stagePointerHandlers}
       >
-        {/* canvas-layer transforms with pan + zoom */}
-        {viewMode === 'topology' ? (
-          <div
-            className="canvas-layer"
-            style={{ transform: `translate(${panX}px, ${panY}px) scale(${zoom})`, transformOrigin: '0 0' }}
-          >
-            <CanvasBackground />
-            <EdgeLayer edges={state.edges} agentPositions={agentPositions} centerPos={CENTER_POS} />
-            <CenterCoreCard sceneParams={sceneParams} onSceneParamsChange={onSceneParamsChange} />
-            {state.agents.map((agent, i) => (
-              <AgentNode key={agent.id} agent={agent} position={agentPositions[agent.id]} zoom={zoom} onDragMove={handleAgentDragMove} isRunning={isRunning} nodeIndex={i} />
-            ))}
-            {error ? <div className="canvas-error">{error}</div> : null}
-          </div>
-        ) : (
-          <MeridianGridView
-            agents={state.agents.filter(a => (a.ring ?? 1) === 1)}
-            isRunning={isRunning}
-            sceneParams={sceneParams}
+        <div
+          className="canvas-layer canvas-layer--parallel"
+          style={{ transform: `translate(${panX}px, ${panY}px) scale(${zoom})`, transformOrigin: '0 0' }}
+        >
+          <CanvasBackground />
+          <EnvironmentFlowLayer
+            isActive={isRunning}
+            agentOrder={visibleAgents.map((agent) => agent.id as SandboxAgentId)}
+            agentPositions={agentPositions}
+            anchors={environmentAnchors}
           />
-        )}
+          <div className="parallel-agent-board">
+            {visibleAgents.map((agent, i) => (
+              <AgentNode
+                key={agent.id}
+                agent={agent}
+                position={agentPositions[agent.id]}
+                zoom={1}
+                onDragMove={handleAgentDragMove}
+                isRunning={isRunning}
+                nodeIndex={i}
+              />
+            ))}
+          </div>
+          {error ? <div className="canvas-error">{error}</div> : null}
+        </div>
 
-        {/* Corner controls — zoom readout + reset only */}
         <div className="canvas-corner-controls" data-no-pan>
-          {viewMode === 'topology' && (
-            <>
-              <span className="corner-zoom">{zoomPercent}%</span>
-              <button
-                className="corner-reset"
-                onClick={resetViewport}
-                title="重置视图 (Reset view)"
-              >
-                ⌖
-              </button>
-            </>
-          )}
+          <span className="corner-zoom">{zoomPercent}%</span>
+          <button
+            className="corner-reset"
+            onClick={resetViewport}
+            title="重置视图 (Reset view)"
+          >
+            ⌖
+          </button>
         </div>
       </div>
 
@@ -267,4 +270,22 @@ export function CanvasStage({
       />
     </section>
   )
+}
+
+function resolvePipelineStage(
+  environmentState: CanvasState['environmentState'],
+  isRunning: boolean,
+  inputCount: number,
+): SandboxPipelineStage | 'idle' {
+  if (isRunning && environmentState == null) {
+    return inputCount > 0 ? 'classifying' : 'ingesting'
+  }
+  if (isRunning && environmentState != null) {
+    return 'simulating'
+  }
+  if (environmentState == null) {
+    return 'idle'
+  }
+  const hasSignals = environmentState.buckets.some((bucket) => bucket.activeSignals.length > 0)
+  return hasSignals ? 'completed' : 'environment_ready'
 }
