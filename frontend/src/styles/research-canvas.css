@@ -3574,3 +3574,46 @@ select.field-input {
     grid-template-columns: 1fr;
   }
 }
+
+.stage-head-sub {
+  margin: 4px 0 0;
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  line-height: var(--lh-relaxed);
+}
+
+.stage--parallel {
+  cursor: default;
+  touch-action: auto;
+}
+
+.stage--parallel .canvas-background__ring,
+.stage--parallel .canvas-background__trace,
+.stage--parallel .canvas-background__node {
+  opacity: 0.18;
+}
+
+.canvas-layer--parallel {
+  width: 1200px;
+  height: 720px;
+}
+
+.parallel-agent-board {
+  position: absolute;
+  inset: 0;
+}
+
+.stage--parallel .agent-cluster {
+  transition:
+    box-shadow 0.15s ease,
+    transform 0.15s ease,
+    opacity 0.2s ease,
+    filter 0.2s ease;
+}
+
+.stage--parallel .canvas-error {
+  position: absolute;
+  left: 50%;
+  bottom: var(--sp-6);
+  transform: translateX(-50%);
+}

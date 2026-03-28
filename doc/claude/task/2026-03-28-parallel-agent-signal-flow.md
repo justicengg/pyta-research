@@ -15,4 +15,8 @@ Reshape the sandbox canvas from a topology view into a single parallel-agent lay
 
 ## Status
 
-- [in_progress] Parallel single-view sandbox UI rewrite
+- [completed] Checkpointed current Environment Rail prototype
+- [completed] Removed topology / meridian view switching UI
+- [completed] Replaced radial layout with a five-agent parallel board
+- [completed] Routed environment flow lines into the parallel agent row
+- [completed] Ran frontend build validation

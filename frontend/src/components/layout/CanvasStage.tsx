@@ -6,17 +6,12 @@ import type {
   SandboxInputEvent,
   SandboxPipelineStage,
 } from '../../lib/types/sandbox'
-import { useCanvasViewport } from '../../hooks/useCanvasViewport'
-import { useTopologyLayout, TOPOLOGY_CENTER } from '../../hooks/useTopologyLayout'
+import { SANDBOX_AGENT_ORDER } from '../../lib/types/sandbox'
 import '../../styles/canvas-motion.css'
 import { AgentNode } from '../canvas/AgentNode'
 import { CanvasBackground } from '../canvas/CanvasBackground'
-import { CenterCoreCard } from '../canvas/CenterCoreCard'
-import { EdgeLayer } from '../canvas/EdgeLayer'
 import { EnvironmentFlowLayer } from '../canvas/EnvironmentFlowLayer'
-import { MeridianGridView } from '../canvas/MeridianGridView'
 import { EnvironmentBar } from '../environment/EnvironmentBar'
-import '../../styles/meridian-grid.css'
 import { CommandConsole } from './CommandConsole'
 import { PromptMascot } from './PromptMascot'
 import {
@@ -49,13 +44,14 @@ type Props = {
   onSubmit: () => void
 }
 
-// Center core anchor — matches TOPOLOGY_CENTER from useTopologyLayout
-const CENTER_POS: AgentPos = TOPOLOGY_CENTER
 const EMPTY_FLOW_INSPECT: FlowInspectState = {
   environmentType: null,
   signalId: null,
   agentIds: [],
 }
+const PARALLEL_ROW_Y = 344
+const PARALLEL_START_X = 40
+const PARALLEL_GAP_X = 235
 
 export function CanvasStage({
   state,
@@ -67,18 +63,11 @@ export function CanvasStage({
   currentRound,
   roundHistory,
   currentInputEvents,
-  sceneParams,
-  onSceneParamsChange,
+  sceneParams: _sceneParams,
+  onSceneParamsChange: _onSceneParamsChange,
   onSubmit,
 }: Props) {
   const stageRef = useRef<HTMLDivElement>(null)
-  const { panX, panY, zoom, zoomPercent, isPanning, stagePointerHandlers, resetViewport } =
-    useCanvasViewport(stageRef)
-
-  // Computed positions from topology layout algorithm
-  const computedPositions = useTopologyLayout(state.agents)
-
-  const [viewMode, setViewMode] = useState<'topology' | 'meridian'>('topology')
   const [flowInspect, setFlowInspect] = useState<FlowInspectState>(EMPTY_FLOW_INSPECT)
   const [showPromptMascot, setShowPromptMascot] = useState(false)
   const [isOrbExiting, setIsOrbExiting] = useState(false)
@@ -91,10 +80,20 @@ export function CanvasStage({
 
   // Drag overrides — user drag moves nodes away from computed positions
   const [dragOverrides, setDragOverrides] = useState<Record<string, AgentPos>>({})
-  // Final positions: computed topology base + any drag overrides
+  const visibleAgents = useMemo(() => {
+    const baseAgents = state.agents.filter((agent) => (agent.ring ?? 1) === 1)
+    const sourceAgents = baseAgents.length > 0 ? baseAgents : state.agents.slice(0, 5)
+    return [...sourceAgents].sort((left, right) => {
+      const leftIndex = SANDBOX_AGENT_ORDER.indexOf(left.id as SandboxAgentId)
+      const rightIndex = SANDBOX_AGENT_ORDER.indexOf(right.id as SandboxAgentId)
+      return leftIndex - rightIndex
+    })
+  }, [state.agents])
+
   const agentPositions: Record<string, AgentPos> = {}
-  for (const agent of state.agents) {
-    agentPositions[agent.id] = dragOverrides[agent.id] ?? computedPositions[agent.id] ?? { x: 0, y: 0 }
+  for (const [index, agent] of visibleAgents.entries()) {
+    const basePosition = { x: PARALLEL_START_X + index * PARALLEL_GAP_X, y: PARALLEL_ROW_Y }
+    agentPositions[agent.id] = dragOverrides[agent.id] ?? basePosition
   }
   const envState = state.environmentState
   const pipelineStage = resolvePipelineStage(envState, isRunning, currentInputEvents.length)
@@ -102,10 +101,15 @@ export function CanvasStage({
 
   const handleAgentDragMove = useCallback((id: string, dx: number, dy: number) => {
     setDragOverrides((prev) => {
-      const base = prev[id] ?? computedPositions[id] ?? { x: 0, y: 0 }
+      const agentIndex = visibleAgents.findIndex((agent) => agent.id === id)
+      const fallback = {
+        x: PARALLEL_START_X + Math.max(agentIndex, 0) * PARALLEL_GAP_X,
+        y: PARALLEL_ROW_Y,
+      }
+      const base = prev[id] ?? fallback
       return { ...prev, [id]: { x: base.x + dx, y: base.y + dy } }
     })
-  }, [computedPositions])
+  }, [visibleAgents])
 
   const dismissPromptMascot = useCallback(() => {
     setIsOrbExiting(true)
@@ -169,18 +173,7 @@ export function CanvasStage({
       <div className="stage-head">
         <div className="stage-head-left">
           <h2>多 Agent 沙盘推演</h2>
-        </div>
-        <div className="view-toggle-group">
-          <button
-            className={`view-toggle-btn${viewMode === 'topology' ? ' view-toggle-btn--active' : ''}`}
-            onClick={() => setViewMode('topology')}
-            title="拓扑视图"
-          >⬡</button>
-          <button
-            className={`view-toggle-btn${viewMode === 'meridian' ? ' view-toggle-btn--active' : ''}`}
-            onClick={() => setViewMode('meridian')}
-            title="经线对比视图"
-          >⊞</button>
+          <p className="stage-head-sub">环境信号在上游聚合，再并行传输给 5 个市场 Agent。</p>
         </div>
       </div>
 
@@ -195,69 +188,32 @@ export function CanvasStage({
       {/* Zone B — Canvas viewport */}
       <div
         ref={stageRef}
-        className={`stage${isPanning ? ' panning' : ''}`}
-        {...stagePointerHandlers}
+        className="stage stage--parallel"
       >
-        {/* canvas-layer transforms with pan + zoom */}
-        {viewMode === 'topology' ? (
-          <div
-            className="canvas-layer"
-            style={{ transform: `translate(${panX}px, ${panY}px) scale(${zoom})`, transformOrigin: '0 0' }}
-          >
-            <CanvasBackground />
-            <EnvironmentFlowLayer
-              environmentType={flowInspect.environmentType}
-              signalId={flowInspect.signalId}
-              agentIds={flowInspect.agentIds}
-              agentPositions={agentPositions}
-            />
-            <EdgeLayer edges={state.edges} agentPositions={agentPositions} centerPos={CENTER_POS} />
-            <CenterCoreCard sceneParams={sceneParams} onSceneParamsChange={onSceneParamsChange} />
-            {state.agents.map((agent, i) => (
+        <div className="canvas-layer canvas-layer--parallel">
+          <CanvasBackground />
+          <EnvironmentFlowLayer
+            environmentType={flowInspect.environmentType}
+            signalId={flowInspect.signalId}
+            agentIds={flowInspect.agentIds}
+            agentPositions={agentPositions}
+          />
+          <div className="parallel-agent-board">
+            {visibleAgents.map((agent, i) => (
               <AgentNode
                 key={agent.id}
                 agent={agent}
                 position={agentPositions[agent.id]}
-                zoom={zoom}
+                zoom={1}
                 onDragMove={handleAgentDragMove}
                 isRunning={isRunning}
                 nodeIndex={i}
-                isHighlighted={
-                  highlightedAgentIds.size > 0 &&
-                  (highlightedAgentIds.has(agent.id as SandboxAgentId) ||
-                    (agent.parentId != null && highlightedAgentIds.has(agent.parentId as SandboxAgentId)))
-                }
-                isDimmed={
-                  highlightedAgentIds.size > 0 &&
-                  !highlightedAgentIds.has(agent.id as SandboxAgentId) &&
-                  !(agent.parentId != null && highlightedAgentIds.has(agent.parentId as SandboxAgentId))
-                }
+                isHighlighted={highlightedAgentIds.size > 0 && highlightedAgentIds.has(agent.id as SandboxAgentId)}
+                isDimmed={highlightedAgentIds.size > 0 && !highlightedAgentIds.has(agent.id as SandboxAgentId)}
               />
             ))}
-            {error ? <div className="canvas-error">{error}</div> : null}
           </div>
-        ) : (
-          <MeridianGridView
-            agents={state.agents.filter(a => (a.ring ?? 1) === 1)}
-            isRunning={isRunning}
-            sceneParams={sceneParams}
-          />
-        )}
-
-        {/* Corner controls — zoom readout + reset only */}
-        <div className="canvas-corner-controls" data-no-pan>
-          {viewMode === 'topology' && (
-            <>
-              <span className="corner-zoom">{zoomPercent}%</span>
-              <button
-                className="corner-reset"
-                onClick={resetViewport}
-                title="重置视图 (Reset view)"
-              >
-                ⌖
-              </button>
-            </>
-          )}
+          {error ? <div className="canvas-error">{error}</div> : null}
         </div>
       </div>
 

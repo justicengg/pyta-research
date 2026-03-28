@@ -1,5 +1,5 @@
 import type { SandboxAgentId, SandboxEnvironmentType } from '../../lib/types/sandbox'
-import { CARD_HEADER_HEIGHT, CARD_WIDTH } from './AgentNode'
+import { CARD_WIDTH } from './AgentNode'
 
 type Props = {
   environmentType: SandboxEnvironmentType | null
@@ -34,8 +34,8 @@ export function EnvironmentFlowLayer({ environmentType, signalId, agentIds, agen
           const target = agentPositions[agentId]
           if (!target) return null
           const targetX = target.x + CARD_WIDTH / 2
-          const targetY = target.y + CARD_HEADER_HEIGHT / 2
-          const curveMidY = Math.min(targetY - 90, 240)
+          const targetY = target.y + 12
+          const curveMidY = Math.min(targetY - 110, 232)
           const path = `M ${anchor.x} ${anchor.y} C ${anchor.x} ${curveMidY}, ${targetX} ${curveMidY}, ${targetX} ${targetY}`
           return <path key={agentId} className="environment-flow-line" d={path} />
         })}
