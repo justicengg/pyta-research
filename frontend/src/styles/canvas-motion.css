@@ -4,8 +4,10 @@
 }
 
 .canvas-stage .canvas-layer {
-  transform-style: preserve-3d;
-  perspective: 1600px;
+  /* will-change promotes the layer to GPU; preserve-3d + perspective caused
+     every child to be composited separately, which was the main source of lag */
+  will-change: transform;
+  contain: layout style;
 }
 
 .canvas-stage .canvas-background {
@@ -205,12 +207,11 @@
   transition:
     transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
     box-shadow 240ms ease,
-    filter 240ms ease,
     opacity 240ms ease;
+  /* filter removed from transition — animating filter on a container with
+     many children forces GPU recomposition on every frame */
   animation: agent-node-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
   animation-delay: calc(var(--node-index, 0) * 72ms);
-  transform: translate3d(0, 0, 0);
-  filter: saturate(1);
 }
 
 .canvas-stage .agent-cluster .agent {
@@ -233,7 +234,6 @@
 .canvas-stage .agent-cluster:focus-within {
   z-index: 6;
   transform: translate3d(0, -4px, 0);
-  filter: saturate(1.04);
 }
 
 .canvas-stage .agent-cluster:hover .agent::after,
@@ -243,7 +243,7 @@
 }
 
 .canvas-stage .agent-cluster--running {
-  filter: saturate(1.05);
+  /* filter: saturate removed — not worth recomposition cost */
 }
 
 .canvas-stage .agent-cluster--running .agent {
@@ -336,7 +336,10 @@
 }
 
 .canvas-stage .canvas-toolbar--alive {
-  backdrop-filter: blur(16px);
+  /* Reduced blur radius — blur(16px) on an element inside the pan/zoom layer
+     triggers full repaint on every viewport move; 6px is visually sufficient */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .canvas-stage .canvas-toolbar--alive .toolbar-btn:hover,

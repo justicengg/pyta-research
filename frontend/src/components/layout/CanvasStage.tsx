@@ -112,16 +112,21 @@ export function CanvasStage({
     })
   }, [state.agents])
 
-  const agentPositions: Record<string, AgentPos> = {}
-  for (const [index, agent] of visibleAgents.entries()) {
-    const centerIndexOffset = index - RETAIL_CENTER_INDEX
-    const centerX = PARALLEL_CENTER_X + centerIndexOffset * PARALLEL_CENTER_GAP_X
-    const basePosition = {
-      x: centerX - CARD_WIDTH / 2,
-      y: PARALLEL_CENTER_Y - PARALLEL_CARD_HEIGHT / 2,
+  // Memoised so pan/zoom state changes don't produce a new object reference
+  // and don't trigger AgentNode / FlowLayer re-renders when positions are unchanged
+  const agentPositions = useMemo(() => {
+    const positions: Record<string, AgentPos> = {}
+    for (const [index, agent] of visibleAgents.entries()) {
+      const centerIndexOffset = index - RETAIL_CENTER_INDEX
+      const centerX = PARALLEL_CENTER_X + centerIndexOffset * PARALLEL_CENTER_GAP_X
+      const basePosition = {
+        x: centerX - CARD_WIDTH / 2,
+        y: PARALLEL_CENTER_Y - PARALLEL_CARD_HEIGHT / 2,
+      }
+      positions[agent.id] = dragOverrides[agent.id] ?? basePosition
     }
-    agentPositions[agent.id] = dragOverrides[agent.id] ?? basePosition
-  }
+    return positions
+  }, [visibleAgents, dragOverrides])
   const envState = state.environmentState
   const highlightedAgentSet = useMemo(() => new Set(highlightedAgentIds), [highlightedAgentIds])
   const pipelineStage = resolvePipelineStage(envState, isRunning, currentInputEvents.length)

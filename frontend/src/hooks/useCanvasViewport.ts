@@ -37,6 +37,9 @@ export function useCanvasViewport(
   const lastPosRef = useRef({ x: 0, y: 0 })
   const viewportRef = useRef(viewport)
   viewportRef.current = viewport
+  // rAF batching: accumulate pointer-move deltas and flush once per frame
+  const rafRef = useRef<number | null>(null)
+  const pendingPanRef = useRef({ dx: 0, dy: 0 })
 
   // ── Wheel / pinch zoom ──────────────────────────────────────────────
   // Must be an imperative listener (not React synthetic) so we can call
@@ -100,12 +103,29 @@ export function useCanvasViewport(
     const dx = e.clientX - lastPosRef.current.x
     const dy = e.clientY - lastPosRef.current.y
     lastPosRef.current = { x: e.clientX, y: e.clientY }
-    setViewport(prev => ({ ...prev, panX: prev.panX + dx, panY: prev.panY + dy }))
+    // Accumulate delta; commit to state at most once per animation frame
+    // so fast pointer moves don't fire multiple React re-renders per frame
+    pendingPanRef.current.dx += dx
+    pendingPanRef.current.dy += dy
+    if (rafRef.current === null) {
+      rafRef.current = requestAnimationFrame(() => {
+        const { dx: totalDx, dy: totalDy } = pendingPanRef.current
+        pendingPanRef.current = { dx: 0, dy: 0 }
+        rafRef.current = null
+        setViewport(prev => ({ ...prev, panX: prev.panX + totalDx, panY: prev.panY + totalDy }))
+      })
+    }
   }, [])
 
   const handlePointerUp = useCallback(() => {
     isPanningRef.current = false
     setIsPanning(false)
+    // Cancel any pending rAF delta so we don't apply a stale nudge after release
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+      pendingPanRef.current = { dx: 0, dy: 0 }
+    }
   }, [])
 
   // ── Reset ────────────────────────────────────────────────────────────
