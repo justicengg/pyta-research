@@ -17,27 +17,33 @@ export function ResearchCanvasPage() {
   // Primary market hook
   const primary = usePrimaryRun()
 
-  if (marketMode === null) {
-    return (
-      <div className="shell research-canvas-shell">
-        <MarketModeSelector onSelect={setMarketMode} />
-      </div>
-    )
-  }
+  const isPrimary = marketMode === 'primary'
 
-  if (marketMode === 'primary') {
-    return (
-      <div className={`shell research-canvas-shell ${leftCollapsed ? 'left-collapsed' : ''}`}>
-        <InformationPanel
-          collapsed={leftCollapsed}
-          onToggle={() => setLeftCollapsed(v => !v)}
-          state={secondary.canvasState}
-          currentInputEvents={[]}
-          sessionStatus={primary.isRunning ? 'running' : 'initializing'}
-          error={primary.error}
-          defaultSymbol={primary.canvasState.companyName}
-          defaultMarket="primary"
-        />
+  return (
+    <div className={`shell research-canvas-shell ${leftCollapsed ? 'left-collapsed' : ''}`}>
+      {/* Mode selector dialog — shown on top when no mode selected */}
+      {marketMode === null && (
+        <MarketModeSelector onSelect={setMarketMode} />
+      )}
+
+      {/* Left panel */}
+      <InformationPanel
+        collapsed={leftCollapsed}
+        onToggle={() => setLeftCollapsed(v => !v)}
+        state={secondary.canvasState}
+        currentInputEvents={isPrimary ? [] : secondary.currentInputEvents}
+        sessionStatus={
+          isPrimary
+            ? (primary.isRunning ? 'running' : 'initializing')
+            : (secondary.backendState?.sessionStatus ?? (secondary.isRunning ? 'running' : 'initializing'))
+        }
+        error={isPrimary ? primary.error : secondary.error}
+        defaultSymbol={isPrimary ? primary.canvasState.companyName : secondary.sceneParams.ticker}
+        defaultMarket={isPrimary ? 'primary' : secondary.sceneParams.market}
+      />
+
+      {/* Canvas stage */}
+      {isPrimary ? (
         <CanvasStage
           state={secondary.canvasState}
           draft={primary.draft}
@@ -57,38 +63,24 @@ export function ResearchCanvasPage() {
           primaryRoundsCompleted={primary.roundsCompleted}
           primaryStopReason={primary.stopReason}
         />
-      </div>
-    )
-  }
-
-  return (
-    <div className={`shell research-canvas-shell ${leftCollapsed ? 'left-collapsed' : ''}`}>
-      <InformationPanel
-        collapsed={leftCollapsed}
-        onToggle={() => setLeftCollapsed(v => !v)}
-        state={secondary.canvasState}
-        currentInputEvents={secondary.currentInputEvents}
-        sessionStatus={secondary.backendState?.sessionStatus ?? (secondary.isRunning ? 'running' : 'initializing')}
-        error={secondary.error}
-        defaultSymbol={secondary.sceneParams.ticker}
-        defaultMarket={secondary.sceneParams.market}
-      />
-      <CanvasStage
-        state={secondary.canvasState}
-        draft={secondary.draft}
-        onDraftChange={secondary.setDraft}
-        isRunning={secondary.isRunning}
-        error={secondary.error}
-        qualityLabel={secondary.qualityLabel}
-        currentRound={secondary.currentRound}
-        roundHistory={secondary.roundHistory}
-        currentInputEvents={secondary.currentInputEvents}
-        sceneParams={secondary.sceneParams}
-        onSceneParamsChange={secondary.setSceneParams}
-        onSubmit={() => void secondary.submit()}
-        marketMode="secondary"
-        onSwitchMode={() => setMarketMode(null)}
-      />
+      ) : (
+        <CanvasStage
+          state={secondary.canvasState}
+          draft={secondary.draft}
+          onDraftChange={secondary.setDraft}
+          isRunning={secondary.isRunning}
+          error={secondary.error}
+          qualityLabel={secondary.qualityLabel}
+          currentRound={secondary.currentRound}
+          roundHistory={secondary.roundHistory}
+          currentInputEvents={secondary.currentInputEvents}
+          sceneParams={secondary.sceneParams}
+          onSceneParamsChange={secondary.setSceneParams}
+          onSubmit={() => void secondary.submit()}
+          marketMode="secondary"
+          onSwitchMode={() => setMarketMode(null)}
+        />
+      )}
     </div>
   )
 }
