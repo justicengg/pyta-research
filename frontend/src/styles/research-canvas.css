@@ -16,6 +16,10 @@
   --left-rail: 28px;
 }
 
+.shell.research-canvas-shell--no-left-panel {
+  grid-template-columns: 1fr;
+}
+
 /* ── Market Mode Selector ────────────────────────────────────────── */
 
 .mode-selector {
