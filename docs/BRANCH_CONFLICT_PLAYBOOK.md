@@ -173,10 +173,54 @@ git push
 
 ---
 
+## 常见冲突场景与对应规则
+
+### 场景一：main 有新提交，分支未同步（最常见）
+
+**现象**：GitHub 显示 "This branch has conflicts that must be resolved"
+
+**原因**：main 在分支创建后有了新 commit，两边改了同一文件。
+
+**规则**：推送前先跑冲突预检（见上方），发现 Y > 0 就先 merge。
+
+---
+
+### 场景二：PR 合入 main 后，分支继续使用 ⚠️
+
+**现象**：PR 合并后继续在原分支提交，GitHub 再次显示冲突。
+
+**根本原因**：PR merge 会在 main 上产生一个新的 merge commit M，而原分支不包含 M。分支继续提交后，两边出现分叉——原分支有 M 之后的新 commit，main 有 M，互相不认识。
+
+**2026-03-29 实际发生**：`feat/primary-market-mvp` 通过 PR #81 合入 main 后，我们继续在该分支追加了 11 个 commit（CSS 修复、PrimaryCommandConsole、README、AGENTS.md 等），导致分支与 main 分叉，GitHub 报冲突。
+
+**规则**：
+
+> **PR 合并后，立即在本地执行 `git merge origin/main`，再继续提交。**
+
+```bash
+# PR 合入 main 后，第一件事：
+git fetch origin main
+git merge origin/main
+# 如有冲突，以我们更新的版本为准（git checkout --ours <file>）
+cd frontend && npm run build
+git push
+```
+
+如果后续工作量大，更好的做法是**从 main 新开一个分支**，不要继续用已合入的旧分支：
+
+```bash
+git checkout main
+git pull origin main
+git checkout -b feat/next-feature
+```
+
+---
+
 ## 历史冲突记录
 
 | 时间 | 分支 | 冲突文件 | 原因 | 解法 |
 |------|------|----------|------|------|
 | 2025-03 | feat/secondary | `CanvasStage.tsx`, `sources.py` | main 前进，分支未同步 | 本地 merge origin/main 后重推 |
+| 2026-03-29 | feat/primary-market-mvp | `CanvasStage.tsx`, `PrimaryCanvasLayout.tsx`, `ResearchCanvasPage.tsx`, `research-canvas.css`, `README.md` | PR #81 合入 main 后继续在原分支提交，产生分叉 | `git merge origin/main`，全部 `--ours`，build 通过后重推 |
 
 > 每次发生冲突后，在上表补充一行，便于后续追溯。

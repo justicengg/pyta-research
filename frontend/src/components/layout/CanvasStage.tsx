@@ -23,6 +23,7 @@ import { PrimaryCanvasLayout } from '../canvas/primary/PrimaryCanvasLayout'
 import { mockPrimaryCanvasState } from '../../lib/mock/primaryCanvasState'
 import { EnvironmentBar } from '../environment/EnvironmentBar'
 import { CommandConsole } from './CommandConsole'
+import { PrimaryCommandConsole } from './PrimaryCommandConsole'
 import { PromptMascot } from './PromptMascot'
 import {
   ORB_PROFILES,
@@ -51,6 +52,8 @@ type Props = {
   marketMode: MarketMode
   onSwitchMode: () => void
   primaryCanvasState?: PrimaryCanvasState
+  primaryRoundsCompleted?: number
+  primaryStopReason?: string | null
 }
 
 const PARALLEL_CENTER_X = 800
@@ -79,6 +82,8 @@ export function CanvasStage({
   marketMode,
   onSwitchMode,
   primaryCanvasState,
+  primaryRoundsCompleted = 0,
+  primaryStopReason = null,
 }: Props) {
   const stageRef = useRef<HTMLDivElement>(null)
   const { panX, panY, zoom, zoomPercent, isPanning, stagePointerHandlers, resetViewport } =
@@ -224,13 +229,15 @@ export function CanvasStage({
         </div>
       </div>
 
-      {/* Environment Band — Layer 1→2 中间层 */}
-      <EnvironmentBar
-        state={envState}
-        pipelineStage={pipelineStage}
-        isRunning={isRunning}
-        onAnchorLayoutChange={setEnvironmentAnchorViewportMap}
-      />
+      {/* Environment Band — Layer 1→2 中间层（secondary only） */}
+      {marketMode === 'secondary' && (
+        <EnvironmentBar
+          state={envState}
+          pipelineStage={pipelineStage}
+          isRunning={isRunning}
+          onAnchorLayoutChange={setEnvironmentAnchorViewportMap}
+        />
+      )}
 
       {/* Zone B — Canvas viewport */}
       <div
@@ -246,18 +253,22 @@ export function CanvasStage({
           {marketMode === 'primary' ? (
             <PrimaryCanvasLayout state={primaryCanvasState ?? mockPrimaryCanvasState} />
           ) : null}
-          <EnvironmentFlowLayer
-            isActive={isRunning}
-            agentOrder={visibleAgents.map((agent) => agent.id as SandboxAgentId)}
-            agentPositions={agentPositions}
-            anchors={environmentAnchors}
-          />
-          <InteractionFlowLayer
-            isActive={isRunning && state.interactionResolution != null}
-            agentOrder={visibleAgents.map((agent) => agent.id as SandboxAgentId)}
-            agentPositions={agentPositions}
-            panelPosition={interactionPanelPosition}
-          />
+          {marketMode === 'secondary' && (
+            <>
+              <EnvironmentFlowLayer
+                isActive={isRunning}
+                agentOrder={visibleAgents.map((agent) => agent.id as SandboxAgentId)}
+                agentPositions={agentPositions}
+                anchors={environmentAnchors}
+              />
+              <InteractionFlowLayer
+                isActive={isRunning && state.interactionResolution != null}
+                agentOrder={visibleAgents.map((agent) => agent.id as SandboxAgentId)}
+                agentPositions={agentPositions}
+                panelPosition={interactionPanelPosition}
+              />
+            </>
+          )}
           {marketMode === 'secondary' && (
             <>
               <div className="parallel-agent-board">
@@ -303,25 +314,46 @@ export function CanvasStage({
       </div>
 
       {/* Zone C — Command console */}
-      <CommandConsole
-        draft={draft}
-        onDraftChange={onDraftChange}
-        onSubmit={onSubmit}
-        isRunning={isRunning}
-        error={error}
-        currentRound={currentRound}
-        roundHistory={roundHistory}
-        currentInputEvents={currentInputEvents}
-        promptMascot={showPromptMascot ? (
-          <PromptMascot
-            visible={!isOrbExiting}
-            message={promptMessage}
-            variant={orbVariant}
-            mode={orbMode}
-            trigger={promptTrigger}
-          />
-        ) : undefined}
-      />
+      {marketMode === 'primary' ? (
+        <PrimaryCommandConsole
+          draft={draft}
+          onDraftChange={onDraftChange}
+          onSubmit={onSubmit}
+          isRunning={isRunning}
+          error={error}
+          roundsCompleted={primaryRoundsCompleted}
+          stopReason={primaryStopReason}
+          promptMascot={showPromptMascot ? (
+            <PromptMascot
+              visible={!isOrbExiting}
+              message={promptMessage}
+              variant={orbVariant}
+              mode={orbMode}
+              trigger={promptTrigger}
+            />
+          ) : undefined}
+        />
+      ) : (
+        <CommandConsole
+          draft={draft}
+          onDraftChange={onDraftChange}
+          onSubmit={onSubmit}
+          isRunning={isRunning}
+          error={error}
+          currentRound={currentRound}
+          roundHistory={roundHistory}
+          currentInputEvents={currentInputEvents}
+          promptMascot={showPromptMascot ? (
+            <PromptMascot
+              visible={!isOrbExiting}
+              message={promptMessage}
+              variant={orbVariant}
+              mode={orbMode}
+              trigger={promptTrigger}
+            />
+          ) : undefined}
+        />
+      )}
     </section>
   )
 }
