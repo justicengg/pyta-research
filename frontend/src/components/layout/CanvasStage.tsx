@@ -17,6 +17,8 @@ import {
   InteractionSummaryPanel,
   INTERACTION_PANEL_WIDTH,
 } from '../canvas/InteractionSummaryPanel'
+import { PrimaryCanvasLayout } from '../canvas/primary/PrimaryCanvasLayout'
+import { mockPrimaryCanvasState } from '../../lib/mock/primaryCanvasState'
 import { EnvironmentBar } from '../environment/EnvironmentBar'
 import { CommandConsole } from './CommandConsole'
 import { PromptMascot } from './PromptMascot'
@@ -237,6 +239,9 @@ export function CanvasStage({
           style={{ transform: `translate(${panX}px, ${panY}px) scale(${zoom})`, transformOrigin: '0 0' }}
         >
           <CanvasBackground />
+          {marketMode === 'primary' ? (
+            <PrimaryCanvasLayout state={mockPrimaryCanvasState} />
+          ) : null}
           <EnvironmentFlowLayer
             isActive={isRunning}
             agentOrder={visibleAgents.map((agent) => agent.id as SandboxAgentId)}
@@ -249,31 +254,35 @@ export function CanvasStage({
             agentPositions={agentPositions}
             panelPosition={interactionPanelPosition}
           />
-          <div className="parallel-agent-board">
-            {visibleAgents.map((agent, i) => (
-              <AgentNode
-                key={agent.id}
-                agent={agent}
-                position={agentPositions[agent.id]}
-                zoom={1}
-                onDragMove={handleAgentDragMove}
-                isRunning={isRunning}
-                nodeIndex={i}
-                isHighlighted={highlightedAgentSet.has(agent.id as SandboxAgentId)}
-                isDimmed={highlightedAgentSet.size > 0 && !highlightedAgentSet.has(agent.id as SandboxAgentId)}
+          {marketMode === 'secondary' && (
+            <>
+              <div className="parallel-agent-board">
+                {visibleAgents.map((agent, i) => (
+                  <AgentNode
+                    key={agent.id}
+                    agent={agent}
+                    position={agentPositions[agent.id]}
+                    zoom={1}
+                    onDragMove={handleAgentDragMove}
+                    isRunning={isRunning}
+                    nodeIndex={i}
+                    isHighlighted={highlightedAgentSet.has(agent.id as SandboxAgentId)}
+                    isDimmed={highlightedAgentSet.size > 0 && !highlightedAgentSet.has(agent.id as SandboxAgentId)}
+                  />
+                ))}
+              </div>
+                  <InteractionSummaryPanel
+                resolution={state.interactionResolution}
+                position={interactionPanelPosition}
+                zoom={zoom}
+                onDragMove={(dx, dy) =>
+                  setInteractionPanelPosition((current) => ({ x: current.x + dx, y: current.y + dy }))
+                }
+                onHighlightAgents={setHighlightedAgentIds}
+                onClearHighlight={() => setHighlightedAgentIds([])}
               />
-            ))}
-          </div>
-          <InteractionSummaryPanel
-            resolution={state.interactionResolution}
-            position={interactionPanelPosition}
-            zoom={zoom}
-            onDragMove={(dx, dy) =>
-              setInteractionPanelPosition((current) => ({ x: current.x + dx, y: current.y + dy }))
-            }
-            onHighlightAgents={setHighlightedAgentIds}
-            onClearHighlight={() => setHighlightedAgentIds([])}
-          />
+            </>
+          )}
           {error ? <div className="canvas-error">{error}</div> : null}
         </div>
 
