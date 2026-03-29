@@ -88,6 +88,14 @@ poetry run uvicorn src.api.app:app --reload --port 8000
 
 访问 `http://localhost:8000/health` 确认启动。
 
+> ⚠️ **首次启动前必须建表**（生产部署需接入 Alembic migration，当前 MVP 直接建表）：
+> ```python
+> from src.db.base import Base
+> from src.db import models
+> from src.db.session import engine
+> Base.metadata.create_all(engine)
+> ```
+
 ### 2. Frontend
 
 ```bash
