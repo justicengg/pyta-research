@@ -27,7 +27,17 @@ export function ResearchCanvasPage() {
 
   if (marketMode === 'primary') {
     return (
-      <div className="shell research-canvas-shell research-canvas-shell--no-left-panel">
+      <div className={`shell research-canvas-shell ${leftCollapsed ? 'left-collapsed' : ''}`}>
+        <InformationPanel
+          collapsed={leftCollapsed}
+          onToggle={() => setLeftCollapsed(v => !v)}
+          state={secondary.canvasState}
+          currentInputEvents={[]}
+          sessionStatus={primary.isRunning ? 'running' : 'initializing'}
+          error={primary.error}
+          defaultSymbol={primary.canvasState.companyName}
+          defaultMarket="primary"
+        />
         <CanvasStage
           state={secondary.canvasState}
           draft={primary.draft}
