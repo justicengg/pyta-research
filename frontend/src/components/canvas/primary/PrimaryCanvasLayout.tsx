@@ -14,7 +14,7 @@ type Pos = { x: number; y: number }
 const CARD_WIDTH = 320
 const CARD_GAP   = 40
 const ROW_START_X = 92
-const ROW_Y       = 280
+const ROW_Y       = 60
 
 const DEFAULT_POSITIONS: Record<string, Pos> = {
   uncertainty: { x: ROW_START_X,                                        y: ROW_Y },

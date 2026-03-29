@@ -224,13 +224,15 @@ export function CanvasStage({
         </div>
       </div>
 
-      {/* Environment Band — Layer 1→2 中间层 */}
-      <EnvironmentBar
-        state={envState}
-        pipelineStage={pipelineStage}
-        isRunning={isRunning}
-        onAnchorLayoutChange={setEnvironmentAnchorViewportMap}
-      />
+      {/* Environment Band — Layer 1→2 中间层（secondary only） */}
+      {marketMode === 'secondary' && (
+        <EnvironmentBar
+          state={envState}
+          pipelineStage={pipelineStage}
+          isRunning={isRunning}
+          onAnchorLayoutChange={setEnvironmentAnchorViewportMap}
+        />
+      )}
 
       {/* Zone B — Canvas viewport */}
       <div
@@ -246,18 +248,22 @@ export function CanvasStage({
           {marketMode === 'primary' ? (
             <PrimaryCanvasLayout state={primaryCanvasState ?? mockPrimaryCanvasState} />
           ) : null}
-          <EnvironmentFlowLayer
-            isActive={isRunning}
-            agentOrder={visibleAgents.map((agent) => agent.id as SandboxAgentId)}
-            agentPositions={agentPositions}
-            anchors={environmentAnchors}
-          />
-          <InteractionFlowLayer
-            isActive={isRunning && state.interactionResolution != null}
-            agentOrder={visibleAgents.map((agent) => agent.id as SandboxAgentId)}
-            agentPositions={agentPositions}
-            panelPosition={interactionPanelPosition}
-          />
+          {marketMode === 'secondary' && (
+            <>
+              <EnvironmentFlowLayer
+                isActive={isRunning}
+                agentOrder={visibleAgents.map((agent) => agent.id as SandboxAgentId)}
+                agentPositions={agentPositions}
+                anchors={environmentAnchors}
+              />
+              <InteractionFlowLayer
+                isActive={isRunning && state.interactionResolution != null}
+                agentOrder={visibleAgents.map((agent) => agent.id as SandboxAgentId)}
+                agentPositions={agentPositions}
+                panelPosition={interactionPanelPosition}
+              />
+            </>
+          )}
           {marketMode === 'secondary' && (
             <>
               <div className="parallel-agent-board">
