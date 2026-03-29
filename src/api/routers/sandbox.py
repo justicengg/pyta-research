@@ -38,6 +38,9 @@ class SandboxRunRequest(BaseModel):
 
 
 def _serialize_report_record(record: ReportRecord) -> dict[str, Any]:
+    interaction_resolution = None
+    if isinstance(record.assembly_notes, dict):
+        interaction_resolution = record.assembly_notes.get("interaction_resolution")
     action_detail = {
         agent_id: details["action_snapshot"]
         for agent_id, details in record.assembly_notes.items()
@@ -55,6 +58,7 @@ def _serialize_report_record(record: ReportRecord) -> dict[str, Any]:
         "tracking_signals": record.tracking_signals,
         "per_agent_detail": record.per_agent_detail,
         "action_detail": action_detail,
+        "interaction_resolution": interaction_resolution,
         "assembly_notes": record.assembly_notes,
         "generated_at": record.generated_at.isoformat(),
     }

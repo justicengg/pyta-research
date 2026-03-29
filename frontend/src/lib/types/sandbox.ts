@@ -191,6 +191,7 @@ export type BackendRoundComplete = {
   stop_reason: string
   per_agent_status: BackendPerAgentStatus[]
   divergence_map: BackendDivergenceItem[]
+  interaction_resolution?: BackendInteractionResolution | null
   data_quality: 'complete' | 'partial' | 'degraded'
 }
 
@@ -220,6 +221,42 @@ export type BackendAgentActionSnapshot = {
   horizon: SandboxTimeHorizon
 }
 
+export type BackendInteractionEdge = {
+  source_agent: SandboxAgentId
+  target_agent: SandboxAgentId
+  relation_type: 'reinforce' | 'conflict' | 'lead_follow' | 'offset'
+  strength: number
+  description: string
+}
+
+export type BackendConflictItem = {
+  between: SandboxAgentId[]
+  strength: number
+  description: string
+}
+
+export type BackendReinforcementItem = {
+  between: SandboxAgentId[]
+  strength: number
+  description: string
+}
+
+export type BackendMarketForceSummary = {
+  regime: 'expansion' | 'contraction' | 'fragmented' | 'balanced'
+  net_bias: 'bullish' | 'bearish' | 'mixed' | 'neutral'
+  dominant_agents: SandboxAgentId[]
+  bullish_pressure: number
+  bearish_pressure: number
+  summary: string
+}
+
+export type BackendInteractionResolution = {
+  interaction_edges: BackendInteractionEdge[]
+  conflict_map: BackendConflictItem[]
+  reinforcement_map: BackendReinforcementItem[]
+  market_force_summary: BackendMarketForceSummary
+}
+
 export type BackendMarketReadingReport = {
   sandbox_id: string
   ticker: string
@@ -230,6 +267,7 @@ export type BackendMarketReadingReport = {
   data_quality: 'complete' | 'partial' | 'degraded'
   perspective_detail?: Record<string, BackendAgentPerspective> | null
   action_detail?: Record<string, BackendAgentActionSnapshot> | null
+  interaction_resolution?: BackendInteractionResolution | null
 }
 
 export type BackendReportRecord = {
@@ -244,6 +282,7 @@ export type BackendReportRecord = {
   tracking_signals: string[]
   per_agent_detail: Record<string, BackendAgentPerspective>
   action_detail?: Record<string, BackendAgentActionSnapshot>
+  interaction_resolution?: BackendInteractionResolution | null
   assembly_notes: Record<string, unknown>
   generated_at: string
 }
@@ -307,6 +346,36 @@ export type CanvasTension = {
   description: string
 }
 
+export type CanvasInteractionEdge = {
+  sourceAgent: SandboxAgentId
+  targetAgent: SandboxAgentId
+  relationType: 'reinforce' | 'conflict' | 'lead_follow' | 'offset'
+  strength: number
+  description: string
+}
+
+export type CanvasInteractionPair = {
+  between: SandboxAgentId[]
+  strength: number
+  description: string
+}
+
+export type CanvasMarketForceSummary = {
+  regime: 'expansion' | 'contraction' | 'fragmented' | 'balanced'
+  netBias: 'bullish' | 'bearish' | 'mixed' | 'neutral'
+  dominantAgents: SandboxAgentId[]
+  bullishPressure: number
+  bearishPressure: number
+  summary: string
+}
+
+export type CanvasInteractionResolution = {
+  edges: CanvasInteractionEdge[]
+  conflicts: CanvasInteractionPair[]
+  reinforcements: CanvasInteractionPair[]
+  marketForceSummary: CanvasMarketForceSummary
+}
+
 export type CanvasRunState = {
   sandboxId: string
   ticker: string
@@ -319,6 +388,7 @@ export type CanvasRunState = {
   agents: CanvasAgentCard[]
   synthesis: Record<SandboxAgentId, string>
   tensions: CanvasTension[]
+  interactionResolution: CanvasInteractionResolution | null
   trackingSignals: string[]
   inputEvents: CanvasInputEvent[]
   latestCheckpoint: BackendCheckpoint | null

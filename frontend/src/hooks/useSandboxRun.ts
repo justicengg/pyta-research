@@ -267,6 +267,7 @@ function mergeCanvasState(
   return {
     quality: runState.quality,
     environmentState: runState.environmentState,
+    interactionResolution: runState.interactionResolution,
     commandDraft: mockCanvasState.commandDraft,
     leftPanel: {
       ...mockCanvasState.leftPanel,

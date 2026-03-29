@@ -3,6 +3,58 @@ import type { CanvasAgentCard, SandboxAgentId } from '../types/sandbox'
 
 export const mockCanvasState: CanvasState = {
   quality: 'complete',
+  interactionResolution: {
+    edges: [
+      {
+        sourceAgent: 'traditional_institution',
+        targetAgent: 'offshore_capital',
+        relationType: 'reinforce',
+        strength: 0.74,
+        description: '传统机构与海外资金都在增配，形成中期同向强化。',
+      },
+      {
+        sourceAgent: 'retail',
+        targetAgent: 'short_term_capital',
+        relationType: 'reinforce',
+        strength: 0.82,
+        description: '散户与游资同时追逐题材，放大短线扩散。',
+      },
+      {
+        sourceAgent: 'quant_institution',
+        targetAgent: 'traditional_institution',
+        relationType: 'offset',
+        strength: 0.46,
+        description: '量化机构的对冲动作正在削弱配置型资金的扩张节奏。',
+      },
+    ],
+    conflicts: [
+      {
+        between: ['quant_institution', 'retail'],
+        strength: 0.61,
+        description: '量化对冲与散户追逐之间形成明显冲突。',
+      },
+    ],
+    reinforcements: [
+      {
+        between: ['traditional_institution', 'offshore_capital'],
+        strength: 0.74,
+        description: '配置型资金与海外资金正在形成中期同向强化。',
+      },
+      {
+        between: ['retail', 'short_term_capital'],
+        strength: 0.82,
+        description: '情绪资金与短线资金共同强化题材热度。',
+      },
+    ],
+    marketForceSummary: {
+      regime: 'fragmented',
+      netBias: 'mixed',
+      dominantAgents: ['retail', 'short_term_capital'],
+      bullishPressure: 1.84,
+      bearishPressure: 0.92,
+      summary: 'market regime=fragmented; net_bias=mixed; dominant_agents=retail、short_term_capital',
+    },
+  },
   environmentState: {
     sandboxId: null,
     symbol: '0700.HK',

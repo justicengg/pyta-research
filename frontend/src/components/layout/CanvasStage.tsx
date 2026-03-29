@@ -12,6 +12,11 @@ import '../../styles/canvas-motion.css'
 import { AgentNode, CARD_WIDTH } from '../canvas/AgentNode'
 import { CanvasBackground } from '../canvas/CanvasBackground'
 import { EnvironmentFlowLayer } from '../canvas/EnvironmentFlowLayer'
+import { InteractionFlowLayer } from '../canvas/InteractionFlowLayer'
+import {
+  InteractionSummaryPanel,
+  INTERACTION_PANEL_WIDTH,
+} from '../canvas/InteractionSummaryPanel'
 import { EnvironmentBar } from '../environment/EnvironmentBar'
 import { CommandConsole } from './CommandConsole'
 import { PromptMascot } from './PromptMascot'
@@ -42,10 +47,14 @@ type Props = {
 }
 
 const PARALLEL_CENTER_X = 800
-const PARALLEL_CENTER_Y = 516
+const PARALLEL_CENTER_Y = 410
 const PARALLEL_CENTER_GAP_X = 304
 const PARALLEL_CARD_HEIGHT = 288
 const RETAIL_CENTER_INDEX = 2
+const INTERACTION_PANEL_DEFAULT_POSITION = {
+  x: PARALLEL_CENTER_X - INTERACTION_PANEL_WIDTH / 2,
+  y: PARALLEL_CENTER_Y + PARALLEL_CARD_HEIGHT / 2 + 30,
+}
 
 export function CanvasStage({
   state,
@@ -73,6 +82,8 @@ export function CanvasStage({
   const hasShownFirstCompleteRef = useRef(false)
   const wasRunningRef = useRef(isRunning)
   const [environmentAnchorViewportMap, setEnvironmentAnchorViewportMap] = useState<EnvironmentAnchorMap>({})
+  const [highlightedAgentIds, setHighlightedAgentIds] = useState<SandboxAgentId[]>([])
+  const [interactionPanelPosition, setInteractionPanelPosition] = useState(INTERACTION_PANEL_DEFAULT_POSITION)
 
   // Drag overrides — user drag moves nodes away from computed positions
   const [dragOverrides, setDragOverrides] = useState<Record<string, AgentPos>>({})
@@ -97,6 +108,7 @@ export function CanvasStage({
     agentPositions[agent.id] = dragOverrides[agent.id] ?? basePosition
   }
   const envState = state.environmentState
+  const highlightedAgentSet = useMemo(() => new Set(highlightedAgentIds), [highlightedAgentIds])
   const pipelineStage = resolvePipelineStage(envState, isRunning, currentInputEvents.length)
   const environmentAnchors = useMemo(() => {
     const stageElement = stageRef.current
@@ -220,6 +232,12 @@ export function CanvasStage({
             agentPositions={agentPositions}
             anchors={environmentAnchors}
           />
+          <InteractionFlowLayer
+            isActive={isRunning && state.interactionResolution != null}
+            agentOrder={visibleAgents.map((agent) => agent.id as SandboxAgentId)}
+            agentPositions={agentPositions}
+            panelPosition={interactionPanelPosition}
+          />
           <div className="parallel-agent-board">
             {visibleAgents.map((agent, i) => (
               <AgentNode
@@ -230,9 +248,21 @@ export function CanvasStage({
                 onDragMove={handleAgentDragMove}
                 isRunning={isRunning}
                 nodeIndex={i}
+                isHighlighted={highlightedAgentSet.has(agent.id as SandboxAgentId)}
+                isDimmed={highlightedAgentSet.size > 0 && !highlightedAgentSet.has(agent.id as SandboxAgentId)}
               />
             ))}
           </div>
+          <InteractionSummaryPanel
+            resolution={state.interactionResolution}
+            position={interactionPanelPosition}
+            zoom={zoom}
+            onDragMove={(dx, dy) =>
+              setInteractionPanelPosition((current) => ({ x: current.x + dx, y: current.y + dy }))
+            }
+            onHighlightAgents={setHighlightedAgentIds}
+            onClearHighlight={() => setHighlightedAgentIds([])}
+          />
           {error ? <div className="canvas-error">{error}</div> : null}
         </div>
 
