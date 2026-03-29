@@ -8,7 +8,7 @@
   overflow: hidden;
   background:
     radial-gradient(circle at 16% 0%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 28%),
-    radial-gradient(circle at 82% 4%, color-mix(in srgb, var(--lime) 5%, transparent), transparent 24%),
+    radial-gradient(circle at 82% 4%, color-mix(in srgb, var(--blue) 5%, transparent), transparent 24%),
     var(--canvas-bg);
 }
 
@@ -107,8 +107,8 @@
   color: var(--text-3);
 }
 
-.mode-card--secondary .mode-card__badge { color: var(--lime); }
-.mode-card--primary   .mode-card__badge { color: var(--accent); }
+.mode-card--secondary .mode-card__badge { color: var(--blue); }
+.mode-card--primary   .mode-card__badge { color: var(--blue); }
 
 .mode-card__title {
   font-size: var(--fs-lg);
@@ -149,8 +149,8 @@
   color: var(--border);
 }
 
-.mode-card--secondary .mode-card__dims li::before { color: var(--lime); }
-.mode-card--primary   .mode-card__dims li::before { color: var(--accent); }
+.mode-card--secondary .mode-card__dims li::before { color: var(--blue); }
+.mode-card--primary   .mode-card__dims li::before { color: var(--blue); }
 
 .mode-card__cta {
   margin-top: auto;
@@ -161,8 +161,8 @@
   transition: color 120ms ease;
 }
 
-.mode-card--secondary:hover .mode-card__cta { color: var(--lime); }
-.mode-card--primary:hover   .mode-card__cta { color: var(--accent); }
+.mode-card--secondary:hover .mode-card__cta { color: var(--blue); }
+.mode-card--primary:hover   .mode-card__cta { color: var(--blue); }
 
 /* ── Stage head mode switch button ─────────────────────────────── */
 

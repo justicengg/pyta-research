@@ -19,7 +19,6 @@ export function MarketModeSelector({ onSelect }: Props) {
             className="mode-card mode-card--secondary"
             onClick={() => onSelect('secondary')}
           >
-            <div className="mode-card__badge">Secondary Market</div>
             <h2 className="mode-card__title">二级市场研究</h2>
             <p className="mode-card__desc">
               多参与者并行视角 · 快速市场解读
@@ -37,7 +36,6 @@ export function MarketModeSelector({ onSelect }: Props) {
             className="mode-card mode-card--primary"
             onClick={() => onSelect('primary')}
           >
-            <div className="mode-card__badge">Primary Market</div>
             <h2 className="mode-card__title">一级市场研究</h2>
             <p className="mode-card__desc">
               深推演模式 · 多轮收敛 · 路径分叉
