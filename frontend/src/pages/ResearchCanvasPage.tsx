@@ -44,6 +44,8 @@ export function ResearchCanvasPage() {
           marketMode="primary"
           onSwitchMode={() => setMarketMode(null)}
           primaryCanvasState={primary.canvasState}
+          primaryRoundsCompleted={primary.roundsCompleted}
+          primaryStopReason={primary.stopReason}
         />
       </div>
     )
