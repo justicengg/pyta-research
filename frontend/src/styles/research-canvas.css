@@ -92,11 +92,11 @@
 }
 
 .mode-card--secondary:hover {
-  border-color: var(--lime);
+  border-color: var(--blue);
 }
 
 .mode-card--primary:hover {
-  border-color: var(--accent);
+  border-color: var(--blue);
 }
 
 .mode-card__badge {
