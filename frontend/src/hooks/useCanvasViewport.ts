@@ -26,9 +26,10 @@ const MIN_ZOOM = 0.3
 const MAX_ZOOM = 2.5
 
 export function useCanvasViewport(
-  stageRef: React.RefObject<HTMLDivElement | null>
+  stageRef: React.RefObject<HTMLDivElement | null>,
+  initialZoom = 1,
 ): UseCanvasViewportReturn {
-  const [viewport, setViewport] = useState<Viewport>({ panX: 0, panY: 0, zoom: 1 })
+  const [viewport, setViewport] = useState<Viewport>({ panX: 0, panY: 0, zoom: initialZoom })
   const [isPanning, setIsPanning] = useState(false)
 
   // Refs so event handlers always read current values without re-subscribing
@@ -109,8 +110,8 @@ export function useCanvasViewport(
 
   // ── Reset ────────────────────────────────────────────────────────────
   const resetViewport = useCallback(() => {
-    setViewport({ panX: 0, panY: 0, zoom: 1 })
-  }, [])
+    setViewport({ panX: 0, panY: 0, zoom: initialZoom })
+  }, [initialZoom])
 
   return {
     panX: viewport.panX,

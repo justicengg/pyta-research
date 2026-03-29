@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { CanvasState, RoundRecord, SceneParams } from '../../lib/types/canvas'
+import type { CanvasState, MarketMode, RoundRecord, SceneParams } from '../../lib/types/canvas'
+import type { PrimaryCanvasState } from '../../lib/types/primaryCanvas'
+
 import type {
   SandboxAgentId,
   SandboxEnvironmentType,
@@ -17,6 +19,8 @@ import {
   InteractionSummaryPanel,
   INTERACTION_PANEL_WIDTH,
 } from '../canvas/InteractionSummaryPanel'
+import { PrimaryCanvasLayout } from '../canvas/primary/PrimaryCanvasLayout'
+import { mockPrimaryCanvasState } from '../../lib/mock/primaryCanvasState'
 import { EnvironmentBar } from '../environment/EnvironmentBar'
 import { CommandConsole } from './CommandConsole'
 import { PromptMascot } from './PromptMascot'
@@ -44,6 +48,9 @@ type Props = {
   sceneParams: SceneParams
   onSceneParamsChange: (p: SceneParams) => void
   onSubmit: () => void
+  marketMode: MarketMode
+  onSwitchMode: () => void
+  primaryCanvasState?: PrimaryCanvasState
 }
 
 const PARALLEL_CENTER_X = 800
@@ -69,10 +76,13 @@ export function CanvasStage({
   sceneParams: _sceneParams,
   onSceneParamsChange: _onSceneParamsChange,
   onSubmit,
+  marketMode,
+  onSwitchMode,
+  primaryCanvasState,
 }: Props) {
   const stageRef = useRef<HTMLDivElement>(null)
   const { panX, panY, zoom, zoomPercent, isPanning, stagePointerHandlers, resetViewport } =
-    useCanvasViewport(stageRef)
+    useCanvasViewport(stageRef, marketMode === 'primary' ? 0.72 : 1)
   const [showPromptMascot, setShowPromptMascot] = useState(false)
   const [isOrbExiting, setIsOrbExiting] = useState(false)
   const [promptMessage, setPromptMessage] = useState('说吧，今天研究什么')
@@ -203,7 +213,14 @@ export function CanvasStage({
       {/* Zone A — Context bar */}
       <div className="stage-head">
         <div className="stage-head-left">
-          <h2>多 Agent 沙盘推演</h2>
+          <h2>
+            {marketMode === 'primary' ? '一级市场深推演' : '二级市场并行沙盘'}
+          </h2>
+        </div>
+        <div className="stage-head-right">
+          <button className="stage-mode-switch" onClick={onSwitchMode} title="切换分析模式">
+            切换模式
+          </button>
         </div>
       </div>
 
@@ -226,6 +243,9 @@ export function CanvasStage({
           style={{ transform: `translate(${panX}px, ${panY}px) scale(${zoom})`, transformOrigin: '0 0' }}
         >
           <CanvasBackground />
+          {marketMode === 'primary' ? (
+            <PrimaryCanvasLayout state={primaryCanvasState ?? mockPrimaryCanvasState} />
+          ) : null}
           <EnvironmentFlowLayer
             isActive={isRunning}
             agentOrder={visibleAgents.map((agent) => agent.id as SandboxAgentId)}
@@ -238,31 +258,35 @@ export function CanvasStage({
             agentPositions={agentPositions}
             panelPosition={interactionPanelPosition}
           />
-          <div className="parallel-agent-board">
-            {visibleAgents.map((agent, i) => (
-              <AgentNode
-                key={agent.id}
-                agent={agent}
-                position={agentPositions[agent.id]}
-                zoom={1}
-                onDragMove={handleAgentDragMove}
-                isRunning={isRunning}
-                nodeIndex={i}
-                isHighlighted={highlightedAgentSet.has(agent.id as SandboxAgentId)}
-                isDimmed={highlightedAgentSet.size > 0 && !highlightedAgentSet.has(agent.id as SandboxAgentId)}
+          {marketMode === 'secondary' && (
+            <>
+              <div className="parallel-agent-board">
+                {visibleAgents.map((agent, i) => (
+                  <AgentNode
+                    key={agent.id}
+                    agent={agent}
+                    position={agentPositions[agent.id]}
+                    zoom={1}
+                    onDragMove={handleAgentDragMove}
+                    isRunning={isRunning}
+                    nodeIndex={i}
+                    isHighlighted={highlightedAgentSet.has(agent.id as SandboxAgentId)}
+                    isDimmed={highlightedAgentSet.size > 0 && !highlightedAgentSet.has(agent.id as SandboxAgentId)}
+                  />
+                ))}
+              </div>
+                  <InteractionSummaryPanel
+                resolution={state.interactionResolution}
+                position={interactionPanelPosition}
+                zoom={zoom}
+                onDragMove={(dx, dy) =>
+                  setInteractionPanelPosition((current) => ({ x: current.x + dx, y: current.y + dy }))
+                }
+                onHighlightAgents={setHighlightedAgentIds}
+                onClearHighlight={() => setHighlightedAgentIds([])}
               />
-            ))}
-          </div>
-          <InteractionSummaryPanel
-            resolution={state.interactionResolution}
-            position={interactionPanelPosition}
-            zoom={zoom}
-            onDragMove={(dx, dy) =>
-              setInteractionPanelPosition((current) => ({ x: current.x + dx, y: current.y + dy }))
-            }
-            onHighlightAgents={setHighlightedAgentIds}
-            onClearHighlight={() => setHighlightedAgentIds([])}
-          />
+            </>
+          )}
           {error ? <div className="canvas-error">{error}</div> : null}
         </div>
 

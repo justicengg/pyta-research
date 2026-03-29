@@ -5,6 +5,8 @@ import type {
   SandboxEnvironmentType,
 } from './sandbox'
 
+export type MarketMode = 'primary' | 'secondary'
+
 export type AgentStatus = 'live' | 'reused_last_round' | 'degraded'
 
 export type AgentSentiment = 'bullish' | 'neutral' | 'bearish'
