@@ -1,10 +1,13 @@
 import { useState } from 'react'
 import { CanvasStage } from '../components/layout/CanvasStage'
 import { InformationPanel } from '../components/layout/InformationPanel'
+import { MarketModeSelector } from '../components/layout/MarketModeSelector'
 import { useSandboxRun } from '../hooks/useSandboxRun'
 import { mockCanvasState } from '../lib/mock/canvasState'
+import type { MarketMode } from '../lib/types/canvas'
 
 export function ResearchCanvasPage() {
+  const [marketMode, setMarketMode] = useState<MarketMode | null>(null)
   const [leftCollapsed, setLeftCollapsed] = useState(false)
   const {
     canvasState,
@@ -23,6 +26,14 @@ export function ResearchCanvasPage() {
   } = useSandboxRun({
     initialDraft: mockCanvasState.commandDraft,
   })
+
+  if (marketMode === null) {
+    return (
+      <div className="shell research-canvas-shell">
+        <MarketModeSelector onSelect={setMarketMode} />
+      </div>
+    )
+  }
 
   return (
     <div className={`shell research-canvas-shell ${leftCollapsed ? 'left-collapsed' : ''}`}>
@@ -49,6 +60,8 @@ export function ResearchCanvasPage() {
         sceneParams={sceneParams}
         onSceneParamsChange={setSceneParams}
         onSubmit={() => void submit()}
+        marketMode={marketMode}
+        onSwitchMode={() => setMarketMode(null)}
       />
     </div>
   )

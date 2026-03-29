@@ -16,6 +16,180 @@
   --left-rail: 28px;
 }
 
+/* ── Market Mode Selector ────────────────────────────────────────── */
+
+.mode-selector {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  padding: var(--sp-10);
+}
+
+.mode-selector__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-10);
+  max-width: 860px;
+  width: 100%;
+}
+
+.mode-selector__header {
+  text-align: center;
+}
+
+.mode-selector__title {
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  letter-spacing: var(--ls-tight);
+  color: var(--text-1);
+  line-height: var(--lh-tight);
+  margin: 0 0 var(--sp-2);
+}
+
+.mode-selector__sub {
+  font-size: var(--fs-sm);
+  color: var(--text-3);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.mode-selector__cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-6);
+  width: 100%;
+}
+
+.mode-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: var(--sp-8);
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  box-shadow: var(--shadow-md);
+  transition: box-shadow 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.mode-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.mode-card--secondary:hover {
+  border-color: var(--lime);
+}
+
+.mode-card--primary:hover {
+  border-color: var(--accent);
+}
+
+.mode-card__badge {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--ls-wider);
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.mode-card--secondary .mode-card__badge { color: var(--lime); }
+.mode-card--primary   .mode-card__badge { color: var(--accent); }
+
+.mode-card__title {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  letter-spacing: var(--ls-tight);
+  color: var(--text-1);
+  margin: 0;
+  line-height: var(--lh-tight);
+}
+
+.mode-card__desc {
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  margin: 0;
+  line-height: var(--lh-base);
+}
+
+.mode-card__dims {
+  list-style: none;
+  padding: 0;
+  margin: var(--sp-2) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.mode-card__dims li {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+  padding-left: var(--sp-3);
+  position: relative;
+}
+
+.mode-card__dims li::before {
+  content: '·';
+  position: absolute;
+  left: 0;
+  color: var(--border);
+}
+
+.mode-card--secondary .mode-card__dims li::before { color: var(--lime); }
+.mode-card--primary   .mode-card__dims li::before { color: var(--accent); }
+
+.mode-card__cta {
+  margin-top: auto;
+  padding-top: var(--sp-4);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-3);
+  transition: color 120ms ease;
+}
+
+.mode-card--secondary:hover .mode-card__cta { color: var(--lime); }
+.mode-card--primary:hover   .mode-card__cta { color: var(--accent); }
+
+/* ── Stage head mode switch button ─────────────────────────────── */
+
+.stage-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stage-head-left,
+.stage-head-right {
+  display: flex;
+  align-items: center;
+}
+
+.stage-mode-switch {
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: var(--ls-wide);
+  color: var(--text-3);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  padding: var(--sp-1) var(--sp-3);
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.stage-mode-switch:hover {
+  color: var(--text-1);
+  border-color: var(--text-3);
+}
+
+/* ────────────────────────────────────────────────────────────────── */
+
 .eyebrow {
   font-size: var(--fs-xs);
   font-weight: 500;

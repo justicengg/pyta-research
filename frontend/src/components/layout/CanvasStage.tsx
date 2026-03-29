@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { CanvasState, RoundRecord, SceneParams } from '../../lib/types/canvas'
+import type { CanvasState, MarketMode, RoundRecord, SceneParams } from '../../lib/types/canvas'
 import type {
   SandboxAgentId,
   SandboxEnvironmentType,
@@ -44,6 +44,8 @@ type Props = {
   sceneParams: SceneParams
   onSceneParamsChange: (p: SceneParams) => void
   onSubmit: () => void
+  marketMode: MarketMode
+  onSwitchMode: () => void
 }
 
 const PARALLEL_CENTER_X = 800
@@ -69,6 +71,8 @@ export function CanvasStage({
   sceneParams: _sceneParams,
   onSceneParamsChange: _onSceneParamsChange,
   onSubmit,
+  marketMode,
+  onSwitchMode,
 }: Props) {
   const stageRef = useRef<HTMLDivElement>(null)
   const { panX, panY, zoom, zoomPercent, isPanning, stagePointerHandlers, resetViewport } =
@@ -203,7 +207,14 @@ export function CanvasStage({
       {/* Zone A — Context bar */}
       <div className="stage-head">
         <div className="stage-head-left">
-          <h2>多 Agent 沙盘推演</h2>
+          <h2>
+            {marketMode === 'primary' ? '一级市场深推演' : '二级市场并行沙盘'}
+          </h2>
+        </div>
+        <div className="stage-head-right">
+          <button className="stage-mode-switch" onClick={onSwitchMode} title="切换分析模式">
+            切换模式
+          </button>
         </div>
       </div>
 
