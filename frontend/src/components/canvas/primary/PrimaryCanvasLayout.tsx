@@ -8,17 +8,24 @@ import { UncertaintyMapCard } from './UncertaintyMapCard'
 
 type Pos = { x: number; y: number }
 
-// Default 2×2 grid layout, centered around x=800
+// Horizontal layout — 4 cards in a single row, centered in canvas
+// Canvas visible width at zoom 0.72: ~1583px → cards (1400px) + ~183px margin
+// Start X = (1583 - 1400) / 2 ≈ 92px, card width 320px, gap 40px
+const CARD_WIDTH = 320
+const CARD_GAP   = 40
+const ROW_START_X = 92
+const ROW_Y       = 280
+
 const DEFAULT_POSITIONS: Record<string, Pos> = {
-  uncertainty: { x: 460,  y: 260 },
-  founder:     { x: 830,  y: 260 },
-  assumptions: { x: 460,  y: 620 },
-  financial:   { x: 830,  y: 620 },
+  uncertainty: { x: ROW_START_X,                                        y: ROW_Y },
+  founder:     { x: ROW_START_X + (CARD_WIDTH + CARD_GAP),             y: ROW_Y },
+  assumptions: { x: ROW_START_X + (CARD_WIDTH + CARD_GAP) * 2,        y: ROW_Y },
+  financial:   { x: ROW_START_X + (CARD_WIDTH + CARD_GAP) * 3,        y: ROW_Y },
 }
 
-const FORK_START_X = 645
-const FORK_START_Y = 980
-const FORK_GAP_X   = 380
+const FORK_START_X = ROW_START_X
+const FORK_START_Y = ROW_Y + 460
+const FORK_GAP_X   = CARD_WIDTH + CARD_GAP
 
 type Props = {
   state: PrimaryCanvasState
@@ -79,13 +86,13 @@ export function PrimaryCanvasLayout({ state }: Props) {
         )
       })}
 
-      {/* Overall verdict banner */}
+      {/* Overall verdict banner — centered above the four cards */}
       {state.overallVerdict && (
         <div
           className="pm-verdict"
           style={{
-            left: positions.uncertainty.x,
-            top: positions.uncertainty.y - 56,
+            left: ROW_START_X,
+            top: ROW_Y - 56,
           }}
         >
           <span className="pm-verdict__company">{state.companyName}</span>

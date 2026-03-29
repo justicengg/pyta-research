@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { CanvasStage } from '../components/layout/CanvasStage'
 import { InformationPanel } from '../components/layout/InformationPanel'
 import { MarketModeSelector } from '../components/layout/MarketModeSelector'
+import { usePrimaryRun } from '../hooks/usePrimaryRun'
 import { useSandboxRun } from '../hooks/useSandboxRun'
 import { mockCanvasState } from '../lib/mock/canvasState'
 import type { MarketMode } from '../lib/types/canvas'
@@ -9,23 +10,12 @@ import type { MarketMode } from '../lib/types/canvas'
 export function ResearchCanvasPage() {
   const [marketMode, setMarketMode] = useState<MarketMode | null>(null)
   const [leftCollapsed, setLeftCollapsed] = useState(false)
-  const {
-    canvasState,
-    backendState,
-    draft,
-    setDraft,
-    isRunning,
-    error,
-    qualityLabel,
-    currentInputEvents,
-    currentRound,
-    roundHistory,
-    sceneParams,
-    setSceneParams,
-    submit,
-  } = useSandboxRun({
-    initialDraft: mockCanvasState.commandDraft,
-  })
+
+  // Secondary market hook
+  const secondary = useSandboxRun({ initialDraft: mockCanvasState.commandDraft })
+
+  // Primary market hook
+  const primary = usePrimaryRun()
 
   if (marketMode === null) {
     return (
@@ -35,32 +25,56 @@ export function ResearchCanvasPage() {
     )
   }
 
+  if (marketMode === 'primary') {
+    return (
+      <div className="shell research-canvas-shell research-canvas-shell--no-left-panel">
+        <CanvasStage
+          state={secondary.canvasState}
+          draft={primary.draft}
+          onDraftChange={primary.setDraft}
+          isRunning={primary.isRunning}
+          error={primary.error}
+          qualityLabel={primary.stopReason ?? (primary.isRunning ? 'running…' : 'ready')}
+          currentRound={primary.roundsCompleted}
+          roundHistory={[]}
+          currentInputEvents={[]}
+          sceneParams={{ ticker: primary.canvasState.companyName, market: 'primary', timeHorizon: '' }}
+          onSceneParamsChange={() => {}}
+          onSubmit={() => void primary.submit()}
+          marketMode="primary"
+          onSwitchMode={() => setMarketMode(null)}
+          primaryCanvasState={primary.canvasState}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className={`shell research-canvas-shell ${leftCollapsed ? 'left-collapsed' : ''}`}>
       <InformationPanel
         collapsed={leftCollapsed}
-        onToggle={() => setLeftCollapsed((value) => !value)}
-        state={canvasState}
-        currentInputEvents={currentInputEvents}
-        sessionStatus={backendState?.sessionStatus ?? (isRunning ? 'running' : 'initializing')}
-        error={error}
-        defaultSymbol={sceneParams.ticker}
-        defaultMarket={sceneParams.market}
+        onToggle={() => setLeftCollapsed(v => !v)}
+        state={secondary.canvasState}
+        currentInputEvents={secondary.currentInputEvents}
+        sessionStatus={secondary.backendState?.sessionStatus ?? (secondary.isRunning ? 'running' : 'initializing')}
+        error={secondary.error}
+        defaultSymbol={secondary.sceneParams.ticker}
+        defaultMarket={secondary.sceneParams.market}
       />
       <CanvasStage
-        state={canvasState}
-        draft={draft}
-        onDraftChange={setDraft}
-        isRunning={isRunning}
-        error={error}
-        qualityLabel={qualityLabel}
-        currentRound={currentRound}
-        roundHistory={roundHistory}
-        currentInputEvents={currentInputEvents}
-        sceneParams={sceneParams}
-        onSceneParamsChange={setSceneParams}
-        onSubmit={() => void submit()}
-        marketMode={marketMode}
+        state={secondary.canvasState}
+        draft={secondary.draft}
+        onDraftChange={secondary.setDraft}
+        isRunning={secondary.isRunning}
+        error={secondary.error}
+        qualityLabel={secondary.qualityLabel}
+        currentRound={secondary.currentRound}
+        roundHistory={secondary.roundHistory}
+        currentInputEvents={secondary.currentInputEvents}
+        sceneParams={secondary.sceneParams}
+        onSceneParamsChange={secondary.setSceneParams}
+        onSubmit={() => void secondary.submit()}
+        marketMode="secondary"
         onSwitchMode={() => setMarketMode(null)}
       />
     </div>

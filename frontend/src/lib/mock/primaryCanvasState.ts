@@ -58,7 +58,7 @@ export const mockPrimaryCanvasState: PrimaryCanvasState = {
       {
         level: 'hard',
         description: '企业客户 LTV/CAC > 3x，获客效率可持续',
-        status: 'violated',
+        status: 'unverified',
         triggersPathFork: true,
       },
       {
@@ -94,15 +94,8 @@ export const mockPrimaryCanvasState: PrimaryCanvasState = {
     runwayMonths: 18,
     valuationNarrative: '当前估值约 37x ARR，偏高，需要未来 12 个月 ARR 翻倍支撑',
   },
-  pathForks: [
-    {
-      forkId: 'fork-001',
-      triggerAssumption: '企业客户 LTV/CAC > 3x，获客效率可持续',
-      scenarioIfHolds: '获客效率改善，商业化路径成立，B 轮融资路径清晰。',
-      scenarioIfFails: '需重新评估 GTM 策略，考虑 PLG 路径或聚焦更高 LTV 的行业垂直市场。',
-      recommendedAction: '立即用真实客户数据验证，优先完成 3 个企业 POC 转化，获取 12 个月 LTV 数据。',
-    },
-  ],
-  overallVerdict: 'HIGH RISK: 1 hard assumption violated — PathFork triggered. LTV/CAC 当前低于门槛，需在 90 天内验证获客效率。',
-  confidence: 0.61,
+  // PathFork 和 verdict 是 sandbox run 完成后的输出，默认为空
+  pathForks: [],
+  overallVerdict: undefined,
+  confidence: undefined,
 }

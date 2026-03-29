@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CanvasState, MarketMode, RoundRecord, SceneParams } from '../../lib/types/canvas'
+import type { PrimaryCanvasState } from '../../lib/types/primaryCanvas'
+
 import type {
   SandboxAgentId,
   SandboxEnvironmentType,
@@ -48,6 +50,7 @@ type Props = {
   onSubmit: () => void
   marketMode: MarketMode
   onSwitchMode: () => void
+  primaryCanvasState?: PrimaryCanvasState
 }
 
 const PARALLEL_CENTER_X = 800
@@ -75,10 +78,11 @@ export function CanvasStage({
   onSubmit,
   marketMode,
   onSwitchMode,
+  primaryCanvasState,
 }: Props) {
   const stageRef = useRef<HTMLDivElement>(null)
   const { panX, panY, zoom, zoomPercent, isPanning, stagePointerHandlers, resetViewport } =
-    useCanvasViewport(stageRef)
+    useCanvasViewport(stageRef, marketMode === 'primary' ? 0.72 : 1)
   const [showPromptMascot, setShowPromptMascot] = useState(false)
   const [isOrbExiting, setIsOrbExiting] = useState(false)
   const [promptMessage, setPromptMessage] = useState('说吧，今天研究什么')
@@ -240,7 +244,7 @@ export function CanvasStage({
         >
           <CanvasBackground />
           {marketMode === 'primary' ? (
-            <PrimaryCanvasLayout state={mockPrimaryCanvasState} />
+            <PrimaryCanvasLayout state={primaryCanvasState ?? mockPrimaryCanvasState} />
           ) : null}
           <EnvironmentFlowLayer
             isActive={isRunning}
